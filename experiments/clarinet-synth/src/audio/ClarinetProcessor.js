@@ -18,7 +18,7 @@ export class ClarinetProcessor {
     async initialize() {
         console.log(`ClarinetProcessor.initialize()`)
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this._installIOSUnlock(this.audioContext);
+        await this._installIOSUnlock(this.audioContext);
 
         // Create gain node for volume control
         this.gainNode = this.audioContext.createGain();
@@ -80,7 +80,7 @@ export class ClarinetProcessor {
         }
     }
 
-    _installIOSUnlock(ctx) {
+    async _installIOSUnlock(ctx) {
         if (!ctx) return;
         let unlocked = ctx.state === 'running';
         const cleanup = () => {
@@ -110,6 +110,9 @@ export class ClarinetProcessor {
         document.addEventListener('touchstart', unlock, { capture: true, passive: true });
         document.addEventListener('keydown', unlock, { capture: true });
         ctx.onstatechange = () => console.log('[audio] state:', ctx.state);
+        
+        // Try to unlock immediately if we're in a user gesture
+        await unlock();
     }
 
     noteOff() {

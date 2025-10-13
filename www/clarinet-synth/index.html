@@ -239,7 +239,117 @@
             height: 100%;
         }
     </style>
-  <script type="module" crossorigin src="./assets/index-CtIm5pJl.js"></script>
+    <style>
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            .synth-container {
+                padding: 15px;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+
+            .synth-title {
+                font-size: 22px;
+            }
+
+            .controls-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 15px;
+            }
+
+            .knob-container {
+                width: 60px;
+                height: 60px;
+            }
+
+            .key {
+                width: 45px;
+                height: 130px;
+            }
+
+            .key.black {
+                width: 30px;
+                height: 90px;
+                margin: 0 -16px;
+            }
+
+            .status-bar {
+                flex-wrap: wrap;
+                padding: 10px;
+            }
+
+            .status-item {
+                font-size: 11px;
+                margin: 2px 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .synth-container {
+                padding: 10px;
+            }
+
+            .synth-header {
+                margin-bottom: 20px;
+            }
+
+            .synth-title {
+                font-size: 18px;
+                letter-spacing: 2px;
+            }
+
+            .control-section {
+                padding: 15px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+
+            .knob-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .keyboard {
+                padding: 10px;
+                gap: 3px;
+            }
+
+            .key {
+                width: 12vw;
+                height: 35vw;
+                font-size: 10px;
+            }
+
+            .key.black {
+                width: 8vw;
+                height: 22vw;
+                margin: 0 -4.5vw;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .power-button {
+                margin: 0 auto 10px;
+            }
+
+            .status-item {
+                display: flex;
+                justify-content: space-between;
+                margin: 4px 0;
+            }
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/index-3bg4U7-_.js"></script>
 </head>
 <body>
     <div class="synth-container">

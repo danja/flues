@@ -16,7 +16,6 @@ export default defineConfig({
           return 'assets/[name]-[hash][extname]';
         }
       }
-    },
-    watch: {},
+    }
   }
 })
