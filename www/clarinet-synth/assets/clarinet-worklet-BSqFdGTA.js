@@ -1,6 +1,8 @@
 // clarinet-worklet.js
 // AudioWorklet processor for the clarinet engine
 
+const sampleRate = globalThis.sampleRate;
+
 class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     constructor() {
         super();
@@ -83,7 +85,8 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     }
 
     highpass(input, cutoff) {
-        const a = cutoff;
+        // Simple DC blocker - only removes very low frequencies
+        const a = 1.0 - cutoff;  // Inverted so higher cutoff = more highs
         const output = a * (this.hpf.y1 + input - this.hpf.x1);
         this.hpf.x1 = input;
         this.hpf.y1 = output;
@@ -103,11 +106,11 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
 
     updateEnvelope(deltaTime) {
         if (this.gate) {
-            const attackRate = 1.0 / (this.attackTime * this.sampleRate);
+            const attackRate = 1.0 / this.attackTime;
             this.envelope += attackRate * deltaTime;
             if (this.envelope > 1) this.envelope = 1;
         } else {
-            const releaseRate = 1.0 / (this.releaseTime * this.sampleRate);
+            const releaseRate = 1.0 / this.releaseTime;
             this.envelope -= releaseRate * deltaTime;
             if (this.envelope < 0) {
                 this.envelope = 0;
@@ -152,8 +155,8 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         const pressureDiff = mouthPressure - borePressure;
         const flow = this.reedReflection(pressureDiff);
 
-        // Mix into bore
-        let newSample = borePressure + flow * 0.5;
+        // Mix into bore - balanced for clarinet-like tone
+        let newSample = borePressure + flow * 1.5;
 
         // Apply filters
         newSample = this.lowpass(newSample, this.lpf.cutoff);
@@ -166,7 +169,7 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         this.delayLine[this.writePos] = newSample;
         this.writePos = (this.writePos + 1) % this.delayLength;
 
-        return newSample * env * 0.5;
+        return newSample * env * 1.0;
     }
 
     noteOn(frequency) {
@@ -174,6 +177,12 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         this.gate = true;
         this.isPlaying = true;
         this.vibratoPhase = 0;
+
+        // Reset filter state to prevent DC buildup
+        this.lpf.x1 = 0;
+        this.lpf.y1 = 0;
+        this.hpf.x1 = 0;
+        this.hpf.y1 = 0;
 
         if (this.delayLine) {
             for (let i = 0; i < this.delayLength; i++) {
@@ -189,7 +198,8 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     setParameter(param, value) {
         switch(param) {
             case 'breath':
-                this.breathPressure = value * 0.8 + 0.2;
+                // Narrower range for more stable oscillation
+                this.breathPressure = value * 0.4 + 0.4;
                 break;
             case 'reed':
                 this.reedStiffness = value;
@@ -207,7 +217,8 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
                 this.lpf.cutoff = 0.3 + value * 0.69;
                 break;
             case 'brightness':
-                this.hpf.cutoff = value * 0.05;
+                // Inverted: 0 = all frequencies, 1 = cut bass (brighter)
+                this.hpf.cutoff = 0.001 + value * 0.01;
                 break;
             case 'vibrato':
                 this.vibratoAmount = value * 0.01;
