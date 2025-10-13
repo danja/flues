@@ -1,0 +1,16 @@
+{
+  "name": "clarinet-synth",
+  "version": "0.1.0",
+  "description": "Digital waveguide clarinet synthesizer using Web Audio API",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

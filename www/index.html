@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flues - Audio Experiments</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #a8c8ff;
+            margin-bottom: 60px;
+            letter-spacing: 2px;
+        }
+
+        .experiments {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .experiment-card {
+            background: rgba(42, 42, 42, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 2px solid rgba(74, 158, 255, 0.2);
+        }
+
+        .experiment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(74, 158, 255, 0.4);
+            border-color: rgba(74, 158, 255, 0.6);
+        }
+
+        .experiment-card h2 {
+            color: #4a9eff;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .experiment-card p {
+            color: #ccc;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .experiment-card a {
+            display: inline-block;
+            background: linear-gradient(145deg, #4a9eff, #357abd);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+        }
+
+        .experiment-card a:hover {
+            background: linear-gradient(145deg, #357abd, #2a5298);
+            box-shadow: 0 6px 20px rgba(74, 158, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            color: #a8c8ff;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .footer a {
+            color: #4a9eff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flues</h1>
+        <div class="subtitle">Audio Synthesis Experiments</div>
+
+        <div class="experiments">
+            <div class="experiment-card">
+                <h2>Clarinet Synth</h2>
+                <p>
+                    A digital waveguide physical modeling synthesizer that simulates
+                    clarinet acoustics using Karplus-Strong delay lines, nonlinear
+                    reed models, and real-time parameter control.
+                </p>
+                <a href="./clarinet-synth/">Launch Synth →</a>
+            </div>
+
+            <!-- Future experiments will be added here -->
+        </div>
+
+        <div class="footer">
+            <p>Built with vanilla JavaScript, Web Audio API, and Vite</p>
+            <p><a href="https://github.com/yourusername/flues" target="_blank">View on GitHub</a></p>
+        </div>
+    </div>
+</body>
+</html>

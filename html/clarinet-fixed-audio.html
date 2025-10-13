@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Waveguide Clarinet - Fixed</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .synth-container {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            width: 100%;
+        }
+        .synth-header { text-align: center; margin-bottom: 20px; }
+        .synth-title {
+            color: #4a9eff;
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+        .synth-subtitle { color: #888; font-size: 12px; letter-spacing: 2px; }
+        .info-box {
+            background: #2a2a2a;
+            border: 2px solid #4eff4a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #bbb;
+            font-size: 13px;
+        }
+        .info-box strong { color: #4eff4a; }
+        .control-section {
+            background: #333;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            color: #4a9eff;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+        }
+        .control { display: flex; flex-direction: column; align-items: center; }
+        .knob-container { position: relative; width: 70px; height: 70px; margin-bottom: 10px; }
+        .knob {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #444, #222);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s;
+        }
+        .knob::before {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 25px;
+            background: #4a9eff;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+        }
+        .knob-label {
+            color: #bbb;
+            font-size: 11px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .knob-value { color: #4a9eff; font-size: 10px; font-family: monospace; }
+        .keyboard {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .key {
+            width: 50px;
+            height: 150px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 0 0 5px 5px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.05s;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            font-size: 11px;
+            color: #999;
+        }
+        .key:hover { background: #f0f0f0; }
+        .key:active, .key.active { background: #4a9eff; color: white; transform: translateY(2px); }
+        .key.black {
+            width: 35px;
+            height: 100px;
+            background: #222;
+            color: #666;
+            margin: 0 -18px;
+            z-index: 1;
+            border: 2px solid #000;
+        }
+        .key.black:hover { background: #333; }
+        .key.black:active, .key.black.active { background: #4a9eff; color: white; }
+        .status-bar {
+            background: #222;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .status-item { color: #888; font-size: 12px; }
+        .status-value { color: #4a9eff; font-weight: bold; margin-left: 10px; }
+        .power-button {
+            background: linear-gradient(145deg, #444, #222);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            color: #666;
+            font-size: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .power-button:hover { color: #4a9eff; }
+        .power-button.active { color: #4eff4a; box-shadow: 0 0 20px rgba(78, 255, 74, 0.5); }
+        .visualizer {
+            background: #1a1a1a;
+            border-radius: 8px;
+            height: 80px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .visualizer-canvas { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div class="synth-container">
+        <div class="synth-header">
+            <div class="synth-title">Digital Waveguide Clarinet</div>
+            <div class="synth-subtitle">Physical Modeling Synthesizer - Fixed Version</div>
+        </div>
+
+        <div class="info-box">
+            <strong>✅ AUDIO FIXED!</strong> Power on, then play with keyboard A-K or click keys. 
+            <strong>Start with lower feedback (80-90)</strong> for stability. Drag knobs up/down to adjust.
+        </div>
+
+        <div class="visualizer">
+            <canvas class="visualizer-canvas" id="visualizer"></canvas>
+        </div>
+
+        <div class="control-section">
+            <div class="section-title">Reed & Excitation</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">Breath</div>
+                    <div class="knob-container"><div class="knob" id="breath-knob"></div></div>
+                    <div class="knob-value" id="breath-value">60</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Reed Stiff</div>
+                    <div class="knob-container"><div class="knob" id="reed-knob"></div></div>
+                    <div class="knob-value" id="reed-value">50</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Noise</div>
+                    <div class="knob-container"><div class="knob" id="noise-knob"></div></div>
+                    <div class="knob-value" id="noise-value">10</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Attack</div>
+                    <div class="knob-container"><div class="knob" id="attack-knob"></div></div>
+                    <div class="knob-value" id="attack-value">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="section-title">Bore & Resonance</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">Feedback</div>
+                    <div class="knob-container"><div class="knob" id="feedback-knob"></div></div>
+                    <div class="knob-value" id="feedback-value">85</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Brightness</div>
+                    <div class="knob-container"><div class="knob" id="brightness-knob"></div></div>
+                    <div class="knob-value" id="brightness-value">60</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Tone</div>
+                    <div class="knob-container"><div class="knob" id="tone-knob"></div></div>
+                    <div class="knob-value" id="tone-value">50</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Release</div>
+                    <div class="knob-container"><div class="knob" id="release-knob"></div></div>
+                    <div class="knob-value" id="release-value">40</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="keyboard" id="keyboard">
+            <div class="key white" data-note="C4">C4</div>
+            <div class="key black" data-note="C#4">C#</div>
+            <div class="key white" data-note="D4">D4</div>
+            <div class="key black" data-note="D#4">D#</div>
+            <div class="key white" data-note="E4">E4</div>
+            <div class="key white" data-note="F4">F4</div>
+            <div class="key black" data-note="F#4">F#</div>
+            <div class="key white" data-note="G4">G4</div>
+            <div class="key black" data-note="G#4">G#</div>
+            <div class="key white" data-note="A4">A4</div>
+            <div class="key black" data-note="A#4">A#</div>
+            <div class="key white" data-note="B4">B4</div>
+            <div class="key white" data-note="C5">C5</div>
+        </div>
+
+        <div class="status-bar">
+            <button class="power-button" id="power-button">⏻</button>
+            <div class="status-item">
+                Volume: <input type="range" id="volume-slider" min="10" max="100" value="50" style="width: 100px;">
+                <span class="status-value" id="volume-display">50%</span>
+            </div>
+            <div class="status-item">Status: <span class="status-value" id="status">OFF</span></div>
+            <div class="status-item">Note: <span class="status-value" id="current-note">---</span></div>
+        </div>
+    </div>
+
+    <script>
+        class ClarinetEngine {
+            constructor(sampleRate = 44100) {
+                this.sampleRate = sampleRate;
+                this.delayLine = null;
+                this.delayLength = 100;
+                this.writePos = 0;
+                
+                // Parameters
+                this.breathPressure = 0.6;
+                this.reedStiffness = 0.5;
+                this.noiseLevel = 0.1;
+                this.feedbackGain = 0.85;
+                this.brightness = 0.6;
+                this.toneControl = 0.5;
+                
+                // Filter states - MULTIPLE stages for better DC blocking
+                this.lpf = 0;
+                this.hpf1_x = 0;
+                this.hpf1_y = 0;
+                this.hpf2_x = 0;
+                this.hpf2_y = 0;
+                this.dcBlocker = 0;
+                
+                // Envelope
+                this.envelope = 0;
+                this.attackTime = 0.005;
+                this.releaseTime = 0.04;
+                this.gate = false;
+                this.isPlaying = false;
+                
+                this.frequency = 440;
+            }
+            
+            setFrequency(freq) {
+                this.frequency = Math.max(100, Math.min(freq, 2000)); // Clamp frequency
+                const newLength = Math.floor(this.sampleRate / this.frequency);
+                
+                if (!this.delayLine || newLength !== this.delayLength) {
+                    this.delayLength = Math.max(20, Math.min(newLength, 1000)); // Safety limits
+                    this.delayLine = new Float32Array(this.delayLength);
+                    this.delayLine.fill(0);
+                    this.writePos = 0;
+                }
+            }
+            
+            reedModel(dp) {
+                // More controlled nonlinearity
+                const scale = 1.5 + this.reedStiffness * 2.0;
+                const x = dp * scale;
+                
+                // Soft saturation
+                if (x > 2) return 0.9;
+                if (x < -2) return -0.9;
+                
+                // Smooth polynomial
+                return x * (1 - 0.15 * x * x);
+            }
+            
+            updateEnvelope() {
+                if (this.gate) {
+                    const rate = 1.0 / (this.attackTime * this.sampleRate);
+                    this.envelope += rate;
+                    if (this.envelope > 1) this.envelope = 1;
+                } else {
+                    const rate = 1.0 / (this.releaseTime * this.sampleRate);
+                    this.envelope -= rate;
+                    if (this.envelope < 0) {
+                        this.envelope = 0;
+                        this.isPlaying = false;
+                    }
+                }
+                return this.envelope;
+            }
+            
+            process() {
+                if (!this.delayLine) return 0;
+                
+                const env = this.updateEnvelope();
+                if (env < 0.001) return 0;
+                
+                // Read from delay line (simple, no vibrato for stability)
+                const readPos = (this.writePos - this.delayLength + this.delayLength) % this.delayLength;
+                const borePressure = this.delayLine[readPos];
+                
+                // Excitation
+                const noise = (Math.random() * 2 - 1) * this.noiseLevel;
+                const breath = this.breathPressure * env;
+                const mouthPressure = breath + noise * 0.3;
+                
+                // Reed nonlinearity
+                const dp = mouthPressure - borePressure * 0.95;
+                const reedOut = this.reedModel(dp);
+                
+                // Feedback loop with controlled gain
+                let sample = borePressure * this.feedbackGain + reedOut * 0.25;
+                
+                // CRITICAL: Strong DC blocking - two stages
+                const a1 = 0.995;
+                const hp1 = a1 * (this.hpf1_y + sample - this.hpf1_x);
+                this.hpf1_x = sample;
+                this.hpf1_y = hp1;
+                
+                const a2 = 0.998;
+                const hp2 = a2 * (this.hpf2_y + hp1 - this.hpf2_x);
+                this.hpf2_x = hp1;
+                this.hpf2_y = hp2;
+                
+                sample = hp2;
+                
+                // Tone control lowpass
+                const lpfAmount = 0.3 + this.brightness * 0.6;
+                this.lpf = this.lpf * (1 - lpfAmount) + sample * lpfAmount;
+                
+                // Mix tone
+                sample = sample * (1 - this.toneControl) + this.lpf * this.toneControl;
+                
+                // Gentle limiter
+                sample = Math.max(-0.95, Math.min(0.95, sample));
+                sample = Math.tanh(sample * 0.8);
+                
+                // Write to delay
+                this.delayLine[this.writePos] = sample;
+                this.writePos = (this.writePos + 1) % this.delayLength;
+                
+                return sample * env * 0.5;
+            }
+            
+            noteOn(frequency) {
+                this.setFrequency(frequency);
+                this.gate = true;
+                this.isPlaying = true;
+                this.envelope = 0;
+                
+                // Gentle startup
+                if (this.delayLine) {
+                    for (let i = 0; i < Math.min(15, this.delayLength); i++) {
+                        this.delayLine[i] = (Math.random() * 2 - 1) * 0.3;
+                    }
+                }
+            }
+            
+            noteOff() { this.gate = false; }
+            
+            setBreath(v) { this.breathPressure = v * 0.7 + 0.2; }
+            setReedStiffness(v) { this.reedStiffness = v; }
+            setNoise(v) { this.noiseLevel = v * 0.15; }
+            setAttack(v) { this.attackTime = v * 0.05 + 0.001; }
+            setRelease(v) { this.releaseTime = v * 0.2 + 0.01; }
+            setFeedback(v) { this.feedbackGain = 0.75 + v * 0.23; } // Max 0.98
+            setBrightness(v) { this.brightness = v; }
+            setTone(v) { this.toneControl = v; }
+        }
+
+        class ClarinetProcessor {
+            constructor() {
+                this.audioContext = null;
+                this.scriptNode = null;
+                this.gainNode = null;
+                this.engine = null;
+                this.analyser = null;
+                this.isActive = false;
+            }
+            
+            async initialize() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.gainNode = this.audioContext.createGain();
+                this.gainNode.gain.value = 0.5;
+                
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 2048;
+                
+                // Smaller buffer for better stability
+                this.scriptNode = this.audioContext.createScriptProcessor(4096, 0, 1);
+                this.engine = new ClarinetEngine(this.audioContext.sampleRate);
+                
+                this.scriptNode.onaudioprocess = (event) => {
+                    const output = event.outputBuffer.getChannelData(0);
+                    for (let i = 0; i < output.length; i++) {
+                        output[i] = this.engine.process();
+                    }
+                };
+                
+                this.scriptNode.connect(this.gainNode);
+                this.gainNode.connect(this.audioContext.destination);
+                this.gainNode.connect(this.analyser);
+                
+                await this.audioContext.resume();
+                this.isActive = true;
+            }
+            
+            async noteOn(freq) {
+                if (this.audioContext.state !== 'running') {
+                    await this.audioContext.resume();
+                }
+                this.engine.noteOn(freq);
+            }
+            
+            noteOff() { this.engine.noteOff(); }
+            
+            setParameter(param, value) {
+                const map = {
+                    breath: () => this.engine.setBreath(value),
+                    reed: () => this.engine.setReedStiffness(value),
+                    noise: () => this.engine.setNoise(value),
+                    attack: () => this.engine.setAttack(value),
+                    release: () => this.engine.setRelease(value),
+                    feedback: () => this.engine.setFeedback(value),
+                    brightness: () => this.engine.setBrightness(value),
+                    tone: () => this.engine.setTone(value)
+                };
+                if (map[param]) map[param]();
+            }
+            
+            getAnalyserData() {
+                if (!this.analyser) return null;
+                const data = new Uint8Array(this.analyser.frequencyBinCount);
+                this.analyser.getByteTimeDomainData(data);
+                return data;
+            }
+            
+            shutdown() {
+                if (this.scriptNode) this.scriptNode.disconnect();
+                if (this.gainNode) this.gainNode.disconnect();
+                if (this.analyser) this.analyser.disconnect();
+                if (this.audioContext) this.audioContext.close();
+                this.isActive = false;
+            }
+        }
+
+        // UI (simplified for brevity - same pattern as before)
+        class KnobController {
+            constructor(element, valueElement, onChange, min, max, defaultValue) {
+                this.element = element;
+                this.valueElement = valueElement;
+                this.onChange = onChange;
+                this.min = min;
+                this.max = max;
+                this.value = defaultValue;
+                this.isDragging = false;
+                this.setupListeners();
+                this.updateDisplay();
+            }
+            
+            setupListeners() {
+                this.element.addEventListener('mousedown', (e) => {
+                    this.isDragging = true;
+                    this.startY = e.clientY;
+                    this.startValue = this.value;
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (this.isDragging) {
+                        const delta = (this.startY - e.clientY) * 0.5;
+                        this.value = Math.max(this.min, Math.min(this.max, this.startValue + delta));
+                        this.updateDisplay();
+                        this.onChange(this.value / 100);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => { this.isDragging = false; });
+            }
+            
+            updateDisplay() {
+                const rotation = (this.value / 100) * 270 - 135;
+                this.element.style.transform = `rotate(${rotation}deg)`;
+                this.valueElement.textContent = Math.round(this.value);
+            }
+        }
+
+        class KeyboardController {
+            constructor(container, onNoteOn, onNoteOff) {
+                this.container = container;
+                this.onNoteOn = onNoteOn;
+                this.onNoteOff = onNoteOff;
+                this.activeKeys = new Set();
+                this.keyMap = {
+                    'a': 'C4', 'w': 'C#4', 's': 'D4', 'e': 'D#4', 'd': 'E4',
+                    'f': 'F4', 't': 'F#4', 'g': 'G4', 'y': 'G#4', 'h': 'A4',
+                    'u': 'A#4', 'j': 'B4', 'k': 'C5'
+                };
+                this.setupListeners();
+            }
+            
+            noteToFrequency(note) {
+                const notes = {
+                    'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
+                    'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
+                    'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88, 'C5': 523.25
+                };
+                return notes[note] || 440;
+            }
+            
+            setupListeners() {
+                const keys = this.container.querySelectorAll('.key');
+                keys.forEach(key => {
+                    const note = key.dataset.note;
+                    key.addEventListener('mousedown', (e) => { e.preventDefault(); this.pressKey(note); });
+                    key.addEventListener('mouseup', () => this.releaseKey(note));
+                    key.addEventListener('mouseleave', () => { if (this.activeKeys.has(note)) this.releaseKey(note); });
+                });
+                
+                document.addEventListener('keydown', (e) => {
+                    const note = this.keyMap[e.key.toLowerCase()];
+                    if (note && !this.activeKeys.has(note)) this.pressKey(note);
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    const note = this.keyMap[e.key.toLowerCase()];
+                    if (note) this.releaseKey(note);
+                });
+            }
+            
+            pressKey(note) {
+                if (this.activeKeys.has(note)) return;
+                this.activeKeys.add(note);
+                const el = this.container.querySelector(`[data-note="${note}"]`);
+                if (el) el.classList.add('active');
+                this.onNoteOn(note, this.noteToFrequency(note));
+            }
+            
+            releaseKey(note) {
+                if (!this.activeKeys.has(note)) return;
+                this.activeKeys.delete(note);
+                const el = this.container.querySelector(`[data-note="${note}"]`);
+                if (el) el.classList.remove('active');
+                this.onNoteOff(note);
+            }
+            
+            releaseAllKeys() {
+                this.activeKeys.forEach(n => this.releaseKey(n));
+            }
+        }
+
+        class Visualizer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.isRunning = false;
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+            }
+            
+            start(getDataFn) {
+                this.isRunning = true;
+                this.dataFn = getDataFn;
+                this.draw();
+            }
+            
+            stop() { this.isRunning = false; }
+            
+            draw() {
+                if (!this.isRunning) return;
+                const data = this.dataFn();
+                this.ctx.fillStyle = '#1a1a1a';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (data) {
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = '#4a9eff';
+                    this.ctx.beginPath();
+                    const sliceWidth = this.canvas.width / data.length;
+                    let x = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        const v = data[i] / 128.0;
+                        const y = v * this.canvas.height / 2;
+                        if (i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+                        x += sliceWidth;
+                    }
+                    this.ctx.stroke();
+                }
+                requestAnimationFrame(() => this.draw());
+            }
+        }
+
+        // Main App
+        class ClarinetSynthApp {
+            constructor() {
+                this.processor = null;
+                this.keyboard = null;
+                this.visualizer = null;
+                this.knobs = {};
+                this.isActive = false;
+                this.currentNote = null;
+                this.initializeUI();
+            }
+            
+            initializeUI() {
+                document.getElementById('power-button').addEventListener('click', () => this.togglePower());
+                
+                const vol = document.getElementById('volume-slider');
+                const volDisp = document.getElementById('volume-display');
+                vol.addEventListener('input', (e) => {
+                    const v = parseInt(e.target.value);
+                    volDisp.textContent = v + '%';
+                    if (this.processor && this.processor.gainNode) {
+                        this.processor.gainNode.gain.value = v / 100;
+                    }
+                });
+                
+                this.knobs.breath = new KnobController(
+                    document.getElementById('breath-knob'),
+                    document.getElementById('breath-value'),
+                    (v) => this.updateParam('breath', v), 0, 100, 60
+                );
+                
+                this.knobs.reed = new KnobController(
+                    document.getElementById('reed-knob'),
+                    document.getElementById('reed-value'),
+                    (v) => this.updateParam('reed', v), 0, 100, 50
+                );
+                
+                this.knobs.noise = new KnobController(
+                    document.getElementById('noise-knob'),
+                    document.getElementById('noise-value'),
+                    (v) => this.updateParam('noise', v), 0, 100, 10
+                );
+                
+                this.knobs.attack = new KnobController(
+                    document.getElementById('attack-knob'),
+                    document.getElementById('attack-value'),
+                    (v) => this.updateParam('attack', v), 0, 100, 5
+                );
+                
+                this.knobs.feedback = new KnobController(
+                    document.getElementById('feedback-knob'),
+                    document.getElementById('feedback-value'),
+                    (v) => this.updateParam('feedback', v), 0, 100, 85
+                );
+                
+                this.knobs.brightness = new KnobController(
+                    document.getElementById('brightness-knob'),
+                    document.getElementById('brightness-value'),
+                    (v) => this.updateParam('brightness', v), 0, 100, 60
+                );
+                
+                this.knobs.tone = new KnobController(
+                    document.getElementById('tone-knob'),
+                    document.getElementById('tone-value'),
+                    (v) => this.updateParam('tone', v), 0, 100, 50
+                );
+                
+                this.knobs.release = new KnobController(
+                    document.getElementById('release-knob'),
+                    document.getElementById('release-value'),
+                    (v) => this.updateParam('release', v), 0, 100, 40
+                );
+                
+                this.keyboard = new KeyboardController(
+                    document.getElementById('keyboard'),
+                    (note, freq) => this.handleNoteOn(note, freq),
+                    (note) => this.handleNoteOff(note)
+                );
+                
+                this.visualizer = new Visualizer(document.getElementById('visualizer'));
+                this.updateStatus();
+            }
+            
+            async togglePower() {
+                if (!this.isActive) await this.powerOn();
+                else this.powerOff();
+            }
+            
+            async powerOn() {
+                try {
+                    this.processor = new ClarinetProcessor();
+                    await this.processor.initialize();
+                    
+                    const vol = document.getElementById('volume-slider');
+                    this.processor.gainNode.gain.value = parseInt(vol.value) / 100;
+                    
+                    Object.keys(this.knobs).forEach(k => {
+                        this.updateParam(k, this.knobs[k].value / 100);
+                    });
+                    
+                    this.visualizer.start(() => this.processor.getAnalyserData());
+                    this.isActive = true;
+                    document.getElementById('power-button').classList.add('active');
+                    this.updateStatus();
+                    
+                    console.log('✅ Clarinet ready!');
+                } catch (error) {
+                    console.error('Failed:', error);
+                    alert('Audio failed');
+                }
+            }
+            
+            powerOff() {
+                if (this.processor) {
+                    this.keyboard.releaseAllKeys();
+                    this.processor.shutdown();
+                    this.processor = null;
+                }
+                this.visualizer.stop();
+                this.isActive = false;
+                this.currentNote = null;
+                document.getElementById('power-button').classList.remove('active');
+                this.updateStatus();
+            }
+            
+            handleNoteOn(note, freq) {
+                if (!this.isActive) return;
+                this.currentNote = note;
+                this.processor.noteOn(freq);
+                this.updateStatus();
+            }
+            
+            handleNoteOff(note) {
+                if (!this.isActive) return;
+                if (this.currentNote === note) {
+                    this.processor.noteOff();
+                    this.currentNote = null;
+                    this.updateStatus();
+                }
+            }
+            
+            updateParam(param, value) {
+                if (this.processor && this.processor.isActive) {
+                    this.processor.setParameter(param, value);
+                }
+            }
+            
+            updateStatus() {
+                document.getElementById('status').textContent = this.isActive ? 'ON' : 'OFF';
+                document.getElementById('status').style.color = this.isActive ? '#4eff4a' : '#ff4a4a';
+                document.getElementById('current-note').textContent = this.currentNote || '---';
+            }
+        }
+
+        window.synthApp = new ClarinetSynthApp();
+    </script>
+</body>
+</html>

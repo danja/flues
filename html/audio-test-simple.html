@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Test</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 40px;
+            background: #222;
+            color: white;
+        }
+        button {
+            padding: 20px 40px;
+            font-size: 20px;
+            margin: 10px;
+            cursor: pointer;
+            background: #4a9eff;
+            border: none;
+            border-radius: 8px;
+            color: white;
+        }
+        button:hover { background: #3a7edf; }
+        .log {
+            background: #000;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .success { color: #4eff4a; }
+        .error { color: #ff4a4a; }
+        .info { color: #4a9eff; }
+    </style>
+</head>
+<body>
+    <h1>🔊 Audio Diagnostics</h1>
+    <p>Click each button and report what you hear:</p>
+    
+    <button onclick="test1()">Test 1: Simple Beep</button>
+    <button onclick="test2()">Test 2: Louder Beep</button>
+    <button onclick="test3()">Test 3: White Noise</button>
+    <button onclick="test4()">Test 4: Audio Element</button>
+    
+    <div id="log" class="log">Waiting for test...</div>
+    
+    <h2>Instructions:</h2>
+    <ol>
+        <li>Turn up your system volume</li>
+        <li>Click each test button</li>
+        <li>Copy the entire log output and send it</li>
+        <li>Report: "Heard sound on Test X" or "No sound on any test"</li>
+    </ol>
+
+    <script>
+        let log = document.getElementById('log');
+        
+        function addLog(msg, type = 'info') {
+            const span = document.createElement('span');
+            span.className = type;
+            span.textContent = msg + '\n';
+            log.appendChild(span);
+            console.log(msg);
+        }
+        
+        function clearLog() {
+            log.innerHTML = '';
+        }
+
+        // Test 1: Simplest possible - Oscillator
+        function test1() {
+            clearLog();
+            addLog('=== TEST 1: Simple Oscillator ===', 'info');
+            
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                addLog('AudioContext created', 'success');
+                addLog('Sample rate: ' + ctx.sampleRate + ' Hz', 'info');
+                addLog('State: ' + ctx.state, 'info');
+                
+                ctx.resume().then(() => {
+                    addLog('Context resumed, state: ' + ctx.state, 'success');
+                    
+                    const osc = ctx.createOscillator();
+                    osc.frequency.value = 440;
+                    
+                    addLog('Created oscillator at 440 Hz', 'info');
+                    addLog('Connecting to destination...', 'info');
+                    
+                    osc.connect(ctx.destination);
+                    
+                    addLog('Playing for 1 second...', 'success');
+                    addLog('*** YOU SHOULD HEAR A BEEP NOW ***', 'success');
+                    
+                    osc.start();
+                    osc.stop(ctx.currentTime + 1);
+                    
+                    setTimeout(() => {
+                        addLog('Beep finished', 'info');
+                        addLog('Did you hear anything? (Y/N)', 'error');
+                    }, 1200);
+                });
+            } catch (e) {
+                addLog('ERROR: ' + e.message, 'error');
+            }
+        }
+
+        // Test 2: Much louder
+        function test2() {
+            clearLog();
+            addLog('=== TEST 2: LOUD Oscillator ===', 'info');
+            
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                addLog('AudioContext created', 'success');
+                
+                ctx.resume().then(() => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.frequency.value = 880;
+                    gain.gain.value = 0.8;  // VERY LOUD
+                    
+                    addLog('Created 880Hz oscillator with gain 0.8', 'info');
+                    addLog('*** LOUD BEEP FOR 1 SECOND ***', 'success');
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(ctx.currentTime + 1);
+                    
+                    setTimeout(() => {
+                        addLog('Did you hear a LOUD beep? (Y/N)', 'error');
+                    }, 1200);
+                });
+            } catch (e) {
+                addLog('ERROR: ' + e.message, 'error');
+            }
+        }
+
+        // Test 3: White noise
+        function test3() {
+            clearLog();
+            addLog('=== TEST 3: White Noise ===', 'info');
+            
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                addLog('AudioContext created', 'success');
+                
+                ctx.resume().then(() => {
+                    const bufferSize = ctx.sampleRate * 1;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    
+                    addLog('Created 1 second of white noise', 'info');
+                    
+                    const source = ctx.createBufferSource();
+                    const gain = ctx.createGain();
+                    source.buffer = buffer;
+                    gain.gain.value = 0.3;
+                    
+                    source.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    addLog('*** PLAYING STATIC NOISE ***', 'success');
+                    source.start();
+                    
+                    setTimeout(() => {
+                        addLog('Did you hear static/noise? (Y/N)', 'error');
+                    }, 1200);
+                });
+            } catch (e) {
+                addLog('ERROR: ' + e.message, 'error');
+            }
+        }
+
+        // Test 4: HTML5 Audio Element (not Web Audio API)
+        function test4() {
+            clearLog();
+            addLog('=== TEST 4: HTML5 Audio Element ===', 'info');
+            addLog('Generating beep with data URL...', 'info');
+            
+            try {
+                // Generate a simple WAV file in a data URL
+                const sampleRate = 44100;
+                const duration = 1;
+                const frequency = 440;
+                const samples = sampleRate * duration;
+                
+                // Create WAV data
+                const buffer = new ArrayBuffer(44 + samples * 2);
+                const view = new DataView(buffer);
+                
+                // WAV header
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + samples * 2, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, samples * 2, true);
+                
+                // Audio data
+                for (let i = 0; i < samples; i++) {
+                    const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.5;
+                    view.setInt16(44 + i * 2, sample * 32767, true);
+                }
+                
+                // Create audio element
+                const blob = new Blob([buffer], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                
+                addLog('Created WAV file, playing...', 'info');
+                addLog('*** PLAYING AUDIO ELEMENT ***', 'success');
+                
+                audio.play().then(() => {
+                    addLog('Audio.play() succeeded', 'success');
+                }).catch(e => {
+                    addLog('Audio.play() failed: ' + e.message, 'error');
+                });
+                
+                setTimeout(() => {
+                    addLog('Did you hear the audio element beep? (Y/N)', 'error');
+                    URL.revokeObjectURL(url);
+                }, 1500);
+                
+            } catch (e) {
+                addLog('ERROR: ' + e.message, 'error');
+            }
+        }
+        
+        // Auto-run diagnostics on load
+        setTimeout(() => {
+            addLog('=== SYSTEM INFO ===', 'info');
+            addLog('Browser: ' + navigator.userAgent, 'info');
+            addLog('Platform: ' + navigator.platform, 'info');
+            
+            if (window.AudioContext || window.webkitAudioContext) {
+                addLog('Web Audio API: SUPPORTED', 'success');
+            } else {
+                addLog('Web Audio API: NOT SUPPORTED', 'error');
+            }
+            
+            addLog('\nClick a test button above', 'info');
+        }, 100);
+    </script>
+</body>
+</html>
