@@ -4,6 +4,7 @@
   "description": "Flues project - C and JavaScript experiments",
   "type": "module",
   "scripts": {
+    "dev": "npm run ghp && vite --open",
     "ghp": "npm run build:all && npm run copy:www",
     "build:all": "npm run build:clarinet",
     "build:clarinet": "cd experiments/clarinet-synth && npm run build",
@@ -11,5 +12,8 @@
   },
   "keywords": [],
   "author": "Danny Ayers",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
 }
