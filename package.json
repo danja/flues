@@ -10,6 +10,6 @@
     "copy:www": "rm -rf www/clarinet-synth && mkdir -p www/clarinet-synth && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "Danny Ayers",
+  "license": "MIT"
 }
