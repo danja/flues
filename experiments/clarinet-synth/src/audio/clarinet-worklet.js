@@ -1,6 +1,8 @@
 // clarinet-worklet.js
 // AudioWorklet processor for the clarinet engine
 
+const sampleRate = globalThis.sampleRate;
+
 class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     constructor() {
         super();

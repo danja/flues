@@ -107,6 +107,7 @@ class ClarinetSynthApp {
             // Initialize audio processor
             this.processor = new ClarinetProcessor();
             await this.processor.initialize();
+            console.log(`main this.processor.isActive = ${this.processor.isActive}`);
 
             // Apply current parameter values
             this.updateParameter('breath', this.knobs.breath.value / 100);

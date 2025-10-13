@@ -16,6 +16,7 @@ export class ClarinetProcessor {
     }
 
     async initialize() {
+        console.log(`ClarinetProcessor.initialize()`)
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
         // Create gain node for volume control
@@ -63,7 +64,7 @@ export class ClarinetProcessor {
     }
 
     async noteOn(frequency) {
-        if (this.audioContext.state === 'suspended') {
+        if (this.audioContext.state === 'suspended' || this.audioContext.state === 'interrupted') {
             await this.audioContext.resume();
         }
 
@@ -94,7 +95,7 @@ export class ClarinetProcessor {
                 data: { param, value }
             });
         } else if (this.engine) {
-            switch(param) {
+            switch (param) {
                 case 'breath':
                     this.engine.setBreath(value);
                     break;

@@ -10,12 +10,13 @@ export default defineConfig({
         manualChunks: undefined,
         // Ensure AudioWorklet file has correct MIME type
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('.js')) {
-            return 'assets/[name]-[hash][extname]';
+          if (assetInfo.name && assetInfo.name.endsWith('worklet.js')) {
+            return 'assets/[name]-[hash].js';
           }
           return 'assets/[name]-[hash][extname]';
         }
       }
-    }
+    },
+    watch: {},
   }
 })
