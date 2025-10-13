@@ -99,6 +99,18 @@ Additional JavaScript experiments should follow the same pattern:
 
 The `www/` directory contains the built static site deployed to GitHub Pages.
 
+**Local Development (Testing Built Site):**
+```bash
+npm run dev
+```
+
+This command:
+1. Builds all experiments (runs `npm run ghp`)
+2. Starts a local Vite dev server serving the `www/` directory
+3. Opens browser at `http://localhost:5173/`
+
+This lets you test the built site locally exactly as it will appear on GitHub Pages.
+
 **Building and Publishing:**
 ```bash
 npm run ghp
