@@ -65,6 +65,7 @@ export class ClarinetProcessor {
     }
 
     async noteOn(frequency) {
+        console.log(`[ClarinetProcessor] noteOn: ${frequency}`);
         if (this.audioContext.state !== 'running') {
             await this.audioContext.resume();
         }
@@ -122,6 +123,7 @@ export class ClarinetProcessor {
     }
 
     setParameter(param, value) {
+        console.log(`[ClarinetProcessor] setParameter: ${param}, ${value}`);
         if (this.useWorklet && this.workletNode) {
             this.workletNode.port.postMessage({
                 type: 'setParameter',

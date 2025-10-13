@@ -94,6 +94,7 @@ export class KeyboardController {
     pressKey(note) {
         if (this.activeKeys.has(note)) return;
 
+        console.log(`[KeyboardController] pressKey: ${note}`);
         this.activeKeys.add(note);
         const keyElement = this.container.querySelector(`[data-note="${note}"]`);
         if (keyElement) {
@@ -101,7 +102,11 @@ export class KeyboardController {
         }
 
         const frequency = this.noteToFrequency(note);
-        this.onNoteOn(note, frequency);
+        try {
+            this.onNoteOn(note, frequency);
+        } catch (error) {
+            console.error('[KeyboardController] Error calling onNoteOn:', error);
+        }
     }
 
     releaseKey(note) {

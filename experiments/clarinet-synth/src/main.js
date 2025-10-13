@@ -156,6 +156,7 @@ class ClarinetSynthApp {
     handleNoteOn(note, frequency) {
         if (!this.isActive) return;
 
+        console.log(`[ClarinetSynthApp] handleNoteOn: ${note}, ${frequency}`);
         this.currentNote = note;
         this.processor.noteOn(frequency);
         this.updateStatus();
@@ -172,6 +173,7 @@ class ClarinetSynthApp {
     }
 
     updateParameter(param, value) {
+        console.log(`[ClarinetSynthApp] updateParameter: ${param}, ${value}`);
         if (this.processor && this.processor.isActive) {
             this.processor.setParameter(param, value);
         }

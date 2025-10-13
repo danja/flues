@@ -75,12 +75,15 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         if (scaled < -3) return -1;
 
         const x2 = scaled * scaled;
-        return scaled * (27 + x2) / (27 + 9 * x2);
+        const result = scaled * (27 + x2) / (27 + 9 * x2);
+        console.log(`[ClarinetWorkletProcessor] reedReflection: pressureDiff=${pressureDiff.toFixed(4)}, scaled=${scaled.toFixed(4)}, result=${result.toFixed(4)}`);
+        return result;
     }
 
     lowpass(input, cutoff) {
         const a = cutoff;
         this.lpf.y1 = a * input + (1 - a) * this.lpf.y1;
+        console.log(`[ClarinetWorkletProcessor] lowpass: input=${input.toFixed(4)}, cutoff=${cutoff.toFixed(4)}, output=${this.lpf.y1.toFixed(4)}`);
         return this.lpf.y1;
     }
 
@@ -105,11 +108,11 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
 
     updateEnvelope(deltaTime) {
         if (this.gate) {
-            const attackRate = 1.0 / (this.attackTime * this.sampleRate);
+            const attackRate = 1.0 / this.attackTime;
             this.envelope += attackRate * deltaTime;
             if (this.envelope > 1) this.envelope = 1;
         } else {
-            const releaseRate = 1.0 / (this.releaseTime * this.sampleRate);
+            const releaseRate = 1.0 / this.releaseTime;
             this.envelope -= releaseRate * deltaTime;
             if (this.envelope < 0) {
                 this.envelope = 0;
@@ -168,10 +171,11 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         this.delayLine[this.writePos] = newSample;
         this.writePos = (this.writePos + 1) % this.delayLength;
 
-        return newSample * env * 0.5;
+        return newSample * env * 1.0;
     }
 
     noteOn(frequency) {
+        console.log(`[ClarinetWorkletProcessor] noteOn: ${frequency}`);
         this.setFrequency(frequency);
         this.gate = true;
         this.isPlaying = true;
@@ -189,6 +193,7 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     }
 
     setParameter(param, value) {
+        console.log(`[ClarinetWorkletProcessor] setParameter: ${param}, ${value}`);
         switch(param) {
             case 'breath':
                 this.breathPressure = value * 0.8 + 0.2;
@@ -209,7 +214,7 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
                 this.lpf.cutoff = 0.3 + value * 0.69;
                 break;
             case 'brightness':
-                this.hpf.cutoff = value * 0.05;
+                this.hpf.cutoff = value * 0.5;
                 break;
             case 'vibrato':
                 this.vibratoAmount = value * 0.01;
@@ -223,6 +228,10 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
 
         for (let i = 0; i < channel.length; i++) {
             channel[i] = this.processSample();
+        }
+
+        if (this.isPlaying) {
+            console.log(`[ClarinetWorkletProcessor] process: output[0] = ${channel[0]}`);
         }
 
         return true; // Keep processor alive
