@@ -57,6 +57,38 @@
     <script>
         let log = document.getElementById('log');
         
+        function installIOSUnlock(ctx) {
+            if (!ctx) return;
+            let unlocked = ctx.state === 'running';
+            const cleanup = () => {
+                document.removeEventListener('pointerdown', unlock, true);
+                document.removeEventListener('touchstart', unlock, true);
+                document.removeEventListener('keydown', unlock, true);
+            };
+            async function unlock() {
+                if (unlocked) return;
+                try {
+                    if (ctx.state !== 'running') await ctx.resume();
+                    // Start a 1-frame buffer to produce audio in the same gesture
+                    const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+                    const s = ctx.createBufferSource();
+                    s.buffer = b;
+                    s.connect(ctx.destination);
+                    s.start(0);
+                    setTimeout(() => s.disconnect(), 0);
+                    unlocked = true;
+                    cleanup();
+                    console.log('[audio] iOS unlocked');
+                } catch (e) {
+                    console.warn('[audio] unlock failed', e);
+                }
+            }
+            document.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+            document.addEventListener('touchstart', unlock, { capture: true, passive: true });
+            document.addEventListener('keydown', unlock, { capture: true });
+            ctx.onstatechange = () => console.log('[audio] state:', ctx.state);
+        }
+
         function addLog(msg, type = 'info') {
             const span = document.createElement('span');
             span.className = type;
@@ -76,6 +108,7 @@
             
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                installIOSUnlock(ctx);
                 addLog('AudioContext created', 'success');
                 addLog('Sample rate: ' + ctx.sampleRate + ' Hz', 'info');
                 addLog('State: ' + ctx.state, 'info');
@@ -114,6 +147,7 @@
             
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                installIOSUnlock(ctx);
                 addLog('AudioContext created', 'success');
                 
                 ctx.resume().then(() => {
@@ -148,6 +182,7 @@
             
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                installIOSUnlock(ctx);
                 addLog('AudioContext created', 'success');
                 
                 ctx.resume().then(() => {

@@ -353,6 +353,38 @@
     </div>
 
     <script>
+        function installIOSUnlock(ctx) {
+            if (!ctx) return;
+            let unlocked = ctx.state === 'running';
+            const cleanup = () => {
+                document.removeEventListener('pointerdown', unlock, true);
+                document.removeEventListener('touchstart', unlock, true);
+                document.removeEventListener('keydown', unlock, true);
+            };
+            async function unlock() {
+                if (unlocked) return;
+                try {
+                    if (ctx.state !== 'running') await ctx.resume();
+                    // Start a 1-frame buffer to produce audio in the same gesture
+                    const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+                    const s = ctx.createBufferSource();
+                    s.buffer = b;
+                    s.connect(ctx.destination);
+                    s.start(0);
+                    setTimeout(() => s.disconnect(), 0);
+                    unlocked = true;
+                    cleanup();
+                    console.log('[audio] iOS unlocked');
+                } catch (e) {
+                    console.warn('[audio] unlock failed', e);
+                }
+            }
+            document.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+            document.addEventListener('touchstart', unlock, { capture: true, passive: true });
+            document.addEventListener('keydown', unlock, { capture: true });
+            ctx.onstatechange = () => console.log('[audio] state:', ctx.state);
+        }
+
         // ===== CLARINET ENGINE =====
         class ClarinetEngine {
             constructor(sampleRate = 44100) {
@@ -539,6 +571,7 @@
             
             async initialize() {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                installIOSUnlock(this.audioContext);
                 
                 // Create gain node for master volume
                 this.gainNode = this.audioContext.createGain();
@@ -595,17 +628,19 @@
                 }
                 
                 // Extra check - play a quick test beep on init
-                setTimeout(() => {
-                    console.log('Playing init beep...');
-                    const beep = this.audioContext.createOscillator();
-                    const beepGain = this.audioContext.createGain();
-                    beep.frequency.value = 800;
-                    beepGain.gain.value = 0.1;
-                    beep.connect(beepGain);
-                    beepGain.connect(this.audioContext.destination);
-                    beep.start();
-                    beep.stop(this.audioContext.currentTime + 0.1);
-                }, 100);
+                if (this.audioContext.state === 'running') {
+                    setTimeout(() => {
+                        console.log('Playing init beep...');
+                        const beep = this.audioContext.createOscillator();
+                        const beepGain = this.audioContext.createGain();
+                        beep.frequency.value = 800;
+                        beepGain.gain.value = 0.1;
+                        beep.connect(beepGain);
+                        beepGain.connect(this.audioContext.destination);
+                        beep.start();
+                        beep.stop(this.audioContext.currentTime + 0.1);
+                    }, 100);
+                }
                 
                 this.isActive = true;
                 console.log('Audio initialized at', this.audioContext.sampleRate, 'Hz');

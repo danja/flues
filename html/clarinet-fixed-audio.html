@@ -267,6 +267,38 @@
     </div>
 
     <script>
+        function installIOSUnlock(ctx) {
+            if (!ctx) return;
+            let unlocked = ctx.state === 'running';
+            const cleanup = () => {
+                document.removeEventListener('pointerdown', unlock, true);
+                document.removeEventListener('touchstart', unlock, true);
+                document.removeEventListener('keydown', unlock, true);
+            };
+            async function unlock() {
+                if (unlocked) return;
+                try {
+                    if (ctx.state !== 'running') await ctx.resume();
+                    // Start a 1-frame buffer to produce audio in the same gesture
+                    const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+                    const s = ctx.createBufferSource();
+                    s.buffer = b;
+                    s.connect(ctx.destination);
+                    s.start(0);
+                    setTimeout(() => s.disconnect(), 0);
+                    unlocked = true;
+                    cleanup();
+                    console.log('[audio] iOS unlocked');
+                } catch (e) {
+                    console.warn('[audio] unlock failed', e);
+                }
+            }
+            document.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+            document.addEventListener('touchstart', unlock, { capture: true, passive: true });
+            document.addEventListener('keydown', unlock, { capture: true });
+            ctx.onstatechange = () => console.log('[audio] state:', ctx.state);
+        }
+
         class ClarinetEngine {
             constructor(sampleRate = 44100) {
                 this.sampleRate = sampleRate;
@@ -432,6 +464,7 @@
             
             async initialize() {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                installIOSUnlock(this.audioContext);
                 this.gainNode = this.audioContext.createGain();
                 this.gainNode.gain.value = 0.5;
                 
@@ -805,5 +838,7 @@
 
         window.synthApp = new ClarinetSynthApp();
     </script>
+</body>
+</html>
 </body>
 </html>

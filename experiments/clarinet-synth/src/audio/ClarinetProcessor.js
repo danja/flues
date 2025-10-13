@@ -18,6 +18,7 @@ export class ClarinetProcessor {
     async initialize() {
         console.log(`ClarinetProcessor.initialize()`)
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this._installIOSUnlock(this.audioContext);
 
         // Create gain node for volume control
         this.gainNode = this.audioContext.createGain();
@@ -64,7 +65,7 @@ export class ClarinetProcessor {
     }
 
     async noteOn(frequency) {
-        if (this.audioContext.state === 'suspended' || this.audioContext.state === 'interrupted') {
+        if (this.audioContext.state !== 'running') {
             await this.audioContext.resume();
         }
 
@@ -76,6 +77,38 @@ export class ClarinetProcessor {
         } else if (this.engine) {
             this.engine.noteOn(frequency);
         }
+    }
+
+    _installIOSUnlock(ctx) {
+        if (!ctx) return;
+        let unlocked = ctx.state === 'running';
+        const cleanup = () => {
+            document.removeEventListener('pointerdown', unlock, true);
+            document.removeEventListener('touchstart', unlock, true);
+            document.removeEventListener('keydown', unlock, true);
+        };
+        async function unlock() {
+            if (unlocked) return;
+            try {
+                if (ctx.state !== 'running') await ctx.resume();
+                // Start a 1-frame buffer to produce audio in the same gesture
+                const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+                const s = ctx.createBufferSource();
+                s.buffer = b;
+                s.connect(ctx.destination);
+                s.start(0);
+                setTimeout(() => s.disconnect(), 0);
+                unlocked = true;
+                cleanup();
+                console.log('[audio] iOS unlocked');
+            } catch (e) {
+                console.warn('[audio] unlock failed', e);
+            }
+        }
+        document.addEventListener('pointerdown', unlock, { capture: true, passive: true });
+        document.addEventListener('touchstart', unlock, { capture: true, passive: true });
+        document.addEventListener('keydown', unlock, { capture: true });
+        ctx.onstatechange = () => console.log('[audio] state:', ctx.state);
     }
 
     noteOff() {
