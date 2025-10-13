@@ -19,10 +19,18 @@ export class ClarinetProcessor {
         console.log(`ClarinetProcessor.initialize()`)
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this._installIOSUnlock(this.audioContext);
+        console.log(`[ClarinetProcessor] audioContext.state after installIOSUnlock: ${this.audioContext.state}`);
+
+        // Explicitly resume context, even if already running, for Chrome compatibility
+        if (this.audioContext.state !== 'running') {
+            await this.audioContext.resume();
+            console.log(`[ClarinetProcessor] audioContext.resume() called in initialize, new state: ${this.audioContext.state}`);
+        }
 
         // Create gain node for volume control
         this.gainNode = this.audioContext.createGain();
-        this.gainNode.gain.value = 0.8;
+        this.gainNode.gain.value = 1.0;
+        console.log(`[ClarinetProcessor] gainNode.gain.value: ${this.gainNode.gain.value}`);
 
         // Create analyser for visualization
         this.analyser = this.audioContext.createAnalyser();
@@ -35,15 +43,16 @@ export class ClarinetProcessor {
             );
 
             this.workletNode = new AudioWorkletNode(this.audioContext, 'clarinet-worklet');
+            console.log(`[ClarinetProcessor] audioContext.state before connecting workletNode: ${this.audioContext.state}`);
             this.workletNode.connect(this.gainNode);
             this.gainNode.connect(this.analyser);
             this.analyser.connect(this.audioContext.destination);
 
             this.useWorklet = true;
-            console.log('Using AudioWorklet for audio processing');
+            console.log('[ClarinetProcessor] Using AudioWorklet for audio processing');
         } catch (error) {
-            // Fallback to ScriptProcessorNode
-            console.warn('AudioWorklet not available, falling back to ScriptProcessor:', error);
+            console.warn('[ClarinetProcessor] AudioWorklet not available, falling back to ScriptProcessor:', error);
+            console.error('[ClarinetProcessor] AudioWorklet initialization error details:', error);
             this.engine = new ClarinetEngine(this.audioContext.sampleRate);
 
             this.scriptNode = this.audioContext.createScriptProcessor(2048, 0, 1);
@@ -59,15 +68,22 @@ export class ClarinetProcessor {
             this.analyser.connect(this.audioContext.destination);
 
             this.useWorklet = false;
+            console.log('[ClarinetProcessor] Using ScriptProcessorNode for audio processing');
         }
 
         this.isActive = true;
+        console.log(`[ClarinetProcessor] audioContext.destination.maxChannelCount: ${this.audioContext.destination.maxChannelCount}`);
+
+        this.isActive = true;
+        console.log(`[ClarinetProcessor] audioContext.destination.maxChannelCount: ${this.audioContext.destination.maxChannelCount}`);
     }
 
     async noteOn(frequency) {
-        console.log(`[ClarinetProcessor] noteOn: ${frequency}`);
+        console.log(`[ClarinetProcessor] noteOn: ${frequency}, audioContext.state: ${this.audioContext.state}`);
         if (this.audioContext.state !== 'running') {
+            console.log('[ClarinetProcessor] Resuming audio context from noteOn...');
             await this.audioContext.resume();
+            console.log(`[ClarinetProcessor] audioContext.state after resume: ${this.audioContext.state}`);
         }
 
         if (this.useWorklet && this.workletNode) {
@@ -83,15 +99,21 @@ export class ClarinetProcessor {
     _installIOSUnlock(ctx) {
         if (!ctx) return;
         let unlocked = ctx.state === 'running';
+        console.log(`[ClarinetProcessor] _installIOSUnlock: initial state=${ctx.state}, unlocked=${unlocked}`);
         const cleanup = () => {
             document.removeEventListener('pointerdown', unlock, true);
             document.removeEventListener('touchstart', unlock, true);
             document.removeEventListener('keydown', unlock, true);
+            console.log('[ClarinetProcessor] _installIOSUnlock: cleanup done.');
         };
         async function unlock() {
+            console.log(`[ClarinetProcessor] _installIOSUnlock: unlock called, unlocked=${unlocked}, ctx.state=${ctx.state}`);
             if (unlocked) return;
             try {
-                if (ctx.state !== 'running') await ctx.resume();
+                if (ctx.state !== 'running') {
+                    await ctx.resume();
+                    console.log(`[ClarinetProcessor] _installIOSUnlock: ctx.resume() called, new state=${ctx.state}`);
+                }
                 // Start a 1-frame buffer to produce audio in the same gesture
                 const b = ctx.createBuffer(1, 1, ctx.sampleRate);
                 const s = ctx.createBufferSource();

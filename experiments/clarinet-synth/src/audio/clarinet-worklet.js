@@ -83,7 +83,6 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     lowpass(input, cutoff) {
         const a = cutoff;
         this.lpf.y1 = a * input + (1 - a) * this.lpf.y1;
-        console.log(`[ClarinetWorkletProcessor] lowpass: input=${input.toFixed(4)}, cutoff=${cutoff.toFixed(4)}, output=${this.lpf.y1.toFixed(4)}`);
         return this.lpf.y1;
     }
 
@@ -161,8 +160,8 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         let newSample = borePressure + flow * 0.5;
 
         // Apply filters
-        newSample = this.lowpass(newSample, this.lpf.cutoff);
-        newSample = this.highpass(newSample, this.hpf.cutoff);
+        // newSample = this.lowpass(newSample, this.lpf.cutoff);
+        // newSample = this.highpass(newSample, this.hpf.cutoff);
 
         // Soft saturation
         newSample = this.saturate(newSample * 0.95);
