@@ -1,0 +1,56 @@
+graph TB
+    %% Input Parameters
+    NoteOn[Note On<br/>frequency] --> DelayLine[Delay Line Setup<br/>length = sampleRate / freq]
+    Breath[Breath Pressure<br/>0.4 - 0.8] --> Excitation
+    ReedStiff[Reed Stiffness<br/>0 - 1] --> ReedFunc
+    Noise[Noise Level<br/>0 - 0.3] --> NoiseGen
+
+    %% Envelope
+    Gate[Gate On/Off] --> Envelope[ADSR Envelope<br/>Attack: 0.001-0.1s<br/>Release: 0.01-0.3s]
+    Envelope --> EnvMod{Envelope<br/>Modulation}
+
+    %% Excitation Generation
+    NoiseGen[Noise Generator<br/>White Noise] --> Excitation
+    EnvMod --> Excitation[Breath + Noise<br/>mouthPressure]
+
+    %% Waveguide Feedback Loop
+    DelayLine --> Interpolate[Linear Interpolation<br/>Fractional Delay]
+    Interpolate --> BorePressure[borePressure]
+
+    %% Reed Nonlinearity
+    Excitation --> PressureDiff[Pressure Difference<br/>mouth - bore]
+    BorePressure --> PressureDiff
+    PressureDiff --> ReedFunc[Reed Reflection<br/>tanh approximation<br/>scaled by stiffness]
+    ReedFunc --> Flow[flow]
+
+    %% Mixing and Filtering
+    BorePressure --> Mix[Mix<br/>bore + flow × 1.5]
+    Flow --> Mix
+
+    Mix --> LPF[Lowpass Filter<br/>Damping Control<br/>cutoff: 0.3-0.99]
+    LPF --> HPF[Highpass Filter<br/>Brightness Control<br/>DC blocker]
+    HPF --> Saturate[Soft Saturation<br/>tanh approximation<br/>×0.95]
+
+    %% Feedback to Delay Line
+    Saturate --> DelayLine
+
+    %% Output
+    Saturate --> EnvOut{Envelope<br/>×}
+    EnvMod -.-> EnvOut
+    EnvOut --> Output[Audio Output<br/>×1.0]
+
+    %% Vibrato (optional modulation)
+    Vibrato[Vibrato<br/>0-1%] -.-> Interpolate
+
+    %% Styling
+    classDef input fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef process fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef nonlinear fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef filter fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef output fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+
+    class NoteOn,Breath,ReedStiff,Noise,Gate,Vibrato input
+    class DelayLine,Excitation,Interpolate,BorePressure,PressureDiff,Mix,EnvMod,EnvOut process
+    class ReedFunc,Saturate nonlinear
+    class LPF,HPF,Envelope filter
+    class Output output

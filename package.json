@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "npm run ghp && vite --open",
     "ghp": "npm run build:all && npm run copy:www",
-    "build:all": "npm run build:clarinet",
+    "build:all": "npm run build:clarinet && npm run build:pm",
     "build:clarinet": "cd experiments/clarinet-synth && npm run build",
-    "copy:www": "rm -rf www/clarinet-synth && mkdir -p www/clarinet-synth && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/"
+    "build:pm": "cd experiments/pm-synth && npm run build",
+    "copy:www": "rm -rf www/clarinet-synth www/pm-synth && mkdir -p www/clarinet-synth www/pm-synth && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/ && cp -r experiments/pm-synth/dist/. www/pm-synth/"
   },
   "keywords": [],
   "author": "Danny Ayers",
