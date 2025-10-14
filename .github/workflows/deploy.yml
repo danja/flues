@@ -27,6 +27,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install root dependencies
+        run: npm ci
+
       - name: Install dependencies (clarinet-synth)
         run: |
           cd experiments/clarinet-synth
