@@ -20,7 +20,19 @@ import {
     TANH_DENOMINATOR_SCALE,
     SATURATION_SCALE,
     OUTPUT_SCALE,
-    INITIAL_EXCITATION_AMPLITUDE
+    INITIAL_EXCITATION_AMPLITUDE,
+    BREATH_SCALE_ENGINE,
+    BREATH_OFFSET_ENGINE,
+    NOISE_SCALE,
+    ATTACK_SCALE,
+    ATTACK_OFFSET,
+    RELEASE_SCALE,
+    RELEASE_OFFSET,
+    DAMPING_SCALE,
+    DAMPING_OFFSET,
+    BRIGHTNESS_SCALE_ENGINE,
+    VIBRATO_SCALE,
+    FLOW_MIX_ENGINE
 } from '../constants.js';
 
 export class ClarinetEngine {
@@ -177,7 +189,7 @@ export class ClarinetEngine {
         const flow = this.reedReflection(pressureDiff);
 
         // Inject flow into bore
-        let newSample = borePressure + flow * 0.5;
+        let newSample = borePressure + flow * FLOW_MIX_ENGINE;
 
         // Apply loop filters
         newSample = this.lowpass(newSample, this.lpf.cutoff);
@@ -216,7 +228,8 @@ export class ClarinetEngine {
 
     // Set parameters
     setBreath(value) { // 0-1
-        this.breathPressure = value * 0.8 + 0.2;
+        // Inverted: lower internal pressure = more stable/louder oscillation
+        this.breathPressure = (1 - value) * BREATH_SCALE_ENGINE + BREATH_OFFSET_ENGINE;
     }
 
     setReedStiffness(value) { // 0-1
@@ -224,28 +237,26 @@ export class ClarinetEngine {
     }
 
     setNoise(value) { // 0-1
-        this.noiseLevel = value * 0.3;
+        this.noiseLevel = value * NOISE_SCALE;
     }
 
     setAttack(value) { // 0-1
-        this.attackTime = value * 0.1 + 0.001;
+        this.attackTime = value * ATTACK_SCALE + ATTACK_OFFSET;
     }
 
     setRelease(value) { // 0-1
-        this.releaseTime = value * 0.3 + 0.01;
+        this.releaseTime = value * RELEASE_SCALE + RELEASE_OFFSET;
     }
 
     setDamping(value) { // 0-1
-        // Lower values = more damping
-        this.lpf.cutoff = 0.3 + value * 0.69;
+        this.lpf.cutoff = DAMPING_OFFSET + value * DAMPING_SCALE;
     }
 
     setBrightness(value) { // 0-1
-        // Higher values = brighter
-        this.hpf.cutoff = value * 0.05;
+        this.hpf.cutoff = value * BRIGHTNESS_SCALE_ENGINE;
     }
 
     setVibrato(value) { // 0-1
-        this.vibratoAmount = value * 0.01;
+        this.vibratoAmount = value * VIBRATO_SCALE;
     }
 }

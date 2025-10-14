@@ -7,15 +7,25 @@
 // Reed Parameters
 // ============================================================================
 
-// Initial breath pressure (0-1 range)
-// Controls the amount of air pressure applied to the reed
-// Higher values = more forceful blowing, louder and more intense tone
-export const DEFAULT_BREATH_PRESSURE = 0.7;
+// Initial breath pressure - INTERNAL value after mapping (0-1 range)
+// NOTE: Due to reed physics, LOWER internal pressure = more stable/louder oscillation
+// This value is used as the constructor default and will be overridden by UI
+// Worklet range: 0.4-0.8, Engine range: 0.2-1.0
+export const DEFAULT_BREATH_PRESSURE = 0.4;
+
+// UI Default Values (0-100 range, used by knobs)
+// These map to the internal values via inverted functions in setBreath/setParameter
+// Higher UI knob value = lower internal pressure = louder sound
+export const DEFAULT_BREATH_UI = 75;  // Maps to ~0.7 internal pressure
 
 // Reed stiffness coefficient (0-1 range)
 // Controls how much the reed resists the air pressure
 // Higher values = stiffer reed, brighter and more aggressive tone
-export const DEFAULT_REED_STIFFNESS = 0.5;
+export const DEFAULT_REED_STIFFNESS = 0.9;
+
+// Reed stiffness UI default (0-100 range)
+// Maps directly to internal value (no inversion)
+export const DEFAULT_REED_UI = 62.5;  // 50 * 1.25 = 62.5 (25% higher)
 
 // Breath turbulence noise level (0-1 range)
 // Adds realistic noise to simulate turbulent airflow
@@ -74,7 +84,7 @@ export const DEFAULT_FREQUENCY = 440;
 
 // Initial delay line length in samples
 // Will be recalculated based on frequency when notes are played
-export const DEFAULT_DELAY_LENGTH = 100;
+export const DEFAULT_DELAY_LENGTH = 1000;
 
 // ============================================================================
 // Physical Modeling Constants
@@ -82,8 +92,8 @@ export const DEFAULT_DELAY_LENGTH = 100;
 
 // Reed reflection nonlinearity coefficients
 // Used in the cubic/tanh approximation of reed behavior
-export const REED_STIFFNESS_SCALE = 5;
-export const REED_STIFFNESS_OFFSET = 0.5;
+export const REED_STIFFNESS_SCALE = 8;
+export const REED_STIFFNESS_OFFSET = 0.8;
 
 // Tanh approximation threshold
 // Beyond ±3, we clip to ±1 for efficiency
@@ -108,3 +118,45 @@ export const OUTPUT_SCALE = 0.5;
 // Initial excitation amplitude for delay line
 // Small random noise injected when note starts
 export const INITIAL_EXCITATION_AMPLITUDE = 0.01;
+
+// ============================================================================
+// Parameter Mapping Scaling Factors
+// ============================================================================
+
+// Breath pressure mapping (UI value 0-1 to internal pressure)
+// Engine uses wider range, worklet uses narrower range for stability
+export const BREATH_SCALE_ENGINE = 0.8;
+export const BREATH_OFFSET_ENGINE = 0.2;
+export const BREATH_SCALE_WORKLET = 0.4;
+export const BREATH_OFFSET_WORKLET = 0.4;
+
+// Noise level scaling (UI value 0-1 to noise amplitude)
+export const NOISE_SCALE = 0.3;
+
+// Attack time scaling (UI value 0-1 to seconds)
+export const ATTACK_SCALE = 0.1;
+export const ATTACK_OFFSET = 0.001;
+
+// Release time scaling (UI value 0-1 to seconds)
+export const RELEASE_SCALE = 0.3;
+export const RELEASE_OFFSET = 0.01;
+
+// Damping/lowpass filter scaling (UI value 0-1 to cutoff)
+export const DAMPING_SCALE = 0.69;
+export const DAMPING_OFFSET = 0.3;
+
+// Brightness/highpass filter scaling (UI value 0-1 to cutoff)
+// Engine and worklet have different mappings
+export const BRIGHTNESS_SCALE_ENGINE = 0.05;
+export const BRIGHTNESS_SCALE_WORKLET = 0.01;
+export const BRIGHTNESS_OFFSET_WORKLET = 0.001;
+
+// Vibrato amount scaling (UI value 0-1 to modulation depth)
+export const VIBRATO_SCALE = 0.05;
+
+// Flow injection mixing factor
+export const FLOW_MIX_ENGINE = 0.5;
+export const FLOW_MIX_WORKLET = 1.5;
+
+// Final output scaling (worklet only, engine uses OUTPUT_SCALE)
+export const WORKLET_OUTPUT_SCALE = 1.0;

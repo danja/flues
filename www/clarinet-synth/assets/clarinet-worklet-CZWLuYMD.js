@@ -19,7 +19,21 @@ import {
     TANH_NUMERATOR_CONSTANT,
     TANH_DENOMINATOR_SCALE,
     SATURATION_SCALE,
-    INITIAL_EXCITATION_AMPLITUDE
+    INITIAL_EXCITATION_AMPLITUDE,
+    BREATH_SCALE_WORKLET,
+    BREATH_OFFSET_WORKLET,
+    NOISE_SCALE,
+    ATTACK_SCALE,
+    ATTACK_OFFSET,
+    RELEASE_SCALE,
+    RELEASE_OFFSET,
+    DAMPING_SCALE,
+    DAMPING_OFFSET,
+    BRIGHTNESS_SCALE_WORKLET,
+    BRIGHTNESS_OFFSET_WORKLET,
+    VIBRATO_SCALE,
+    FLOW_MIX_WORKLET,
+    WORKLET_OUTPUT_SCALE
 } from '../constants.js';
 
 const sampleRate = globalThis.sampleRate;
@@ -127,11 +141,13 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
 
     updateEnvelope(deltaTime) {
         if (this.gate) {
-            const attackRate = 1.0 / this.attackTime;
+            // attackTime is in seconds, need to convert to samples
+            const attackRate = 1.0 / (this.attackTime * this.sampleRate);
             this.envelope += attackRate * deltaTime;
             if (this.envelope > 1) this.envelope = 1;
         } else {
-            const releaseRate = 1.0 / this.releaseTime;
+            // releaseTime is in seconds, need to convert to samples
+            const releaseRate = 1.0 / (this.releaseTime * this.sampleRate);
             this.envelope -= releaseRate * deltaTime;
             if (this.envelope < 0) {
                 this.envelope = 0;
@@ -177,7 +193,7 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         const flow = this.reedReflection(pressureDiff);
 
         // Mix into bore - balanced for clarinet-like tone
-        let newSample = borePressure + flow * 1.5;
+        let newSample = borePressure + flow * FLOW_MIX_WORKLET;
 
         // Apply filters
         newSample = this.lowpass(newSample, this.lpf.cutoff);
@@ -190,7 +206,7 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
         this.delayLine[this.writePos] = newSample;
         this.writePos = (this.writePos + 1) % this.delayLength;
 
-        return newSample * env * 1.0;
+        return newSample * env * WORKLET_OUTPUT_SCALE;
     }
 
     noteOn(frequency) {
@@ -219,30 +235,29 @@ class ClarinetWorkletProcessor extends AudioWorkletProcessor {
     setParameter(param, value) {
         switch(param) {
             case 'breath':
-                // Narrower range for more stable oscillation
-                this.breathPressure = value * 0.4 + 0.4;
+                // Inverted: lower internal pressure = more stable/louder oscillation
+                this.breathPressure = (1 - value) * BREATH_SCALE_WORKLET + BREATH_OFFSET_WORKLET;
                 break;
             case 'reed':
                 this.reedStiffness = value;
                 break;
             case 'noise':
-                this.noiseLevel = value * 0.3;
+                this.noiseLevel = value * NOISE_SCALE;
                 break;
             case 'attack':
-                this.attackTime = value * 0.1 + 0.001;
+                this.attackTime = value * ATTACK_SCALE + ATTACK_OFFSET;
                 break;
             case 'release':
-                this.releaseTime = value * 0.3 + 0.01;
+                this.releaseTime = value * RELEASE_SCALE + RELEASE_OFFSET;
                 break;
             case 'damping':
-                this.lpf.cutoff = 0.3 + value * 0.69;
+                this.lpf.cutoff = DAMPING_OFFSET + value * DAMPING_SCALE;
                 break;
             case 'brightness':
-                // Inverted: 0 = all frequencies, 1 = cut bass (brighter)
-                this.hpf.cutoff = 0.001 + value * 0.01;
+                this.hpf.cutoff = BRIGHTNESS_OFFSET_WORKLET + value * BRIGHTNESS_SCALE_WORKLET;
                 break;
             case 'vibrato':
-                this.vibratoAmount = value * 0.01;
+                this.vibratoAmount = value * VIBRATO_SCALE;
                 break;
         }
     }

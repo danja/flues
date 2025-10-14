@@ -5,6 +5,7 @@ import { ClarinetProcessor } from './audio/ClarinetProcessor.js';
 import { KnobController } from './ui/KnobController.js';
 import { KeyboardController } from './ui/KeyboardController.js';
 import { Visualizer } from './ui/Visualizer.js';
+import { DEFAULT_BREATH_UI, DEFAULT_REED_UI } from './constants.js';
 
 class ClarinetSynthApp {
     constructor() {
@@ -28,14 +29,14 @@ class ClarinetSynthApp {
             document.getElementById('breath-knob'),
             document.getElementById('breath-value'),
             (value) => this.updateParameter('breath', value),
-            0, 100, 70
+            0, 100, DEFAULT_BREATH_UI
         );
 
         this.knobs.reed = new KnobController(
             document.getElementById('reed-knob'),
             document.getElementById('reed-value'),
             (value) => this.updateParameter('reed', value),
-            0, 100, 50
+            0, 100, DEFAULT_REED_UI
         );
 
         this.knobs.noise = new KnobController(
