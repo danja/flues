@@ -27,16 +27,21 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install root dependencies
-        run: npm ci
-
       - name: Install dependencies (clarinet-synth)
         run: |
           cd experiments/clarinet-synth
           npm ci
 
-      - name: Build projects
-        run: npm run ghp
+      - name: Build clarinet-synth
+        run: |
+          cd experiments/clarinet-synth
+          npm run build
+
+      - name: Copy to www
+        run: |
+          rm -rf www/clarinet-synth
+          mkdir -p www/clarinet-synth
+          cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
