@@ -1,39 +1,61 @@
 // ClarinetEngine.js
 // Digital Waveguide Clarinet Synthesizer Engine
 
+import {
+    DEFAULT_BREATH_PRESSURE,
+    DEFAULT_REED_STIFFNESS,
+    DEFAULT_NOISE_LEVEL,
+    DEFAULT_LPF_CUTOFF,
+    DEFAULT_HPF_CUTOFF,
+    DEFAULT_ATTACK_TIME,
+    DEFAULT_RELEASE_TIME,
+    DEFAULT_VIBRATO_AMOUNT,
+    DEFAULT_VIBRATO_RATE,
+    DEFAULT_FREQUENCY,
+    DEFAULT_DELAY_LENGTH,
+    REED_STIFFNESS_SCALE,
+    REED_STIFFNESS_OFFSET,
+    TANH_CLIP_THRESHOLD,
+    TANH_NUMERATOR_CONSTANT,
+    TANH_DENOMINATOR_SCALE,
+    SATURATION_SCALE,
+    OUTPUT_SCALE,
+    INITIAL_EXCITATION_AMPLITUDE
+} from '../constants.js';
+
 export class ClarinetEngine {
     constructor(sampleRate = 44100) {
         this.sampleRate = sampleRate;
 
         // Waveguide parameters
         this.delayLine = null;
-        this.delayLength = 1000; // 100
+        this.delayLength = DEFAULT_DELAY_LENGTH;
         this.readPos = 0;
         this.writePos = 0;
 
         // Reed parameters
-        this.breathPressure = 0.7;
-        this.reedStiffness = 0.5;
-        this.noiseLevel = 0.15;
+        this.breathPressure = DEFAULT_BREATH_PRESSURE;
+        this.reedStiffness = DEFAULT_REED_STIFFNESS;
+        this.noiseLevel = DEFAULT_NOISE_LEVEL;
 
         // Filter state variables
-        this.lpf = { x1: 0, y1: 0, cutoff: 0.7 };
-        this.hpf = { x1: 0, y1: 0, cutoff: 0.01 };
+        this.lpf = { x1: 0, y1: 0, cutoff: DEFAULT_LPF_CUTOFF };
+        this.hpf = { x1: 0, y1: 0, cutoff: DEFAULT_HPF_CUTOFF };
 
         // Envelope
         this.envelope = 0;
-        this.attackTime = 0.01;
-        this.releaseTime = 0.05;
+        this.attackTime = DEFAULT_ATTACK_TIME;
+        this.releaseTime = DEFAULT_RELEASE_TIME;
         this.gate = false;
 
         // Vibrato
-        this.vibratoAmount = 0;
-        this.vibratoRate = 5;
+        this.vibratoAmount = DEFAULT_VIBRATO_AMOUNT;
+        this.vibratoRate = DEFAULT_VIBRATO_RATE;
         this.vibratoPhase = 0;
 
         // Current frequency
-        this.frequency = 440;
-        this.targetFrequency = 440;
+        this.frequency = DEFAULT_FREQUENCY;
+        this.targetFrequency = DEFAULT_FREQUENCY;
 
         // State
         this.isPlaying = false;
@@ -57,15 +79,15 @@ export class ClarinetEngine {
     reedReflection(pressureDiff) {
         // Cubic approximation: u = a*Δp + b*Δp^2 - c*Δp^3
         // Simplified to tanh-like function for efficiency
-        const stiffness = this.reedStiffness * 5 + 0.5;
+        const stiffness = this.reedStiffness * REED_STIFFNESS_SCALE + REED_STIFFNESS_OFFSET;
         const scaled = pressureDiff * stiffness;
 
         // Fast tanh approximation
-        if (scaled > 3) return 1;
-        if (scaled < -3) return -1;
+        if (scaled > TANH_CLIP_THRESHOLD) return 1;
+        if (scaled < -TANH_CLIP_THRESHOLD) return -1;
 
         const x2 = scaled * scaled;
-        return scaled * (27 + x2) / (27 + 9 * x2);
+        return scaled * (TANH_NUMERATOR_CONSTANT + x2) / (TANH_NUMERATOR_CONSTANT + TANH_DENOMINATOR_SCALE * x2);
     }
 
     // One-pole lowpass filter
@@ -86,10 +108,10 @@ export class ClarinetEngine {
 
     // Soft saturation (tanh approximation)
     saturate(input) {
-        if (input > 3) return 1;
-        if (input < -3) return -1;
+        if (input > TANH_CLIP_THRESHOLD) return 1;
+        if (input < -TANH_CLIP_THRESHOLD) return -1;
         const x2 = input * input;
-        return input * (27 + x2) / (27 + 9 * x2);
+        return input * (TANH_NUMERATOR_CONSTANT + x2) / (TANH_NUMERATOR_CONSTANT + TANH_DENOMINATOR_SCALE * x2);
     }
 
     // Generate noise for breath turbulence
@@ -162,14 +184,14 @@ export class ClarinetEngine {
         newSample = this.highpass(newSample, this.hpf.cutoff);
 
         // Soft saturation to prevent runaway
-        newSample = this.saturate(newSample * 0.95);
+        newSample = this.saturate(newSample * SATURATION_SCALE);
 
         // Write to delay line
         this.delayLine[this.writePos] = newSample;
         this.writePos = (this.writePos + 1) % this.delayLength;
 
         // Output with envelope
-        return newSample * env * 0.5;
+        return newSample * env * OUTPUT_SCALE;
     }
 
     // Note on
@@ -182,7 +204,7 @@ export class ClarinetEngine {
         // Small initial excitation to start oscillation
         if (this.delayLine) {
             for (let i = 0; i < this.delayLength; i++) {
-                this.delayLine[i] = (Math.random() * 2 - 1) * 0.01;
+                this.delayLine[i] = (Math.random() * 2 - 1) * INITIAL_EXCITATION_AMPLITUDE;
             }
         }
     }
