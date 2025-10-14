@@ -7,7 +7,7 @@ export class ClarinetEngine {
 
         // Waveguide parameters
         this.delayLine = null;
-        this.delayLength = 100;
+        this.delayLength = 1000; // 100
         this.readPos = 0;
         this.writePos = 0;
 
@@ -143,7 +143,7 @@ export class ClarinetEngine {
         const nextPos = (readPosInt + 1) % this.delayLength;
 
         const borePressure = this.delayLine[readPosInt] * (1 - readPosFrac) +
-                            this.delayLine[nextPos] * readPosFrac;
+            this.delayLine[nextPos] * readPosFrac;
 
         // Generate excitation (breath + noise)
         const noise = this.generateNoise();
