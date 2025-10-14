@@ -8,14 +8,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: undefined,
-        // Ensure AudioWorklet file has correct MIME type
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('worklet.js')) {
-            return 'assets/[name]-[hash].js';
-          }
-          return 'assets/[name]-[hash][extname]';
-        }
+        // Put worklet files in assets directory like other chunks
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]'
       }
     }
+  },
+  // Ensure worklet files are treated as chunks, not assets
+  worker: {
+    format: 'es'
   }
 })

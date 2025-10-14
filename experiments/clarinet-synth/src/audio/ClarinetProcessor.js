@@ -2,6 +2,8 @@
 // Audio processor using Web Audio API AudioWorklet (with ScriptProcessor fallback)
 
 import { ClarinetEngine } from './ClarinetEngine.js';
+// @ts-ignore - Vite special import for worklet URL
+import workletUrl from './clarinet-worklet.js?worker&url';
 
 export class ClarinetProcessor {
     constructor() {
@@ -38,9 +40,8 @@ export class ClarinetProcessor {
 
         // Try to use AudioWorklet (modern, better performance)
         try {
-            await this.audioContext.audioWorklet.addModule(
-                new URL('./clarinet-worklet.js', import.meta.url)
-            );
+            // workletUrl is imported at the top with ?worker&url suffix
+            await this.audioContext.audioWorklet.addModule(workletUrl);
 
             this.workletNode = new AudioWorkletNode(this.audioContext, 'clarinet-worklet');
             console.log(`[ClarinetProcessor] audioContext.state before connecting workletNode: ${this.audioContext.state}`);
