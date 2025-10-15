@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physical Modelling Synthesizer</title>
+    <title>Stove - Physical Modelling Synthesizer</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#4a9eff">
+    <link rel="apple-touch-icon" href="icon.svg">
     <style>
         * {
             margin: 0;
@@ -26,21 +30,116 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            max-width: 900px;
+            max-width: 1200px;
             width: 100%;
         }
 
+        .power-button {
+            position: absolute;
+            left: 0;
+            background: linear-gradient(145deg, #444, #222);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            color: #ff4a4a;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .power-button:not(.active) {
+            animation: powerPulse 1.6s ease-in-out infinite;
+        }
+
+        .power-button:hover {
+            color: #ff7373;
+        }
+
+        .power-button.active {
+            color: #4eff4a;
+            box-shadow: 0 0 20px rgba(78, 255, 74, 0.5);
+            animation: none;
+        }
+
         .synth-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .install-button {
+            position: absolute;
+            right: 0;
+            height: 32px;
+            padding: 0 14px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #ff8a4a, #ff4a8b);
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 5px 18px rgba(255, 74, 139, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .install-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+            animation: installPulse 1.8s ease-in-out infinite;
+        }
+
+        .install-button:hover {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        @keyframes installPulse {
+            0% {
+                box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 6px 22px rgba(255, 74, 139, 0.55);
+            }
+
+            100% {
+                box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3);
+            }
+        }
+
+        @keyframes powerPulse {
+            0% {
+                box-shadow: 0 0 6px rgba(255, 74, 74, 0.35);
+            }
+
+            50% {
+                box-shadow: 0 0 18px rgba(255, 74, 74, 0.75);
+            }
+
+            100% {
+                box-shadow: 0 0 6px rgba(255, 74, 74, 0.35);
+            }
+        }
+
+        .synth-header-text {
             text-align: center;
-            margin-bottom: 30px;
         }
 
         .synth-title {
             color: #4a9eff;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             margin-bottom: 5px;
         }
 
@@ -50,25 +149,33 @@
             letter-spacing: 2px;
         }
 
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
         .control-section {
             background: #333;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
         }
 
         .section-title {
             color: #4a9eff;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             text-transform: uppercase;
             margin-bottom: 15px;
             letter-spacing: 1px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
         }
 
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 20px;
         }
 
@@ -80,9 +187,9 @@
 
         .knob-container {
             position: relative;
-            width: 70px;
-            height: 70px;
-            margin-bottom: 10px;
+            width: 60px;
+            height: 60px;
+            margin-bottom: 8px;
         }
 
         .knob {
@@ -101,8 +208,8 @@
         .knob::before {
             content: '';
             position: absolute;
-            width: 4px;
-            height: 25px;
+            width: 3px;
+            height: 20px;
             background: #4a9eff;
             top: 8px;
             left: 50%;
@@ -111,18 +218,66 @@
             box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
         }
 
+        .knob:hover {
+            box-shadow:
+                inset 0 2px 5px rgba(0, 0, 0, 0.5),
+                0 2px 15px rgba(74, 158, 255, 0.3);
+        }
+
+        .switch-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            margin-bottom: 8px;
+        }
+
+        .switch {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #555, #333);
+            box-shadow:
+                inset 0 2px 5px rgba(0, 0, 0, 0.5),
+                0 2px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        .switch::before {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 22px;
+            background: #ff9500;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255, 149, 0, 0.5);
+        }
+
         .knob-label {
             color: #bbb;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .knob-value {
             color: #4a9eff;
             font-size: 10px;
             font-family: monospace;
+            font-weight: bold;
+        }
+
+        .switch-label {
+            color: #ff9500;
+            font-size: 10px;
+            font-family: monospace;
+            font-weight: bold;
+            text-align: center;
         }
 
         .keyboard {
@@ -132,8 +287,16 @@
             display: flex;
             justify-content: center;
             gap: 2px;
-            margin-top: 20px;
+            margin-top: 15px;
             flex-wrap: wrap;
+            overflow-x: auto;
+        }
+
+        /* Hide second octave on smaller screens */
+        @media (max-width: 900px) {
+            .key[data-octave="5"] {
+                display: none;
+            }
         }
 
         .key {
@@ -157,7 +320,8 @@
             background: #f0f0f0;
         }
 
-        .key:active, .key.active {
+        .key:active,
+        .key.active {
             background: #4a9eff;
             color: white;
             transform: translateY(2px);
@@ -177,59 +341,18 @@
             background: #333;
         }
 
-        .key.black:active, .key.black.active {
+        .key.black:active,
+        .key.black.active {
             background: #4a9eff;
             color: white;
         }
 
-        .status-bar {
-            background: #222;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .status-item {
-            color: #888;
-            font-size: 12px;
-        }
-
-        .status-value {
-            color: #4a9eff;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .power-button {
-            background: linear-gradient(145deg, #444, #222);
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            cursor: pointer;
-            color: #666;
-            font-size: 20px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .power-button:hover {
-            color: #4a9eff;
-        }
-
-        .power-button.active {
-            color: #4eff4a;
-            box-shadow: 0 0 20px rgba(78, 255, 74, 0.5);
-        }
 
         .visualizer {
             background: #1a1a1a;
             border-radius: 8px;
             height: 80px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             position: relative;
             overflow: hidden;
         }
@@ -238,227 +361,334 @@
             width: 100%;
             height: 100%;
         }
-    </style>
-    <style>
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            body {
-                padding: 0;
-            }
 
-            .synth-container {
-                padding: 15px;
-                border-radius: 0;
-                min-height: 100vh;
-            }
-
-            .synth-title {
-                font-size: 22px;
-            }
-
-            .controls-grid {
-                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-                gap: 15px;
-            }
-
-            .knob-container {
-                width: 60px;
-                height: 60px;
-            }
-
-            .key {
-                width: 45px;
-                height: 130px;
-            }
-
-            .key.black {
-                width: 30px;
-                height: 90px;
-                margin: 0 -16px;
-            }
-
-            .status-bar {
-                flex-wrap: wrap;
-                padding: 10px;
-            }
-
-            .status-item {
-                font-size: 11px;
-                margin: 2px 5px;
-            }
+        .visualizer-stats {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.45);
+            border-radius: 6px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-family: monospace;
+            font-size: 10px;
+            color: #d8e8ff;
+            pointer-events: none;
         }
 
-        @media (max-width: 480px) {
+        .visualizer-stats .stat-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .visualizer-stats .stat-label {
+            text-transform: uppercase;
+            color: #8cbcff;
+            letter-spacing: 0.05em;
+        }
+
+        .visualizer-stats .stat-value {
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
             .synth-container {
-                padding: 10px;
+                padding: 15px;
+            }
+
+            .modules-grid {
+                grid-template-columns: 1fr;
             }
 
             .synth-header {
-                margin-bottom: 20px;
-            }
-
-            .synth-title {
-                font-size: 18px;
-                letter-spacing: 2px;
-            }
-
-            .control-section {
-                padding: 15px;
-            }
-
-            .controls-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-
-            .knob-container {
-                width: 80px;
-                height: 80px;
-            }
-
-            .keyboard {
-                padding: 10px;
-                gap: 3px;
-            }
-
-            .key {
-                width: 12vw;
-                height: 35vw;
-                font-size: 10px;
-            }
-
-            .key.black {
-                width: 8vw;
-                height: 22vw;
-                margin: 0 -4.5vw;
-            }
-
-            .status-bar {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 15px;
             }
 
             .power-button {
-                margin: 0 auto 10px;
+                position: static;
+                margin: 0 auto;
             }
 
-            .status-item {
-                display: flex;
-                justify-content: space-between;
-                margin: 4px 0;
+            .controls-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 15px;
+            }
+
+            .knob-container,
+            .switch-container {
+                width: 50px;
+                height: 50px;
             }
         }
     </style>
-  <script type="module" crossorigin src="./assets/index-02VB4y_s.js"></script>
+  <script type="module" crossorigin src="./assets/index-DnNx9bx5.js"></script>
 </head>
+
 <body>
     <div class="synth-container">
         <div class="synth-header">
-            <div class="synth-title">Physical Modelling Synth</div>
-            <div class="synth-subtitle">Digital Waveguide Synthesis</div>
+            <button class="power-button" id="power-button">PWR</button>
+            <div class="synth-header-text">
+                <div class="synth-title">Stove</div>
+                <div class="synth-subtitle">Physical Modelling Synthesizer</div>
+            </div>
+            <button class="install-button" id="install-button" aria-label="Install Stove app">Install</button>
         </div>
 
         <div class="visualizer">
             <canvas class="visualizer-canvas" id="visualizer"></canvas>
+            <div class="visualizer-stats" id="visualizer-stats">
+                <div class="stat-row"><span class="stat-label">RMS</span><span class="stat-value"
+                        data-stat="rms">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">Peak</span><span class="stat-value"
+                        data-stat="peak">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">P-P</span><span class="stat-value"
+                        data-stat="p2p">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">Crest</span><span class="stat-value"
+                        data-stat="crest">0.00</span></div>
+                <div class="stat-row"><span class="stat-label">DC</span><span class="stat-value"
+                        data-stat="dc">0.000</span></div>
+            </div>
         </div>
 
-        <div class="control-section">
-            <div class="section-title">Reed & Excitation</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Breath</div>
-                    <div class="knob-container">
-                        <div class="knob" id="breath-knob"></div>
+        <!-- Row 1: Sources + Envelope -->
+        <div class="modules-grid">
+            <!-- Sources Section -->
+            <div class="control-section">
+                <div class="section-title">Sources</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">DC</div>
+                        <div class="knob-container">
+                            <div class="knob" id="dc-knob"></div>
+                        </div>
+                        <div class="knob-value" id="dc-value">50</div>
                     </div>
-                    <div class="knob-value" id="breath-value">70</div>
+                    <div class="control">
+                        <div class="knob-label">Noise</div>
+                        <div class="knob-container">
+                            <div class="knob" id="noise-knob"></div>
+                        </div>
+                        <div class="knob-value" id="noise-value">15</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Tone</div>
+                        <div class="knob-container">
+                            <div class="knob" id="tone-knob"></div>
+                        </div>
+                        <div class="knob-value" id="tone-value">0</div>
+                    </div>
                 </div>
-                <div class="control">
-                    <div class="knob-label">Reed Stiff</div>
-                    <div class="knob-container">
-                        <div class="knob" id="reed-knob"></div>
+            </div>
+
+            <!-- Envelope Section -->
+            <div class="control-section">
+                <div class="section-title">Envelope</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Attack</div>
+                        <div class="knob-container">
+                            <div class="knob" id="attack-knob"></div>
+                        </div>
+                        <div class="knob-value" id="attack-value">10</div>
                     </div>
-                    <div class="knob-value" id="reed-value">50</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Noise</div>
-                    <div class="knob-container">
-                        <div class="knob" id="noise-knob"></div>
+                    <div class="control">
+                        <div class="knob-label">Release</div>
+                        <div class="knob-container">
+                            <div class="knob" id="release-knob"></div>
+                        </div>
+                        <div class="knob-value" id="release-value">50</div>
                     </div>
-                    <div class="knob-value" id="noise-value">15</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Attack</div>
-                    <div class="knob-container">
-                        <div class="knob" id="attack-knob"></div>
-                    </div>
-                    <div class="knob-value" id="attack-value">10</div>
                 </div>
             </div>
         </div>
 
-        <div class="control-section">
-            <div class="section-title">Bore & Resonance</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Damping</div>
-                    <div class="knob-container">
-                        <div class="knob" id="damping-knob"></div>
+        <!-- Row 2: Interface + Delay Lines -->
+        <div class="modules-grid">
+            <!-- Interface Section -->
+            <div class="control-section">
+                <div class="section-title">Interface</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Type</div>
+                        <div class="switch-container">
+                            <div class="switch" id="interface-type-switch"></div>
+                        </div>
+                        <div class="switch-label" id="interface-type-label">Reed</div>
                     </div>
-                    <div class="knob-value" id="damping-value">20</div>
+                    <div class="control">
+                        <div class="knob-label">Intensity</div>
+                        <div class="knob-container">
+                            <div class="knob" id="interface-intensity-knob"></div>
+                        </div>
+                        <div class="knob-value" id="interface-intensity-value">50</div>
+                    </div>
                 </div>
-                <div class="control">
-                    <div class="knob-label">Brightness</div>
-                    <div class="knob-container">
-                        <div class="knob" id="brightness-knob"></div>
+            </div>
+
+            <!-- Delay Lines Section -->
+            <div class="control-section">
+                <div class="section-title">Delay Lines</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Tuning</div>
+                        <div class="knob-container">
+                            <div class="knob" id="tuning-knob"></div>
+                        </div>
+                        <div class="knob-value" id="tuning-value">50</div>
                     </div>
-                    <div class="knob-value" id="brightness-value">70</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Vibrato</div>
-                    <div class="knob-container">
-                        <div class="knob" id="vibrato-knob"></div>
+                    <div class="control">
+                        <div class="knob-label">Ratio</div>
+                        <div class="knob-container">
+                            <div class="knob" id="ratio-knob"></div>
+                        </div>
+                        <div class="knob-value" id="ratio-value">50</div>
                     </div>
-                    <div class="knob-value" id="vibrato-value">0</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Release</div>
-                    <div class="knob-container">
-                        <div class="knob" id="release-knob"></div>
-                    </div>
-                    <div class="knob-value" id="release-value">50</div>
                 </div>
             </div>
         </div>
 
+        <!-- Row 3: Feedback + Filter -->
+        <div class="modules-grid">
+            <!-- Feedback Section -->
+            <div class="control-section">
+                <div class="section-title">Feedback</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Delay 1</div>
+                        <div class="knob-container">
+                            <div class="knob" id="delay1-fb-knob"></div>
+                        </div>
+                        <div class="knob-value" id="delay1-fb-value">95</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Delay 2</div>
+                        <div class="knob-container">
+                            <div class="knob" id="delay2-fb-knob"></div>
+                        </div>
+                        <div class="knob-value" id="delay2-fb-value">95</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Filter</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-fb-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-fb-value">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="control-section">
+                <div class="section-title">Filter</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Frequency</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-freq-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-freq-value">70</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Q</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-q-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-q-value">20</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Shape</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-shape-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-shape-value">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4: Modulation + Reverb -->
+        <div class="modules-grid">
+            <!-- Modulation Section -->
+            <div class="control-section">
+                <div class="section-title">Modulation</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">LFO Freq</div>
+                        <div class="knob-container">
+                            <div class="knob" id="lfo-freq-knob"></div>
+                        </div>
+                        <div class="knob-value" id="lfo-freq-value">30</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">AM/FM</div>
+                        <div class="knob-container">
+                            <div class="knob" id="mod-type-level-knob"></div>
+                        </div>
+                        <div class="knob-value" id="mod-type-level-value">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reverb Section -->
+            <div class="control-section">
+                <div class="section-title">Reverb</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Size</div>
+                        <div class="knob-container">
+                            <div class="knob" id="reverb-size-knob"></div>
+                        </div>
+                        <div class="knob-value" id="reverb-size-value">50</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Level</div>
+                        <div class="knob-container">
+                            <div class="knob" id="reverb-level-knob"></div>
+                        </div>
+                        <div class="knob-value" id="reverb-level-value">30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard -->
         <div class="keyboard" id="keyboard">
-            <div class="key white" data-note="C4">C4</div>
-            <div class="key black" data-note="C#4">C#</div>
-            <div class="key white" data-note="D4">D4</div>
-            <div class="key black" data-note="D#4">D#</div>
-            <div class="key white" data-note="E4">E4</div>
-            <div class="key white" data-note="F4">F4</div>
-            <div class="key black" data-note="F#4">F#</div>
-            <div class="key white" data-note="G4">G4</div>
-            <div class="key black" data-note="G#4">G#</div>
-            <div class="key white" data-note="A4">A4</div>
-            <div class="key black" data-note="A#4">A#</div>
-            <div class="key white" data-note="B4">B4</div>
-            <div class="key white" data-note="C5">C5</div>
+            <!-- First Octave (C4-B4) -->
+            <div class="key white" data-note="C4" data-octave="4">C4</div>
+            <div class="key black" data-note="C#4" data-octave="4">C#</div>
+            <div class="key white" data-note="D4" data-octave="4">D4</div>
+            <div class="key black" data-note="D#4" data-octave="4">D#</div>
+            <div class="key white" data-note="E4" data-octave="4">E4</div>
+            <div class="key white" data-note="F4" data-octave="4">F4</div>
+            <div class="key black" data-note="F#4" data-octave="4">F#</div>
+            <div class="key white" data-note="G4" data-octave="4">G4</div>
+            <div class="key black" data-note="G#4" data-octave="4">G#</div>
+            <div class="key white" data-note="A4" data-octave="4">A4</div>
+            <div class="key black" data-note="A#4" data-octave="4">A#</div>
+            <div class="key white" data-note="B4" data-octave="4">B4</div>
+            <!-- Second Octave (C5-C6) -->
+            <div class="key white" data-note="C5" data-octave="5">C5</div>
+            <div class="key black" data-note="C#5" data-octave="5">C#</div>
+            <div class="key white" data-note="D5" data-octave="5">D5</div>
+            <div class="key black" data-note="D#5" data-octave="5">D#</div>
+            <div class="key white" data-note="E5" data-octave="5">E5</div>
+            <div class="key white" data-note="F5" data-octave="5">F5</div>
+            <div class="key black" data-note="F#5" data-octave="5">F#</div>
+            <div class="key white" data-note="G5" data-octave="5">G5</div>
+            <div class="key black" data-note="G#5" data-octave="5">G#</div>
+            <div class="key white" data-note="A5" data-octave="5">A5</div>
+            <div class="key black" data-note="A#5" data-octave="5">A#</div>
+            <div class="key white" data-note="B5" data-octave="5">B5</div>
+            <div class="key white" data-note="C6" data-octave="5">C6</div>
         </div>
 
-        <div class="status-bar">
-            <button class="power-button" id="power-button">PWR</button>
-            <div class="status-item">
-                Status: <span class="status-value" id="status">OFF</span>
-            </div>
-            <div class="status-item">
-                Note: <span class="status-value" id="current-note">---</span>
-            </div>
-            <div class="status-item">
-                CPU: <span class="status-value" id="cpu">0%</span>
-            </div>
-        </div>
     </div>
 
 </body>
+
 </html>
