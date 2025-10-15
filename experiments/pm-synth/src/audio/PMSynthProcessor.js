@@ -3,7 +3,7 @@
 
 import { PMSynthEngine } from './PMSynthEngine.js';
 // @ts-ignore - Vite special import for worklet URL
-import workletUrl from './pm-synth-worklet.js?worker&url';
+import workletUrl from './pm-synth-worklet.js?url';
 
 export class PMSynthProcessor {
     constructor() {
@@ -37,14 +37,8 @@ export class PMSynthProcessor {
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 2048;
 
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-
         // Try to use AudioWorklet (modern, better performance)
         try {
-            if (isIOS || !this.audioContext.audioWorklet) {
-                throw new Error('AudioWorklet unavailable or disabled on this device');
-            }
-
             await this.audioContext.audioWorklet.addModule(workletUrl);
 
             this.workletNode = new AudioWorkletNode(this.audioContext, 'pm-synth-worklet');
@@ -169,7 +163,11 @@ export class PMSynthProcessor {
                 const s = ctx.createBufferSource();
                 s.buffer = b;
                 s.connect(ctx.destination);
-                s.start(0);
+                if (typeof s.start === 'function') {
+                    s.start(0);
+                } else if (typeof s.noteOn === 'function') {
+                    s.noteOn(0);
+                }
                 setTimeout(() => s.disconnect(), 0);
                 unlocked = true;
                 cleanup();
