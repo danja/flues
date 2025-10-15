@@ -3,7 +3,7 @@
 
 import { PMSynthEngine } from './PMSynthEngine.js';
 // @ts-ignore - Vite special import for worklet URL
-import workletUrl from './pm-synth-worklet.js?worker&url';
+import workletUrl from './pm-synth-worklet.js?url';
 
 export class PMSynthProcessor {
     constructor() {
@@ -20,7 +20,7 @@ export class PMSynthProcessor {
     async initialize() {
         console.log('[PMSynthProcessor] Initializing...');
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this._installIOSUnlock(this.audioContext);
+        await this._installIOSUnlock(this.audioContext);
         console.log(`[PMSynthProcessor] audioContext.state: ${this.audioContext.state}`);
 
         // Explicitly resume context
@@ -143,7 +143,7 @@ export class PMSynthProcessor {
         };
     }
 
-    _installIOSUnlock(ctx) {
+    async _installIOSUnlock(ctx) {
         if (!ctx) return;
         let unlocked = ctx.state === 'running';
 
@@ -163,7 +163,11 @@ export class PMSynthProcessor {
                 const s = ctx.createBufferSource();
                 s.buffer = b;
                 s.connect(ctx.destination);
-                s.start(0);
+                if (typeof s.start === 'function') {
+                    s.start(0);
+                } else if (typeof s.noteOn === 'function') {
+                    s.noteOn(0);
+                }
                 setTimeout(() => s.disconnect(), 0);
                 unlocked = true;
                 cleanup();
@@ -177,6 +181,8 @@ export class PMSynthProcessor {
         document.addEventListener('touchstart', unlock, { capture: true, passive: true });
         document.addEventListener('keydown', unlock, { capture: true });
         ctx.onstatechange = () => console.log('[PMSynthProcessor] state:', ctx.state);
+
+        await unlock();
     }
 
     shutdown() {
