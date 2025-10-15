@@ -6,6 +6,7 @@ import { InterfaceType } from './audio/PMSynthEngine.js';
 import { KnobController } from './ui/KnobController.js';
 import { RotarySwitchController } from './ui/RotarySwitchController.js';
 import { KeyboardController } from './ui/KeyboardController.js';
+import { MidiController } from './ui/MidiController.js';
 import { Visualizer } from './ui/Visualizer.js';
 import {
     DEFAULT_DC_LEVEL,
@@ -78,6 +79,7 @@ class PMSynthApp {
     constructor() {
         this.processor = null;
         this.keyboard = null;
+        this.midi = null;
         this.visualizer = null;
         this.knobs = {};
         this.switches = {};
@@ -85,6 +87,7 @@ class PMSynthApp {
         this.currentNote = null;
 
         this.initializeUI();
+        this.initializeMidi();
     }
 
     initializeUI() {
@@ -258,6 +261,90 @@ class PMSynthApp {
         this.updateStatus();
     }
 
+    async initializeMidi() {
+        this.midi = new MidiController(
+            (note, frequency, velocity) => this.handleNoteOn(note, frequency),
+            (note) => this.handleNoteOff(note)
+        );
+
+        const midiAvailable = await this.midi.initialize();
+
+        if (midiAvailable) {
+            console.log('[PMSynthApp] MIDI initialized successfully');
+
+            // Set up callbacks for UI updates
+            this.midi.onDeviceChange = (devices) => {
+                this.updateMidiDeviceList(devices);
+            };
+
+            this.midi.onActivity = () => {
+                this.showMidiActivity();
+            };
+
+            // Initialize MIDI UI
+            this.updateMidiDeviceList(this.midi.getInputDevices());
+        } else {
+            console.log('[PMSynthApp] MIDI not available');
+            this.hideMidiPanel();
+        }
+    }
+
+    updateMidiDeviceList(devices) {
+        const select = document.getElementById('midi-device-select');
+        if (!select) return;
+
+        // Clear existing options
+        select.innerHTML = '<option value="">No device</option>';
+
+        // Add available devices
+        devices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.id;
+            option.textContent = device.name;
+            if (this.midi.selectedInput && this.midi.selectedInput.id === device.id) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        // Update status indicator
+        this.updateMidiStatus(devices.length > 0);
+    }
+
+    updateMidiStatus(hasDevices) {
+        const statusIndicator = document.getElementById('midi-status-indicator');
+        const statusText = document.getElementById('midi-status-text');
+        if (!statusIndicator || !statusText) return;
+
+        if (!hasDevices) {
+            statusIndicator.className = 'midi-status-indicator disconnected';
+            statusText.textContent = 'No devices';
+        } else if (this.midi.selectedInput) {
+            statusIndicator.className = 'midi-status-indicator connected';
+            statusText.textContent = 'Connected';
+        } else {
+            statusIndicator.className = 'midi-status-indicator warning';
+            statusText.textContent = 'Select device';
+        }
+    }
+
+    showMidiActivity() {
+        const indicator = document.getElementById('midi-activity-indicator');
+        if (!indicator) return;
+
+        indicator.classList.add('active');
+        setTimeout(() => {
+            indicator.classList.remove('active');
+        }, 100);
+    }
+
+    hideMidiPanel() {
+        const panel = document.getElementById('midi-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+    }
+
     async togglePower() {
         if (!this.isActive) {
             await this.powerOn();
@@ -308,6 +395,9 @@ class PMSynthApp {
         if (this.processor) {
             if (this.keyboard) {
                 this.keyboard.releaseAllKeys();
+            }
+            if (this.midi) {
+                this.midi.releaseAllNotes();
             }
             this.processor.shutdown();
             this.processor = null;
@@ -393,9 +483,71 @@ if (document.readyState === 'loading') {
     window.synthApp = new PMSynthApp();
 }
 
+// Setup MIDI panel event listeners after app initialization
+document.addEventListener('DOMContentLoaded', () => {
+    const app = window.synthApp;
+    if (!app) return;
+
+    // MIDI device selector
+    const deviceSelect = document.getElementById('midi-device-select');
+    if (deviceSelect) {
+        deviceSelect.addEventListener('change', (e) => {
+            if (app.midi) {
+                app.midi.selectInput(e.target.value);
+                app.updateMidiStatus(app.midi.getInputDevices().length > 0);
+            }
+        });
+    }
+
+    // MIDI channel selector
+    const channelSelect = document.getElementById('midi-channel-select');
+    if (channelSelect) {
+        channelSelect.addEventListener('change', (e) => {
+            if (app.midi) {
+                app.midi.setChannel(e.target.value);
+            }
+        });
+    }
+
+    // MIDI enable toggle
+    const enableToggle = document.getElementById('midi-enable-toggle');
+    if (enableToggle) {
+        enableToggle.addEventListener('change', (e) => {
+            if (app.midi) {
+                app.midi.setEnabled(e.target.checked);
+            }
+        });
+    }
+
+    // MIDI panic button (all notes off)
+    const panicButton = document.getElementById('midi-panic-button');
+    if (panicButton) {
+        panicButton.addEventListener('click', () => {
+            if (app.midi) {
+                app.midi.releaseAllNotes();
+            }
+        });
+    }
+
+    // MIDI panel collapse/expand toggle
+    const toggleButton = document.getElementById('midi-panel-toggle');
+    const panelContent = document.getElementById('midi-panel-content');
+    if (toggleButton && panelContent) {
+        toggleButton.addEventListener('click', () => {
+            panelContent.classList.toggle('collapsed');
+            toggleButton.textContent = panelContent.classList.contains('collapsed') ? '▼' : '▲';
+        });
+    }
+});
+
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (window.synthApp && window.synthApp.isActive) {
-        window.synthApp.powerOff();
+    if (window.synthApp) {
+        if (window.synthApp.isActive) {
+            window.synthApp.powerOff();
+        }
+        if (window.synthApp.midi) {
+            window.synthApp.midi.shutdown();
+        }
     }
 });

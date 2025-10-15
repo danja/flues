@@ -394,6 +394,181 @@
             color: #fff;
         }
 
+        /* MIDI Panel Styles */
+        .midi-panel {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .midi-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .midi-panel-title {
+            color: #ff9500;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .midi-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+
+        .midi-status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .midi-status-indicator.connected {
+            background: #4eff4a;
+            box-shadow: 0 0 8px rgba(78, 255, 74, 0.6);
+        }
+
+        .midi-status-indicator.disconnected {
+            background: #ff4a4a;
+            box-shadow: 0 0 8px rgba(255, 74, 74, 0.6);
+        }
+
+        .midi-status-indicator.warning {
+            background: #ffa500;
+            box-shadow: 0 0 8px rgba(255, 165, 0, 0.6);
+        }
+
+        .midi-status-text {
+            color: #bbb;
+            font-size: 10px;
+        }
+
+        .midi-activity-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+            transition: background 0.1s;
+        }
+
+        .midi-activity-indicator.active {
+            background: #4a9eff;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.8);
+        }
+
+        .midi-panel-toggle {
+            background: none;
+            border: none;
+            color: #ff9500;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: transform 0.3s;
+        }
+
+        .midi-panel-content {
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .midi-panel-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .midi-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .midi-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .midi-control-label {
+            color: #bbb;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .midi-select {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            padding: 8px;
+            font-size: 11px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .midi-select:hover {
+            border-color: #ff9500;
+        }
+
+        .midi-select:focus {
+            outline: none;
+            border-color: #ff9500;
+            box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2);
+        }
+
+        .midi-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .midi-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #ff9500;
+        }
+
+        .midi-panic-button {
+            background: linear-gradient(145deg, #ff4a4a, #cc3838);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            padding: 8px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 6px rgba(255, 74, 74, 0.3);
+        }
+
+        .midi-panic-button:hover {
+            background: linear-gradient(145deg, #ff6a6a, #e04444);
+            box-shadow: 0 2px 10px rgba(255, 74, 74, 0.5);
+        }
+
+        .midi-panic-button:active {
+            transform: translateY(1px);
+        }
+
         @media (max-width: 768px) {
             .synth-container {
                 padding: 15px;
@@ -422,6 +597,10 @@
             .switch-container {
                 width: 50px;
                 height: 50px;
+            }
+
+            .midi-controls {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -650,6 +829,68 @@
                             <div class="knob" id="reverb-level-knob"></div>
                         </div>
                         <div class="knob-value" id="reverb-level-value">30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MIDI Panel -->
+        <div class="midi-panel" id="midi-panel">
+            <div class="midi-panel-header" id="midi-panel-toggle">
+                <div class="midi-panel-title">
+                    <span>MIDI Input</span>
+                    <div class="midi-activity-indicator" id="midi-activity-indicator"></div>
+                </div>
+                <div class="midi-status">
+                    <div class="midi-status-indicator disconnected" id="midi-status-indicator"></div>
+                    <span class="midi-status-text" id="midi-status-text">Initializing...</span>
+                </div>
+            </div>
+
+            <div class="midi-panel-content" id="midi-panel-content">
+                <div class="midi-controls">
+                    <div class="midi-control-group">
+                        <label class="midi-control-label" for="midi-device-select">Device</label>
+                        <select class="midi-select" id="midi-device-select">
+                            <option value="">No device</option>
+                        </select>
+                    </div>
+
+                    <div class="midi-control-group">
+                        <label class="midi-control-label" for="midi-channel-select">Channel</label>
+                        <select class="midi-select" id="midi-channel-select">
+                            <option value="all">All Channels</option>
+                            <option value="1">Channel 1</option>
+                            <option value="2">Channel 2</option>
+                            <option value="3">Channel 3</option>
+                            <option value="4">Channel 4</option>
+                            <option value="5">Channel 5</option>
+                            <option value="6">Channel 6</option>
+                            <option value="7">Channel 7</option>
+                            <option value="8">Channel 8</option>
+                            <option value="9">Channel 9</option>
+                            <option value="10">Channel 10</option>
+                            <option value="11">Channel 11</option>
+                            <option value="12">Channel 12</option>
+                            <option value="13">Channel 13</option>
+                            <option value="14">Channel 14</option>
+                            <option value="15">Channel 15</option>
+                            <option value="16">Channel 16</option>
+                        </select>
+                    </div>
+
+                    <div class="midi-control-group">
+                        <label class="midi-control-label">
+                            <div class="midi-toggle">
+                                <input type="checkbox" id="midi-enable-toggle" checked>
+                                <span>MIDI Enabled</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="midi-control-group">
+                        <label class="midi-control-label" for="midi-panic-button">Emergency</label>
+                        <button class="midi-panic-button" id="midi-panic-button">All Notes Off</button>
                     </div>
                 </div>
             </div>
