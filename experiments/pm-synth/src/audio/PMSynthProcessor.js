@@ -3,7 +3,6 @@
 
 import { PMSynthEngine } from './PMSynthEngine.js';
 // @ts-ignore - Vite special import for worklet URL
-import workletUrl from './pm-synth-worklet.js?url';
 
 export class PMSynthProcessor {
     constructor() {
@@ -39,6 +38,7 @@ export class PMSynthProcessor {
 
         // Try to use AudioWorklet (modern, better performance)
         try {
+            const workletUrl = new URL('./pm-synth-worklet.js', import.meta.url);
             await this.audioContext.audioWorklet.addModule(workletUrl);
 
             this.workletNode = new AudioWorkletNode(this.audioContext, 'pm-synth-worklet');
