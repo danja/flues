@@ -49,7 +49,10 @@ export const INTERFACE_TYPE_NAMES = [
     'Hit',
     'Reed',
     'Flute',
-    'Brass'
+    'Brass',
+    'Bow',
+    'Bell',
+    'Drum'
 ];
 
 // ============================================================================

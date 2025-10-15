@@ -29,13 +29,16 @@ Refactor into `src/audio/modules/EnvelopeModule.js`:
 
 #### 3. **Interface Module** (NEW - replaces reed-only nonlinearity)
 Create `src/audio/modules/InterfaceModule.js`:
-- Rotary switch for 5 interface types
+- Rotary switch for 8 interface types
 - Intensity parameter (0-1) controlling effect strength
 - **Pluck**: Initial impulse with quick decay (Karplus-Strong style)
 - **Hit**: Sharp impulse with variable hardness
 - **Reed**: Clarinet-style nonlinear reflection (existing tanh)
 - **Flute**: Edge tone simulation (softer nonlinearity)
 - **Brass**: Lip model (asymmetric nonlinearity)
+- **Bow**: Stick-slip friction model for sustained bows
+- **Bell**: Metallic partial shaper for chime-like strikes
+- **Drum**: Energy-accumulating membrane drive
 
 #### 4. **Delay Lines Module** (REFACTOR existing)
 Refactor into `src/audio/modules/DelayLinesModule.js`:
@@ -90,7 +93,7 @@ Create modular UI blocks in `src/ui/`:
 9. **Visualizer.js**: Reuse existing
 
 ### New UI Components
-- **RotarySwitchController.js**: 5-position switch for Interface type selection
+- **RotarySwitchController.js**: 8-position switch for Interface type selection
 - Update **KnobController.js**: Add bipolar mode for Modulation Type/Level
 
 ## Testing Strategy
@@ -265,58 +268,14 @@ class ModuleName {
 
 ## Interface Type Implementations
 
-### Pluck
-```javascript
-// One-way filter: pass initial impulse, dampen subsequent
-process(input) {
-  const threshold = this.intensity * 0.5;
-  if (Math.abs(input) > threshold) {
-    this.lastPeak = input;
-    return input;
-  }
-  return input * (1 - this.intensity);
-}
-```
-
-### Hit
-```javascript
-// Sharp waveshaper with adjustable hardness
-process(input) {
-  const hardness = 1 + this.intensity * 10;
-  return Math.tanh(input * hardness) / hardness;
-}
-```
-
-### Reed (existing)
-```javascript
-// Clarinet-style cubic nonlinearity
-process(input) {
-  const stiffness = this.intensity * 8 + 0.8;
-  return fastTanh(input * stiffness);
-}
-```
-
-### Flute
-```javascript
-// Soft symmetric nonlinearity (jet instability)
-process(input) {
-  const softness = 1 + this.intensity * 2;
-  return input - (input ** 3) / (3 * softness);
-}
-```
-
-### Brass
-```javascript
-// Asymmetric lip model (different + and - slopes)
-process(input) {
-  const asym = 0.5 + this.intensity;
-  if (input > 0) {
-    return Math.tanh(input * asym);
-  } else {
-    return Math.tanh(input / asym);
-  }
-}
-```
+- **Pluck**: Track the largest recent excursion, bleed energy on the return stroke, and introduce a brightness impulse from the input derivative for extra snap.
+- **Hit**: Apply intensity-dependent sine foldover (multiple harmonics) followed by dynamic exponentiation to control hardness.
+- **Reed**: Bias the input, drive a fast tanh, and scale the result to simulate reed stiffness; higher intensity adds more bite.
+- **Flute**: Blend the input with controllable breath noise and a soft cubic shaper to replicate air jet instability.
+- **Brass**: Use asymmetric drive (stronger on positive half cycles) with an additional bias to mimic lip buzz and growl.
+- **Bow**: Implement stick-slip friction by integrating bow state, applying high-gain tanh to the slip velocity, and sprinkling light granular noise.
+- **Bell**: Layer multiple harmonic sinusoids with a drifting phase and saturate the mix for shimmering, metallic partials.
+- **Drum**: Accumulate absolute energy into a decaying reservoir, add per-hit noise, and combine with a saturated base waveform for membrane punch.
 
 ## State-Variable Filter Implementation
 

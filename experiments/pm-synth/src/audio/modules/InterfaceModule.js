@@ -6,7 +6,10 @@ export const InterfaceType = {
     HIT: 1,
     REED: 2,
     FLUTE: 3,
-    BRASS: 4
+    BRASS: 4,
+    BOW: 5,
+    BELL: 6,
+    DRUM: 7
 };
 
 export class InterfaceModule {
@@ -18,6 +21,11 @@ export class InterfaceModule {
         this.lastPeak = 0;
         this.peakDecay = 0.999;
         this.prevInput = 0;
+
+        // State for bow/bell/drum
+        this.bowState = 0;
+        this.bellPhase = 0;
+        this.drumEnergy = 0;
 
         // Constants for fast tanh approximation
         this.TANH_CLIP_THRESHOLD = 3;
@@ -139,6 +147,48 @@ export class InterfaceModule {
     }
 
     /**
+     * Process bow interface
+     * Stick-slip friction with controllable bite and noise
+     */
+    processBow(input) {
+        const bowVelocity = this.intensity * 0.9 + 0.2;
+        const slip = input - this.bowState;
+        const friction = this.fastTanh(slip * (6 + this.intensity * 12));
+        const grit = (Math.random() * 2 - 1) * this.intensity * 0.012;
+        const output = friction * (0.55 + this.intensity * 0.35) + slip * 0.25 + grit;
+        const stick = 0.8 - this.intensity * 0.25;
+        this.bowState = this.bowState * stick + (input + friction * bowVelocity * 0.05) * (1 - stick);
+        return Math.max(-1, Math.min(1, output));
+    }
+
+    /**
+     * Process bell interface
+     * Metallic waveshaping with evolving phase
+     */
+    processBell(input) {
+        this.bellPhase += 0.1 + this.intensity * 0.25;
+        if (this.bellPhase > Math.PI * 2) this.bellPhase -= Math.PI * 2;
+        const harmonicSpread = 6 + this.intensity * 14;
+        const even = Math.sin(input * harmonicSpread + this.bellPhase) * (0.4 + this.intensity * 0.4);
+        const odd = Math.sin(input * (harmonicSpread * 0.5 + 2)) * (0.2 + this.intensity * 0.3);
+        const bright = this.fastTanh((even + odd) * (1.1 + this.intensity * 0.6));
+        return Math.max(-1, Math.min(1, bright));
+    }
+
+    /**
+     * Process drum interface
+     * Energy accumulator with noisy drive
+     */
+    processDrum(input) {
+        const drive = 1.2 + this.intensity * 2.2;
+        const noise = (Math.random() * 2 - 1) * (0.02 + this.intensity * 0.06);
+        this.drumEnergy = this.drumEnergy * (0.7 - this.intensity * 0.2) + Math.abs(input) * (0.6 + this.intensity * 0.7);
+        const hit = Math.tanh(input * drive) + noise;
+        const output = hit * (0.4 + this.intensity * 0.4) + Math.sign(hit) * Math.min(0.8, this.drumEnergy * 0.6);
+        return Math.max(-1, Math.min(1, output));
+    }
+
+    /**
      * Process one sample through selected interface
      * @param {number} input - Input sample
      * @returns {number} Processed output
@@ -155,6 +205,12 @@ export class InterfaceModule {
                 return this.processFlute(input);
             case InterfaceType.BRASS:
                 return this.processBrass(input);
+            case InterfaceType.BOW:
+                return this.processBow(input);
+            case InterfaceType.BELL:
+                return this.processBell(input);
+            case InterfaceType.DRUM:
+                return this.processDrum(input);
             default:
                 return input;
         }
@@ -166,5 +222,8 @@ export class InterfaceModule {
     reset() {
         this.lastPeak = 0;
         this.prevInput = 0;
+        this.bowState = 0;
+        this.bellPhase = 0;
+        this.drumEnergy = 0;
     }
 }

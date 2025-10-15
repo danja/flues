@@ -133,8 +133,63 @@ describe('InterfaceModule', () => {
             const outputPos = interface_.process(0.5);
             const outputNeg = interface_.process(-0.5);
 
-            // Asymmetric means |output(+x)| != |output(-x)|
             expect(Math.abs(outputPos)).not.toBeCloseTo(Math.abs(outputNeg), 1);
+            expect(Math.abs(outputPos)).toBeLessThanOrEqual(1);
+            expect(Math.abs(outputNeg)).toBeLessThanOrEqual(1);
+        });
+    });
+
+    describe('Bow interface', () => {
+        beforeEach(() => {
+            interface_.setType(InterfaceType.BOW);
+        });
+
+        it('should respond smoothly to continuous input', () => {
+            interface_.setIntensity(0.5);
+            const sine = TestSignals.sine(10, 44100, 512, 0.5);
+            const output = new Float32Array(sine.length);
+            for (let i = 0; i < sine.length; i++) {
+                output[i] = interface_.process(sine[i]);
+            }
+            expect(SignalAnalysis.hasValidOutput(output, 1)).toBe(true);
+            const variance = SignalAnalysis.variance(output);
+            expect(variance).toBeGreaterThan(0.01);
+        });
+    });
+
+    describe('Bell interface', () => {
+        beforeEach(() => {
+            interface_.setType(InterfaceType.BELL);
+        });
+
+        it('should introduce metallic overtones', () => {
+            interface_.setIntensity(0.7);
+            const burst = TestSignals.impulse(256, 0.8);
+            const output = new Float32Array(burst.length);
+            for (let i = 0; i < burst.length; i++) {
+                output[i] = interface_.process(burst[i]);
+            }
+            expect(SignalAnalysis.hasValidOutput(output, 1)).toBe(true);
+            const crest = SignalAnalysis.crestFactor(output);
+            expect(crest).toBeGreaterThan(1.2);
+        });
+    });
+
+    describe('Drum interface', () => {
+        beforeEach(() => {
+            interface_.setType(InterfaceType.DRUM);
+        });
+
+        it('should build energy with loud hits', () => {
+            interface_.setIntensity(0.8);
+            const hits = TestSignals.square(60, 44100, 512, 0.6);
+            const output = new Float32Array(hits.length);
+            for (let i = 0; i < hits.length; i++) {
+                output[i] = interface_.process(hits[i]);
+            }
+            expect(SignalAnalysis.hasValidOutput(output, 1.5)).toBe(true);
+            const rms = SignalAnalysis.rmsLevel(output);
+            expect(rms).toBeGreaterThan(0.2);
         });
     });
 

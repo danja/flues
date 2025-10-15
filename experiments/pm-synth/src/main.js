@@ -38,6 +38,42 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+let deferredInstallPrompt = null;
+
+function setupInstallPromptUI() {
+    const installButton = document.getElementById('install-button');
+    if (!installButton) return;
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        installButton.classList.add('visible');
+    });
+
+    installButton.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        try {
+            installButton.disabled = true;
+            await deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+        } catch (err) {
+            console.warn('Install prompt failed', err);
+        } finally {
+            deferredInstallPrompt = null;
+            installButton.disabled = false;
+            installButton.classList.remove('visible');
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        installButton.classList.remove('visible');
+        installButton.disabled = true;
+    });
+}
+
+setupInstallPromptUI();
+
 class PMSynthApp {
     constructor() {
         this.processor = null;

@@ -33,14 +33,6 @@
             width: 100%;
         }
 
-        .synth-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            position: relative;
-        }
-
         .power-button {
             position: absolute;
             left: 0;
@@ -69,6 +61,50 @@
             color: #4eff4a;
             box-shadow: 0 0 20px rgba(78, 255, 74, 0.5);
             animation: none;
+        }
+
+        .synth-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .install-button {
+            position: absolute;
+            right: 0;
+            height: 32px;
+            padding: 0 14px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #ff8a4a, #ff4a8b);
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 5px 18px rgba(255, 74, 139, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .install-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+            animation: installPulse 1.8s ease-in-out infinite;
+        }
+
+        .install-button:hover {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        @keyframes installPulse {
+            0% { box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3); }
+            50% { box-shadow: 0 6px 22px rgba(255, 74, 139, 0.55); }
+            100% { box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3); }
         }
 
         @keyframes powerPulse {
@@ -384,6 +420,7 @@
                 <div class="synth-title">Stove</div>
                 <div class="synth-subtitle">Physical Modelling Synthesizer</div>
             </div>
+            <button class="install-button" id="install-button" aria-label="Install PM Synth app">Install</button>
         </div>
 
         <div class="visualizer">

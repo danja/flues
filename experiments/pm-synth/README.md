@@ -72,27 +72,16 @@ Attack-Release envelope applied to the source signal:
 - **Release**: How quickly sound fades after note-off (0.01-2.0s)
 
 #### 3. **Interface** - Physical Interaction Model
-Five types of physical interaction, each with intensity control:
+Eight interaction styles, each morphing with intensity:
 
-- **Pluck** (0): Karplus-Strong plucked string
-  - Low intensity: soft nylon string
-  - High intensity: sharp pick attack
-
-- **Hit** (1): Struck percussion
-  - Low intensity: soft mallet
-  - High intensity: hard metal beater
-
-- **Reed** (2): Clarinet-style reed (default)
-  - Low intensity: soft, mellow tone
-  - High intensity: bright, aggressive squawk
-
-- **Flute** (3): Edge tone air jet
-  - Low intensity: breathy, gentle
-  - High intensity: focused, whistling
-
-- **Brass** (4): Lip vibration
-  - Low intensity: muted, soft
-  - High intensity: brassy, brilliant
+- **Pluck**: One-way stick dampening for string picks (0 → soft nylon, 100 → glassy snap)
+- **Hit**: Sine-fold shaper for percussive strikes (0 → woody thunk, 100 → metallic crunch)
+- **Reed**: Biased saturation like a clarinet reed (0 → mellow, 100 → biting squawk)
+- **Flute**: Jet excitation with controllable breath (0 → airy whisper, 100 → hissing edge)
+- **Brass**: Asymmetric lip buzz (0 → muted horn, 100 → brassy snarl)
+- **Bow**: Stick-slip friction for sustained bows (0 → smooth violin, 100 → scratchy pressure)
+- **Bell**: Metallic partial shaper (0 → mellow chime, 100 → shimmery clang)
+- **Drum**: Energy-accumulating drive (0 → damped skin, 100 → explosive tom/snare)
 
 #### 4. **Delay Lines** - Resonance
 Two parallel delay lines create the resonant body:
@@ -143,7 +132,7 @@ LFO with bipolar AM/FM control:
 | | Tone Level | 0-100 | 0 |
 | **Envelope** | Attack | 0-100 | 10 |
 | | Release | 0-100 | 50 |
-| **Interface** | Type | Pluck/Hit/Reed/Flute/Brass | Reed |
+| **Interface** | Type | Pluck/Hit/Reed/Flute/Brass/Bow/Bell/Drum | Reed |
 | | Intensity | 0-100 | 50 |
 | **Delay Lines** | Tuning | 0-100 (±12 semitones) | 50 |
 | | Ratio | 0-100 (0.5-2.0×) | 50 |
@@ -187,6 +176,26 @@ LFO with bipolar AM/FM control:
 - Sources: DC 60%, Tone 20%
 - Feedback: Delay1 93%, Delay2 93%
 - Filter: Bandpass, Freq 50%, Q 60%
+
+### Violin Bow
+- Interface: **Bow**
+- Sources: DC 45%, Noise 10%, Tone 25%
+- Feedback: Delay1 96%, Delay2 92%
+- Filter: Lowpass, Freq 65%, Q 25%
+
+### Bell Tree
+- Interface: **Bell**
+- Sources: DC 25%, Noise 20%, Tone 45%
+- Ratio: 70%
+- Filter: Highpass, Freq 60%, Q 55%
+- Reverb: Size 80%, Level 45%
+
+### Drum Head
+- Interface: **Drum**
+- Sources: DC 35%, Noise 35%, Tone 10%
+- Ratio: 35%
+- Filter: Bandpass, Freq 45%, Q 30%
+- Modulation: AM bias 35%
 
 ### Experimental
 Try these for unique sounds:

@@ -9,7 +9,7 @@
 - [x] **FeedbackModule.js** - Three-way feedback mixer
 
 ### Phase 2: Signal Processing Modules ✅
-- [x] **InterfaceModule.js** - Five interface types (Pluck, Hit, Reed, Flute, Brass)
+- [x] **InterfaceModule.js** - Eight interface types (Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum)
 - [x] **FilterModule.js** - State-variable filter with morphable LP/BP/HP response
 - [x] **ModulationModule.js** - LFO with bipolar AM/FM control
 
@@ -50,18 +50,21 @@ Sources (DC, Noise, Tone) → Envelope → Interface → Delay Lines ← Feedbac
 1. **Keyboard** generates gate (on/off) and CV (frequency)
 2. **Sources** generate excitation: DC + Noise + Sawtooth
 3. **Envelope** applies AR envelope to sources
-4. **Interface** applies nonlinear processing (5 types)
+4. **Interface** applies nonlinear processing (8 types)
 5. **Delay Lines** create resonance (dual lines with ratio control)
 6. **Feedback** mixes delay outputs back to input
 7. **Filter** shapes final tone (morphable LP/BP/HP)
 8. **Modulation** adds LFO-based AM or FM
 
 ### Interface Types
-- **Pluck**: One-way damping (Karplus-Strong)
-- **Hit**: Hard waveshaping (mallet/drum)
-- **Reed**: Clarinet-style nonlinearity
-- **Flute**: Soft symmetric saturation
-- **Brass**: Asymmetric lip model
+- **Pluck**: One-way damping with transient brightening
+- **Hit**: Sine-fold waveshaping for percussive strikes
+- **Reed**: Biased clarinet-style saturation
+- **Flute**: Soft jet response with breath noise
+- **Brass**: Asymmetric lip buzz
+- **Bow**: Stick-slip friction with controllable grip
+- **Bell**: Metallic partial generator
+- **Drum**: Energy-accumulating membrane drive
 
 ### Parameter Count
 - Sources: 3 parameters (DC, Noise, Tone levels)
