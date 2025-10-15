@@ -23,8 +23,8 @@ export const DEFAULT_TUNING = 50;        // Center (0 semitones)
 export const DEFAULT_RATIO = 50;         // Center (1.0 ratio)
 
 // Feedback
-export const DEFAULT_DELAY1_FEEDBACK = 95;  // High feedback
-export const DEFAULT_DELAY2_FEEDBACK = 95;  // High feedback
+export const DEFAULT_DELAY1_FEEDBACK = 50;  // High feedback
+export const DEFAULT_DELAY2_FEEDBACK = 50;  // High feedback
 export const DEFAULT_FILTER_FEEDBACK = 0;   // No filter feedback
 
 // Filter
