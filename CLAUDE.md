@@ -1,6 +1,8 @@
 # Flues Project Notes
 
-## Project Structure
+## A. General Synth & Web Practices
+
+### Repository Layout
 
 ```
 flues/
@@ -34,12 +36,25 @@ flues/
 
 ```
 
-## JavaScript Development
+### JavaScript Development Checklist
 
-All JavaScript experiments use **ES modules** (not CommonJS). Projects are:
+Projects use **ES modules** (not CommonJS) and are:
 - Packaged with **Vite**
 - Tested with **Vitest**
 - Written in vanilla JavaScript for browser execution
+
+### Bundling & Compatibility
+
+- **AudioWorklet bundling:** use `new URL('./worklet.js', import.meta.url)` so Vite emits a single chunk; Safari/iOS requires bundled worklet code.
+- **Service workers:** register after `load`, reference paths relative to the deployed folder (`sw.js`, `manifest.webmanifest`, `icon.svg`).
+- **PWA prompts:** listen for `beforeinstallprompt`, stash the event, and surface an install button.
+- **iOS audio unlock:** call the unlock helper immediately during the first user gesture (power button) and provide ScriptProcessor fallback if the worklet fails to load.
+- **Testing:** run `npx vitest run --pool vmThreads --maxWorkers=1` before shipping.
+- **Deployment:** pushes to `main` trigger GitHub Pages build to `https://danja.github.io/flues/<app>/`; always smoke-test on mobile Safari/Chrome.
+
+## B. Physical Modelling Apps
+
+### Clarinet Synthesizer
 
 ### Clarinet Synthesizer
 
@@ -88,9 +103,9 @@ A modular physical modelling synthesizer that expands the clarinet experiment in
   - `ModulationModule.js` - LFO providing bipolar AM↔FM modulation
   - `ReverbModule.js` - Schroeder reverb with room size and wet/dry mix
 - `src/audio/PMSynthEngine.js` - Coordinates modules, applies note lifecycle
-- `src/audio/pm-synth-worklet.js` - AudioWorklet processor with fallback path
+- `src/audio/pm-synth-worklet.js` - Bundled AudioWorklet processor with ScriptProcessor fallback
 - `src/ui/` - Knob and rotary switch controllers, keyboard, waveform visualizer
-- `src/main.js` - UI wiring, parameter mapping, power management
+- `src/main.js` - UI wiring, install prompt handling, power management
 - `docs/` - Requirements, implementation plan, and status tracker
 
 **Running:**
@@ -130,7 +145,7 @@ Contains original standalone HTML files used during initial development:
 
 These files were refactored into the modular `experiments/clarinet-synth/` project.
 
-## Future Experiments
+### Future Experiments
 
 Additional JavaScript experiments should follow the same pattern:
 1. Create directory under `experiments/`
@@ -139,7 +154,7 @@ Additional JavaScript experiments should follow the same pattern:
 4. Include package.json with `dev`, `build`, and `test` scripts
 5. Document in this file
 
-## GitHub Pages Deployment
+### GitHub Pages Deployment
 
 **Location:** `www/`
 
@@ -176,10 +191,10 @@ The `.github/workflows/deploy.yml` workflow automatically:
 **Manual Deployment:**
 Can be triggered via GitHub Actions "workflow_dispatch" event.
 
-## Notes
+### Notes
 
-- All Node.js style development uses ES modules (`type: "module"` in package.json)
-- Vite provides fast HMR for development
-- Web Audio API requires user interaction before audio can play
-- Physical modeling synthesis is CPU-intensive but realistic
-- The `www/` directory is git-tracked and contains built artifacts for GitHub Pages
+- All Node.js style development uses ES modules (`type: "module"` in package.json).
+- Vite provides fast HMR for development.
+- Web Audio API requires user interaction before audio can play; iOS needs explicit unlock.
+- Physical modelling synthesis is CPU-intensive but realistic.
+- The `www/` directory is git-tracked and contains built artifacts for GitHub Pages.
