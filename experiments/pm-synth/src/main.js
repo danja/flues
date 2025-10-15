@@ -25,6 +25,8 @@ import {
     DEFAULT_FILTER_SHAPE,
     DEFAULT_LFO_FREQUENCY,
     DEFAULT_MODULATION_TYPE_LEVEL,
+    DEFAULT_REVERB_SIZE,
+    DEFAULT_REVERB_LEVEL,
     INTERFACE_TYPE_NAMES
 } from './constants.js';
 
@@ -176,6 +178,21 @@ class PMSynthApp {
             true  // Bipolar mode
         );
 
+        // Initialize Reverb knobs
+        this.knobs.reverbSize = new KnobController(
+            document.getElementById('reverb-size-knob'),
+            document.getElementById('reverb-size-value'),
+            (value) => this.updateParameter('reverbSize', value),
+            0, 100, DEFAULT_REVERB_SIZE
+        );
+
+        this.knobs.reverbLevel = new KnobController(
+            document.getElementById('reverb-level-knob'),
+            document.getElementById('reverb-level-value'),
+            (value) => this.updateParameter('reverbLevel', value),
+            0, 100, DEFAULT_REVERB_LEVEL
+        );
+
         // Initialize keyboard
         const keyboardElement = document.getElementById('keyboard');
         if (keyboardElement) {
@@ -310,7 +327,9 @@ class PMSynthApp {
             filterQ: 'filterQ',
             filterShape: 'filterShape',
             lfoFrequency: 'lfoFrequency',
-            modulationTypeLevel: 'modulationTypeLevel'
+            modulationTypeLevel: 'modulationTypeLevel',
+            reverbSize: 'reverbSize',
+            reverbLevel: 'reverbLevel'
         };
         return mapping[knobKey] || knobKey;
     }

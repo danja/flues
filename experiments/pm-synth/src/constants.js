@@ -36,6 +36,10 @@ export const DEFAULT_FILTER_SHAPE = 0;       // Lowpass
 export const DEFAULT_LFO_FREQUENCY = 30;         // ~5Hz
 export const DEFAULT_MODULATION_TYPE_LEVEL = 50; // Center (no modulation)
 
+// Reverb
+export const DEFAULT_REVERB_SIZE = 50;   // Medium room size
+export const DEFAULT_REVERB_LEVEL = 30;  // 30% wet mix
+
 // ============================================================================
 // Interface Type Names
 // ============================================================================

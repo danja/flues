@@ -9,6 +9,7 @@ import { DelayLinesModule } from './modules/DelayLinesModule.js';
 import { FeedbackModule } from './modules/FeedbackModule.js';
 import { FilterModule } from './modules/FilterModule.js';
 import { ModulationModule } from './modules/ModulationModule.js';
+import { ReverbModule } from './modules/ReverbModule.js';
 
 const sampleRate = globalThis.sampleRate;
 
@@ -24,6 +25,7 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
         this.feedback = new FeedbackModule();
         this.filter = new FilterModule(sampleRate);
         this.modulation = new ModulationModule(sampleRate);
+        this.reverb = new ReverbModule(sampleRate);
 
         // State
         this.frequency = 440;
@@ -62,6 +64,7 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
         this.feedback.reset();
         this.filter.reset();
         this.modulation.reset();
+        this.reverb.reset();
 
         // Set gate
         this.envelope.setGate(true);
@@ -138,6 +141,14 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
             case 'modulationTypeLevel':
                 this.modulation.setTypeLevel(value);
                 break;
+
+            // Reverb
+            case 'reverbSize':
+                this.reverb.setSize(value);
+                break;
+            case 'reverbLevel':
+                this.reverb.setLevel(value);
+                break;
         }
     }
 
@@ -187,7 +198,10 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
         const filterOutput = this.filter.process(delayMix);
 
         // Apply AM and output gain
-        const output = filterOutput * mod.am * this.outputGain;
+        const preReverbOutput = filterOutput * mod.am * this.outputGain;
+
+        // Apply reverb (at end of signal path)
+        const output = this.reverb.process(preReverbOutput);
 
         return output;
     }
