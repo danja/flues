@@ -1,5 +1,5 @@
 // constants.js
-// Shared constants for the PM Synth
+// Shared constants for the Stove
 
 // ============================================================================
 // Default Parameter Values (UI range 0-100, normalized 0-1 internally)

@@ -29,7 +29,7 @@ flues/
 ├── www/                 # Built static site for GitHub Pages
 │   ├── index.html       # Landing page
 │   ├── clarinet-synth/  # Built clarinet synth app
-│   └── pm-synth/        # Built PM Synth app
+│   └── pm-synth/        # Built Stove app
 └── package.json         # Root package with build scripts
 
 ```

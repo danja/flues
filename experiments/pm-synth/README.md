@@ -1,10 +1,10 @@
-# PM Synth - Physical Modelling Synthesizer
+# Stove - Physical Modelling Synthesizer
 
-A real-time general-purpose physical modeling synthesizer running entirely in the browser using the Web Audio API. Unlike traditional sample-based or subtractive synthesis, PM Synth recreates the actual physics of sound production, resulting in expressive, organic tones that respond naturally to parameter changes.
+A real-time general-purpose physical modeling synthesizer running entirely in the browser using the Web Audio API. Unlike traditional sample-based or subtractive synthesis, Stove recreates the actual physics of sound production, resulting in expressive, organic tones that respond naturally to parameter changes.
 
 ## Overview
 
-PM Synth uses **digital waveguide synthesis** to physically model a wide variety of acoustic instruments:
+Stove uses **digital waveguide synthesis** to physically model a wide variety of acoustic instruments:
 
 - **Plucked strings** (guitar, harp, sitar)
 - **Struck percussion** (piano, marimba, drums, gongs)

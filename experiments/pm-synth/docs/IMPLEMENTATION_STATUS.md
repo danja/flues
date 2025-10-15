@@ -1,4 +1,4 @@
-# PM Synth Implementation Status
+# Stove Implementation Status
 
 ## Completed Components
 
@@ -174,7 +174,7 @@ Expected compatibility:
 
 ## Conclusion
 
-The core PM Synth implementation is **complete and ready for testing**. All audio modules, engine integration, and UI components are implemented. Remaining work focuses on:
+The core Stove implementation is **complete and ready for testing**. All audio modules, engine integration, and UI components are implemented. Remaining work focuses on:
 1. Creating/updating HTML interface
 2. Writing comprehensive tests
 3. Documentation and deployment

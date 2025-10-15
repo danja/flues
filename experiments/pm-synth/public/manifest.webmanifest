@@ -1,6 +1,6 @@
 {
-  "name": "PM Synth",
-  "short_name": "PM Synth",
+  "name": "Stove",
+  "short_name": "Stove",
   "description": "Modular physical modelling synthesizer",
   "start_url": ".",
   "display": "standalone",

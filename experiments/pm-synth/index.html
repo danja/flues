@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,18 +103,28 @@
         }
 
         @keyframes installPulse {
-            0% { box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3); }
-            50% { box-shadow: 0 6px 22px rgba(255, 74, 139, 0.55); }
-            100% { box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3); }
+            0% {
+                box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 6px 22px rgba(255, 74, 139, 0.55);
+            }
+
+            100% {
+                box-shadow: 0 4px 14px rgba(255, 74, 139, 0.3);
+            }
         }
 
         @keyframes powerPulse {
             0% {
                 box-shadow: 0 0 6px rgba(255, 74, 74, 0.35);
             }
+
             50% {
                 box-shadow: 0 0 18px rgba(255, 74, 74, 0.75);
             }
+
             100% {
                 box-shadow: 0 0 6px rgba(255, 74, 74, 0.35);
             }
@@ -309,7 +320,8 @@
             background: #f0f0f0;
         }
 
-        .key:active, .key.active {
+        .key:active,
+        .key.active {
             background: #4a9eff;
             color: white;
             transform: translateY(2px);
@@ -329,7 +341,8 @@
             background: #333;
         }
 
-        .key.black:active, .key.black.active {
+        .key.black:active,
+        .key.black.active {
             background: #4a9eff;
             color: white;
         }
@@ -405,13 +418,15 @@
                 gap: 15px;
             }
 
-            .knob-container, .switch-container {
+            .knob-container,
+            .switch-container {
                 width: 50px;
                 height: 50px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="synth-container">
         <div class="synth-header">
@@ -420,17 +435,22 @@
                 <div class="synth-title">Stove</div>
                 <div class="synth-subtitle">Physical Modelling Synthesizer</div>
             </div>
-            <button class="install-button" id="install-button" aria-label="Install PM Synth app">Install</button>
+            <button class="install-button" id="install-button" aria-label="Install Stove app">Install</button>
         </div>
 
         <div class="visualizer">
             <canvas class="visualizer-canvas" id="visualizer"></canvas>
             <div class="visualizer-stats" id="visualizer-stats">
-                <div class="stat-row"><span class="stat-label">RMS</span><span class="stat-value" data-stat="rms">0.000</span></div>
-                <div class="stat-row"><span class="stat-label">Peak</span><span class="stat-value" data-stat="peak">0.000</span></div>
-                <div class="stat-row"><span class="stat-label">P-P</span><span class="stat-value" data-stat="p2p">0.000</span></div>
-                <div class="stat-row"><span class="stat-label">Crest</span><span class="stat-value" data-stat="crest">0.00</span></div>
-                <div class="stat-row"><span class="stat-label">DC</span><span class="stat-value" data-stat="dc">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">RMS</span><span class="stat-value"
+                        data-stat="rms">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">Peak</span><span class="stat-value"
+                        data-stat="peak">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">P-P</span><span class="stat-value"
+                        data-stat="p2p">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">Crest</span><span class="stat-value"
+                        data-stat="crest">0.00</span></div>
+                <div class="stat-row"><span class="stat-label">DC</span><span class="stat-value"
+                        data-stat="dc">0.000</span></div>
             </div>
         </div>
 
@@ -670,4 +690,5 @@
 
     <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>

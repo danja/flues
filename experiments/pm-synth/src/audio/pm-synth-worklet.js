@@ -1,5 +1,5 @@
 // pm-synth-worklet.js
-// AudioWorklet processor for the PM Synth engine
+// AudioWorklet processor for the Stove engine
 
 // Import modules (worklet context)
 import { SourcesModule } from './modules/SourcesModule.js';

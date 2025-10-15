@@ -297,7 +297,7 @@ class PMSynthApp {
             }
             this.updateStatus();
 
-            console.log('PM Synth powered on');
+            console.log('Stove powered on');
         } catch (error) {
             console.error('Failed to initialize audio:', error);
             alert('Failed to initialize audio. Please check browser compatibility.');
@@ -327,7 +327,7 @@ class PMSynthApp {
         }
         this.updateStatus();
 
-        console.log('PM Synth powered off');
+        console.log('Stove powered off');
     }
 
     handleNoteOn(note, frequency) {
