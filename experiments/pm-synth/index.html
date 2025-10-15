@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PM Synth - Physical Modelling Synthesizer</title>
+    <title>Stove - Physical Modelling Synthesizer</title>
     <style>
         * {
             margin: 0;
@@ -82,11 +82,17 @@
             letter-spacing: 2px;
         }
 
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
         .control-section {
             background: #333;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 15px;
         }
 
         .section-title {
@@ -216,6 +222,14 @@
             gap: 2px;
             margin-top: 15px;
             flex-wrap: wrap;
+            overflow-x: auto;
+        }
+
+        /* Hide second octave on smaller screens */
+        @media (max-width: 900px) {
+            .key[data-octave="5"] {
+                display: none;
+            }
         }
 
         .key {
@@ -284,6 +298,10 @@
                 padding: 15px;
             }
 
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+
             .synth-header {
                 flex-direction: column;
                 gap: 15px;
@@ -311,7 +329,7 @@
         <div class="synth-header">
             <button class="power-button" id="power-button">PWR</button>
             <div class="synth-header-text">
-                <div class="synth-title">PM Synth</div>
+                <div class="synth-title">Stove</div>
                 <div class="synth-subtitle">Physical Modelling Synthesizer</div>
             </div>
         </div>
@@ -320,189 +338,215 @@
             <canvas class="visualizer-canvas" id="visualizer"></canvas>
         </div>
 
-        <!-- Sources Section -->
-        <div class="control-section">
-            <div class="section-title">Sources</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">DC</div>
-                    <div class="knob-container">
-                        <div class="knob" id="dc-knob"></div>
+        <!-- Row 1: Sources + Envelope -->
+        <div class="modules-grid">
+            <!-- Sources Section -->
+            <div class="control-section">
+                <div class="section-title">Sources</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">DC</div>
+                        <div class="knob-container">
+                            <div class="knob" id="dc-knob"></div>
+                        </div>
+                        <div class="knob-value" id="dc-value">50</div>
                     </div>
-                    <div class="knob-value" id="dc-value">50</div>
+                    <div class="control">
+                        <div class="knob-label">Noise</div>
+                        <div class="knob-container">
+                            <div class="knob" id="noise-knob"></div>
+                        </div>
+                        <div class="knob-value" id="noise-value">15</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Tone</div>
+                        <div class="knob-container">
+                            <div class="knob" id="tone-knob"></div>
+                        </div>
+                        <div class="knob-value" id="tone-value">0</div>
+                    </div>
                 </div>
-                <div class="control">
-                    <div class="knob-label">Noise</div>
-                    <div class="knob-container">
-                        <div class="knob" id="noise-knob"></div>
+            </div>
+
+            <!-- Envelope Section -->
+            <div class="control-section">
+                <div class="section-title">Envelope</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Attack</div>
+                        <div class="knob-container">
+                            <div class="knob" id="attack-knob"></div>
+                        </div>
+                        <div class="knob-value" id="attack-value">10</div>
                     </div>
-                    <div class="knob-value" id="noise-value">15</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Tone</div>
-                    <div class="knob-container">
-                        <div class="knob" id="tone-knob"></div>
+                    <div class="control">
+                        <div class="knob-label">Release</div>
+                        <div class="knob-container">
+                            <div class="knob" id="release-knob"></div>
+                        </div>
+                        <div class="knob-value" id="release-value">50</div>
                     </div>
-                    <div class="knob-value" id="tone-value">0</div>
                 </div>
             </div>
         </div>
 
-        <!-- Envelope Section -->
-        <div class="control-section">
-            <div class="section-title">Envelope</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Attack</div>
-                    <div class="knob-container">
-                        <div class="knob" id="attack-knob"></div>
+        <!-- Row 2: Interface + Delay Lines -->
+        <div class="modules-grid">
+            <!-- Interface Section -->
+            <div class="control-section">
+                <div class="section-title">Interface</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Type</div>
+                        <div class="switch-container">
+                            <div class="switch" id="interface-type-switch"></div>
+                        </div>
+                        <div class="switch-label" id="interface-type-label">Reed</div>
                     </div>
-                    <div class="knob-value" id="attack-value">10</div>
+                    <div class="control">
+                        <div class="knob-label">Intensity</div>
+                        <div class="knob-container">
+                            <div class="knob" id="interface-intensity-knob"></div>
+                        </div>
+                        <div class="knob-value" id="interface-intensity-value">50</div>
+                    </div>
                 </div>
-                <div class="control">
-                    <div class="knob-label">Release</div>
-                    <div class="knob-container">
-                        <div class="knob" id="release-knob"></div>
+            </div>
+
+            <!-- Delay Lines Section -->
+            <div class="control-section">
+                <div class="section-title">Delay Lines</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Tuning</div>
+                        <div class="knob-container">
+                            <div class="knob" id="tuning-knob"></div>
+                        </div>
+                        <div class="knob-value" id="tuning-value">50</div>
                     </div>
-                    <div class="knob-value" id="release-value">50</div>
+                    <div class="control">
+                        <div class="knob-label">Ratio</div>
+                        <div class="knob-container">
+                            <div class="knob" id="ratio-knob"></div>
+                        </div>
+                        <div class="knob-value" id="ratio-value">50</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Interface Section -->
-        <div class="control-section">
-            <div class="section-title">Interface</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Type</div>
-                    <div class="switch-container">
-                        <div class="switch" id="interface-type-switch"></div>
+        <!-- Row 3: Feedback + Filter -->
+        <div class="modules-grid">
+            <!-- Feedback Section -->
+            <div class="control-section">
+                <div class="section-title">Feedback</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Delay 1</div>
+                        <div class="knob-container">
+                            <div class="knob" id="delay1-fb-knob"></div>
+                        </div>
+                        <div class="knob-value" id="delay1-fb-value">95</div>
                     </div>
-                    <div class="switch-label" id="interface-type-label">Reed</div>
+                    <div class="control">
+                        <div class="knob-label">Delay 2</div>
+                        <div class="knob-container">
+                            <div class="knob" id="delay2-fb-knob"></div>
+                        </div>
+                        <div class="knob-value" id="delay2-fb-value">95</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Filter</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-fb-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-fb-value">0</div>
+                    </div>
                 </div>
-                <div class="control">
-                    <div class="knob-label">Intensity</div>
-                    <div class="knob-container">
-                        <div class="knob" id="interface-intensity-knob"></div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="control-section">
+                <div class="section-title">Filter</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">Frequency</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-freq-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-freq-value">70</div>
                     </div>
-                    <div class="knob-value" id="interface-intensity-value">50</div>
+                    <div class="control">
+                        <div class="knob-label">Q</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-q-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-q-value">20</div>
+                    </div>
+                    <div class="control">
+                        <div class="knob-label">Shape</div>
+                        <div class="knob-container">
+                            <div class="knob" id="filter-shape-knob"></div>
+                        </div>
+                        <div class="knob-value" id="filter-shape-value">0</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Delay Lines Section -->
-        <div class="control-section">
-            <div class="section-title">Delay Lines</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Tuning</div>
-                    <div class="knob-container">
-                        <div class="knob" id="tuning-knob"></div>
+        <!-- Row 4: Modulation (spans full width) -->
+        <div class="modules-grid">
+            <!-- Modulation Section -->
+            <div class="control-section">
+                <div class="section-title">Modulation</div>
+                <div class="controls-grid">
+                    <div class="control">
+                        <div class="knob-label">LFO Freq</div>
+                        <div class="knob-container">
+                            <div class="knob" id="lfo-freq-knob"></div>
+                        </div>
+                        <div class="knob-value" id="lfo-freq-value">30</div>
                     </div>
-                    <div class="knob-value" id="tuning-value">50</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Ratio</div>
-                    <div class="knob-container">
-                        <div class="knob" id="ratio-knob"></div>
+                    <div class="control">
+                        <div class="knob-label">AM/FM</div>
+                        <div class="knob-container">
+                            <div class="knob" id="mod-type-level-knob"></div>
+                        </div>
+                        <div class="knob-value" id="mod-type-level-value">0</div>
                     </div>
-                    <div class="knob-value" id="ratio-value">50</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Feedback Section -->
-        <div class="control-section">
-            <div class="section-title">Feedback</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Delay 1</div>
-                    <div class="knob-container">
-                        <div class="knob" id="delay1-fb-knob"></div>
-                    </div>
-                    <div class="knob-value" id="delay1-fb-value">95</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Delay 2</div>
-                    <div class="knob-container">
-                        <div class="knob" id="delay2-fb-knob"></div>
-                    </div>
-                    <div class="knob-value" id="delay2-fb-value">95</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Filter</div>
-                    <div class="knob-container">
-                        <div class="knob" id="filter-fb-knob"></div>
-                    </div>
-                    <div class="knob-value" id="filter-fb-value">0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filter Section -->
-        <div class="control-section">
-            <div class="section-title">Filter</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Frequency</div>
-                    <div class="knob-container">
-                        <div class="knob" id="filter-freq-knob"></div>
-                    </div>
-                    <div class="knob-value" id="filter-freq-value">70</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Q</div>
-                    <div class="knob-container">
-                        <div class="knob" id="filter-q-knob"></div>
-                    </div>
-                    <div class="knob-value" id="filter-q-value">20</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Shape</div>
-                    <div class="knob-container">
-                        <div class="knob" id="filter-shape-knob"></div>
-                    </div>
-                    <div class="knob-value" id="filter-shape-value">0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modulation Section -->
-        <div class="control-section">
-            <div class="section-title">Modulation</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">LFO Freq</div>
-                    <div class="knob-container">
-                        <div class="knob" id="lfo-freq-knob"></div>
-                    </div>
-                    <div class="knob-value" id="lfo-freq-value">30</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">AM/FM</div>
-                    <div class="knob-container">
-                        <div class="knob" id="mod-type-level-knob"></div>
-                    </div>
-                    <div class="knob-value" id="mod-type-level-value">0</div>
                 </div>
             </div>
         </div>
 
         <!-- Keyboard -->
         <div class="keyboard" id="keyboard">
-            <div class="key white" data-note="C4">C4</div>
-            <div class="key black" data-note="C#4">C#</div>
-            <div class="key white" data-note="D4">D4</div>
-            <div class="key black" data-note="D#4">D#</div>
-            <div class="key white" data-note="E4">E4</div>
-            <div class="key white" data-note="F4">F4</div>
-            <div class="key black" data-note="F#4">F#</div>
-            <div class="key white" data-note="G4">G4</div>
-            <div class="key black" data-note="G#4">G#</div>
-            <div class="key white" data-note="A4">A4</div>
-            <div class="key black" data-note="A#4">A#</div>
-            <div class="key white" data-note="B4">B4</div>
-            <div class="key white" data-note="C5">C5</div>
+            <!-- First Octave (C4-B4) -->
+            <div class="key white" data-note="C4" data-octave="4">C4</div>
+            <div class="key black" data-note="C#4" data-octave="4">C#</div>
+            <div class="key white" data-note="D4" data-octave="4">D4</div>
+            <div class="key black" data-note="D#4" data-octave="4">D#</div>
+            <div class="key white" data-note="E4" data-octave="4">E4</div>
+            <div class="key white" data-note="F4" data-octave="4">F4</div>
+            <div class="key black" data-note="F#4" data-octave="4">F#</div>
+            <div class="key white" data-note="G4" data-octave="4">G4</div>
+            <div class="key black" data-note="G#4" data-octave="4">G#</div>
+            <div class="key white" data-note="A4" data-octave="4">A4</div>
+            <div class="key black" data-note="A#4" data-octave="4">A#</div>
+            <div class="key white" data-note="B4" data-octave="4">B4</div>
+            <!-- Second Octave (C5-C6) -->
+            <div class="key white" data-note="C5" data-octave="5">C5</div>
+            <div class="key black" data-note="C#5" data-octave="5">C#</div>
+            <div class="key white" data-note="D5" data-octave="5">D5</div>
+            <div class="key black" data-note="D#5" data-octave="5">D#</div>
+            <div class="key white" data-note="E5" data-octave="5">E5</div>
+            <div class="key white" data-note="F5" data-octave="5">F5</div>
+            <div class="key black" data-note="F#5" data-octave="5">F#</div>
+            <div class="key white" data-note="G5" data-octave="5">G5</div>
+            <div class="key black" data-note="G#5" data-octave="5">G#</div>
+            <div class="key white" data-note="A5" data-octave="5">A5</div>
+            <div class="key black" data-note="A#5" data-octave="5">A#</div>
+            <div class="key white" data-note="B5" data-octave="5">B5</div>
+            <div class="key white" data-note="C6" data-octave="5">C6</div>
         </div>
 
     </div>
