@@ -1,6 +1,8 @@
 // InterfaceModule.test.js
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InterfaceModule, InterfaceType } from '../../../src/audio/modules/InterfaceModule.js';
+import { TestSignals } from '../../utils/signal-generators.js';
+import { SignalAnalysis } from '../../utils/signal-analyzers.js';
 
 describe('InterfaceModule', () => {
     let interface_;
@@ -144,6 +146,95 @@ describe('InterfaceModule', () => {
 
             interface_.reset();
             expect(interface_.lastPeak).toBe(0);
+        });
+    });
+
+    describe('Signal Behaviour', () => {
+        it('should dampen sustained energy in pluck mode after the initial strike', () => {
+            const module = new InterfaceModule();
+            module.setType(InterfaceType.PLUCK);
+            module.setIntensity(1.0);
+
+            const impulse = TestSignals.impulse(128, 1.0);
+            const output = new Float32Array(impulse.length);
+
+            for (let i = 0; i < impulse.length; i++) {
+                output[i] = module.process(impulse[i]);
+            }
+
+            const firstSample = Math.abs(output[0]);
+            let maxAfter = 0;
+            for (let i = 1; i < output.length; i++) {
+                const value = Math.abs(output[i]);
+                if (value > maxAfter) maxAfter = value;
+            }
+
+            expect(firstSample).toBeGreaterThan(0);
+            expect(maxAfter).toBeLessThan(firstSample * 0.7);
+        });
+
+        it('should keep hit output bounded under heavy excitation', () => {
+            const module = new InterfaceModule();
+            module.setType(InterfaceType.HIT);
+            module.setIntensity(1.0);
+
+            const noise = TestSignals.whiteNoise(2000, 1.0);
+            const output = new Float32Array(noise.length);
+
+            for (let i = 0; i < noise.length; i++) {
+                output[i] = module.process(noise[i]);
+            }
+
+            expect(SignalAnalysis.hasValidOutput(output, 1.2)).toBe(true);
+            const peak = SignalAnalysis.peakLevel(output);
+            expect(peak).toBeLessThanOrEqual(1.0);
+        });
+
+        it('should increase output level with reed intensity', () => {
+            const module = new InterfaceModule();
+            module.setType(InterfaceType.REED);
+
+            module.setIntensity(0.1);
+            const lowIntensity = module.process(0.5);
+
+            module.setIntensity(0.9);
+            const highIntensity = module.process(0.5);
+
+            expect(Math.abs(highIntensity)).toBeGreaterThan(Math.abs(lowIntensity));
+            expect(Math.abs(highIntensity)).toBeLessThanOrEqual(1.0);
+        });
+
+        it('should softly saturate in flute mode', () => {
+            const module = new InterfaceModule();
+            module.setType(InterfaceType.FLUTE);
+            module.setIntensity(1.0);
+
+            const sine = TestSignals.sine(440, 44100, 512, 0.8);
+            const output = new Float32Array(sine.length);
+
+            for (let i = 0; i < sine.length; i++) {
+                output[i] = module.process(sine[i]);
+            }
+
+            const peak = SignalAnalysis.peakLevel(output);
+            expect(peak).toBeLessThan(0.8);
+            expect(SignalAnalysis.hasValidOutput(output, 1.0)).toBe(true);
+        });
+
+        it('should introduce asymmetry in brass mode over time', () => {
+            const module = new InterfaceModule();
+            module.setType(InterfaceType.BRASS);
+            module.setIntensity(1.0);
+
+            const sine = TestSignals.sine(220, 44100, 2048, 0.7);
+            const output = new Float32Array(sine.length);
+
+            for (let i = 0; i < sine.length; i++) {
+                output[i] = module.process(sine[i]);
+            }
+
+            const mean = SignalAnalysis.mean(output);
+            expect(Math.abs(mean)).toBeGreaterThan(0.01);
         });
     });
 });

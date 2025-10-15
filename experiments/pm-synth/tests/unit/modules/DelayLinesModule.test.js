@@ -133,4 +133,81 @@ describe('DelayLinesModule', () => {
             expect(delayLines.writePos2).toBe(0);
         });
     });
+
+    describe('Signal Behaviour', () => {
+        it('should delay an impulse by the expected amount', () => {
+            const frequency = 440;
+            delayLines.setRatio(0.5); // centre position (ratio ≈ 1.0)
+            delayLines.updateDelayLengths(frequency);
+
+            const expectedDelay = delayLines.delayLength1;
+            const impulse = TestSignals.impulse(400, 1.0);
+            const outputs = new Float32Array(impulse.length);
+
+            for (let i = 0; i < impulse.length; i++) {
+                const { delay1 } = delayLines.process(impulse[i], frequency);
+                outputs[i] = delay1;
+            }
+
+            const peakIndex = outputs.findIndex(sample => Math.abs(sample) > 0.1);
+            expect(peakIndex).toBeGreaterThanOrEqual(Math.floor(expectedDelay) - 2);
+            expect(peakIndex).toBeLessThanOrEqual(Math.ceil(expectedDelay) + 2);
+
+            for (let i = 0; i < Math.max(0, peakIndex - 5); i++) {
+                expect(Math.abs(outputs[i])).toBeLessThan(0.1);
+            }
+
+            expect(SignalAnalysis.hasValidOutput(outputs)).toBe(true);
+        });
+
+        it('should extend second delay output when ratio increases', () => {
+            const frequency = 440;
+            delayLines.setRatio(1.0); // Maps to ratio ≈ 2.0
+            delayLines.updateDelayLengths(frequency);
+
+            const expectedDelay1 = delayLines.delayLength1;
+            const expectedDelay2 = delayLines.delayLength2;
+
+            const impulse = TestSignals.impulse(800, 1.0);
+            const outputs1 = new Float32Array(impulse.length);
+            const outputs2 = new Float32Array(impulse.length);
+
+            for (let i = 0; i < impulse.length; i++) {
+                const { delay1, delay2 } = delayLines.process(impulse[i], frequency);
+                outputs1[i] = delay1;
+                outputs2[i] = delay2;
+            }
+
+            const peak1 = outputs1.findIndex(sample => Math.abs(sample) > 0.1);
+            const peak2 = outputs2.findIndex(sample => Math.abs(sample) > 0.1);
+
+            expect(peak1).toBeGreaterThan(0);
+            expect(peak2).toBeGreaterThan(peak1);
+            expect(peak2).toBeGreaterThanOrEqual(Math.floor(expectedDelay2) - 2);
+            expect(peak2).toBeLessThanOrEqual(Math.ceil(expectedDelay2) + 2);
+
+            expect(expectedDelay2).toBeGreaterThan(expectedDelay1);
+        });
+
+        it('should remain stable with white noise input', () => {
+            const frequency = 220;
+            delayLines.setRatio(0.5);
+            delayLines.updateDelayLengths(frequency);
+
+            const noise = TestSignals.whiteNoise(2000, 0.5);
+            const outputs = new Float32Array(noise.length);
+
+            for (let i = 0; i < noise.length; i++) {
+                const { delay1, delay2 } = delayLines.process(noise[i], frequency);
+                outputs[i] = (delay1 + delay2) * 0.5;
+            }
+
+            expect(SignalAnalysis.hasValidOutput(outputs)).toBe(true);
+
+            // Skip initial transient
+            const rms = SignalAnalysis.rmsLevel(outputs, 100, outputs.length);
+            expect(rms).toBeGreaterThan(0.001);
+            expect(rms).toBeLessThan(1.0);
+        });
+    });
 });

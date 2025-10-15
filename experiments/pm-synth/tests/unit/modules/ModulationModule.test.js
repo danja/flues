@@ -1,6 +1,7 @@
 // ModulationModule.test.js
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ModulationModule } from '../../../src/audio/modules/ModulationModule.js';
+import { SignalAnalysis } from '../../utils/signal-analyzers.js';
 
 describe('ModulationModule', () => {
     let modulation;
@@ -130,6 +131,54 @@ describe('ModulationModule', () => {
 
             modulation.reset();
             expect(modulation.lfoPhase).toBe(0);
+        });
+    });
+
+    describe('Signal Behaviour', () => {
+        it('should generate LFO at the configured frequency', () => {
+            const targetFrequency = 7.5;
+            const value = Math.log(targetFrequency / 0.1) / Math.log(200);
+
+            modulation.setFrequency(value);
+            modulation.setTypeLevel(0.5); // No AM/FM modulation
+
+            const length = sampleRate * 2; // 2 seconds for accuracy
+            const lfoBuffer = new Float32Array(length);
+
+            for (let i = 0; i < length; i++) {
+                const { lfo } = modulation.process();
+                lfoBuffer[i] = lfo;
+            }
+
+            const estimated = SignalAnalysis.estimateFrequency(lfoBuffer, sampleRate);
+            expect(estimated).toBeGreaterThan(targetFrequency * 0.9);
+            expect(estimated).toBeLessThan(targetFrequency * 1.1);
+        });
+
+        it('should leave FM multiplier neutral when in AM mode', () => {
+            modulation.setTypeLevel(0.25); // AM engaged
+
+            let maxDeviation = 0;
+            for (let i = 0; i < 2000; i++) {
+                const { fm } = modulation.process();
+                const deviation = Math.abs(fm - 1);
+                if (deviation > maxDeviation) maxDeviation = deviation;
+            }
+
+            expect(maxDeviation).toBeLessThan(0.001);
+        });
+
+        it('should leave AM multiplier neutral when in FM mode', () => {
+            modulation.setTypeLevel(0.75); // FM engaged
+
+            let maxDeviation = 0;
+            for (let i = 0; i < 2000; i++) {
+                const { am } = modulation.process();
+                const deviation = Math.abs(am - 1);
+                if (deviation > maxDeviation) maxDeviation = deviation;
+            }
+
+            expect(maxDeviation).toBeLessThan(0.001);
         });
     });
 });

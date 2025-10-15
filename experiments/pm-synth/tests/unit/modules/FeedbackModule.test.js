@@ -1,6 +1,8 @@
 // FeedbackModule.test.js
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FeedbackModule } from '../../../src/audio/modules/FeedbackModule.js';
+import { TestSignals } from '../../utils/signal-generators.js';
+import { SignalAnalysis } from '../../utils/signal-analyzers.js';
 
 describe('FeedbackModule', () => {
     let feedback;
@@ -70,6 +72,50 @@ describe('FeedbackModule', () => {
     describe('Reset', () => {
         it('should not throw on reset', () => {
             expect(() => feedback.reset()).not.toThrow();
+        });
+    });
+
+    describe('Signal Behaviour', () => {
+        it('should keep summed feedback bounded with dynamic input', () => {
+            feedback.setDelay1Gain(0.9);
+            feedback.setDelay2Gain(0.6);
+            feedback.setFilterGain(0.3);
+
+            const length = 2048;
+            const delay1Signal = TestSignals.whiteNoise(length, 0.6);
+            const delay2Signal = TestSignals.whiteNoise(length, 0.6);
+            const filterSignal = TestSignals.whiteNoise(length, 0.6);
+
+            const output = new Float32Array(length);
+            for (let i = 0; i < length; i++) {
+                output[i] = feedback.process(
+                    delay1Signal[i],
+                    delay2Signal[i],
+                    filterSignal[i]
+                );
+            }
+
+            const maxExpectedGain = feedback.delay1Gain + feedback.delay2Gain + feedback.filterGain;
+            expect(SignalAnalysis.hasValidOutput(output, maxExpectedGain + 0.5)).toBe(true);
+            const peak = SignalAnalysis.peakLevel(output);
+            expect(peak).toBeLessThanOrEqual(maxExpectedGain + 0.2);
+        });
+
+        it('should sum constant signals proportionally to gains', () => {
+            feedback.setDelay1Gain(0.5);
+            feedback.setDelay2Gain(0.25);
+            feedback.setFilterGain(0.1);
+
+            const constant = TestSignals.step(0.7, 256);
+            const output = new Float32Array(constant.length);
+
+            for (let i = 0; i < constant.length; i++) {
+                output[i] = feedback.process(constant[i], constant[i], constant[i]);
+            }
+
+            const mean = SignalAnalysis.mean(output);
+            const expected = 0.7 * (feedback.delay1Gain + feedback.delay2Gain + feedback.filterGain);
+            expect(mean).toBeCloseTo(expected, 4);
         });
     });
 });
