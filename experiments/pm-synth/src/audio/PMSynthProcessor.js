@@ -37,8 +37,14 @@ export class PMSynthProcessor {
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 2048;
 
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+
         // Try to use AudioWorklet (modern, better performance)
         try {
+            if (isIOS || !this.audioContext.audioWorklet) {
+                throw new Error('AudioWorklet unavailable or disabled on this device');
+            }
+
             await this.audioContext.audioWorklet.addModule(workletUrl);
 
             this.workletNode = new AudioWorkletNode(this.audioContext, 'pm-synth-worklet');
