@@ -1,6 +1,8 @@
 // DelayLinesModule.test.js
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DelayLinesModule } from '../../../src/audio/modules/DelayLinesModule.js';
+import { TestSignals } from '../../utils/signal-generators.js';
+import { SignalAnalysis } from '../../utils/signal-analyzers.js';
 
 describe('DelayLinesModule', () => {
     let delayLines;
