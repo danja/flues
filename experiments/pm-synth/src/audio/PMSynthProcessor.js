@@ -128,10 +128,19 @@ export class PMSynthProcessor {
     }
 
     getAnalyserData() {
-        if (!this.analyser) return null;
-        const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-        this.analyser.getByteTimeDomainData(dataArray);
-        return dataArray;
+        if (!this.analyser || !this.audioContext) return null;
+
+        const timeDomain = new Float32Array(this.analyser.fftSize);
+        this.analyser.getFloatTimeDomainData(timeDomain);
+
+        const frequencyDomain = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteFrequencyData(frequencyDomain);
+
+        return {
+            timeDomain,
+            frequencyDomain,
+            sampleRate: this.audioContext.sampleRate
+        };
     }
 
     _installIOSUnlock(ctx) {

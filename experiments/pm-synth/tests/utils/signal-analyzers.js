@@ -1,6 +1,16 @@
 // signal-analyzers.js
 // Signal analysis utilities for validating audio module outputs
 
+import {
+    rmsLevel as sharedRmsLevel,
+    peakLevel as sharedPeakLevel,
+    crestFactor as sharedCrestFactor,
+    mean as sharedMean,
+    peakToPeak as sharedPeakToPeak,
+    computeSpectrum as sharedComputeSpectrum,
+    analyseBuffer as sharedAnalyseBuffer
+} from '../../src/utils/signalAnalysis.js';
+
 /**
  * Signal analysis functions for systematic output validation
  */
@@ -47,12 +57,7 @@ export const SignalAnalysis = {
      * @returns {number} RMS level
      */
     rmsLevel(buffer, startIndex = 0, endIndex = buffer.length) {
-        let sum = 0;
-        const length = endIndex - startIndex;
-        for (let i = startIndex; i < endIndex; i++) {
-            sum += buffer[i] * buffer[i];
-        }
-        return Math.sqrt(sum / length);
+        return sharedRmsLevel(buffer, startIndex, endIndex);
     },
 
     /**
@@ -61,12 +66,7 @@ export const SignalAnalysis = {
      * @returns {number} Peak level
      */
     peakLevel(buffer) {
-        let peak = 0;
-        for (let i = 0; i < buffer.length; i++) {
-            const abs = Math.abs(buffer[i]);
-            if (abs > peak) peak = abs;
-        }
-        return peak;
+        return sharedPeakLevel(buffer);
     },
 
     /**
@@ -76,9 +76,11 @@ export const SignalAnalysis = {
      * @returns {number} Crest factor
      */
     crestFactor(buffer) {
-        const peak = this.peakLevel(buffer);
-        const rms = this.rmsLevel(buffer);
-        return rms > 0 ? peak / rms : 0;
+        return sharedCrestFactor(buffer);
+    },
+
+    peakToPeak(buffer) {
+        return sharedPeakToPeak(buffer);
     },
 
     /**
@@ -127,11 +129,7 @@ export const SignalAnalysis = {
      * @returns {number} Mean value
      */
     mean(buffer) {
-        let sum = 0;
-        for (let i = 0; i < buffer.length; i++) {
-            sum += buffer[i];
-        }
-        return sum / buffer.length;
+        return sharedMean(buffer);
     },
 
     /**
@@ -312,7 +310,6 @@ export const SignalAnalysis = {
     compareSignals(signal1, signal2) {
         const length = Math.min(signal1.length, signal2.length);
 
-        // Calculate correlation
         let sum1 = 0, sum2 = 0, sum1Sq = 0, sum2Sq = 0, pSum = 0;
         for (let i = 0; i < length; i++) {
             sum1 += signal1[i];
@@ -326,7 +323,6 @@ export const SignalAnalysis = {
         const den = Math.sqrt((sum1Sq - sum1 * sum1 / length) * (sum2Sq - sum2 * sum2 / length));
         const correlation = den === 0 ? 0 : num / den;
 
-        // Calculate MSE
         let mse = 0;
         for (let i = 0; i < length; i++) {
             const diff = signal1[i] - signal2[i];
@@ -335,8 +331,16 @@ export const SignalAnalysis = {
         mse /= length;
 
         return {
-            correlation: correlation,
+            correlation,
             meanSquareError: mse
         };
+    },
+
+    analyseBuffer(buffer, sampleRate, options) {
+        return sharedAnalyseBuffer(buffer, sampleRate, options);
+    },
+
+    computeSpectrum(buffer, sampleRate) {
+        return sharedComputeSpectrum(buffer, sampleRate);
     }
 };

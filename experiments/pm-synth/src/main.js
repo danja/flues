@@ -206,7 +206,8 @@ class PMSynthApp {
         // Initialize visualizer
         const visualizerElement = document.getElementById('visualizer');
         if (visualizerElement) {
-            this.visualizer = new Visualizer(visualizerElement);
+            const statsElement = document.getElementById('visualizer-stats');
+            this.visualizer = new Visualizer(visualizerElement, statsElement);
         }
 
         // Update status display

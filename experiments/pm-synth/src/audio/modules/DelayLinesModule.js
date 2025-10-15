@@ -34,6 +34,9 @@ export class DelayLinesModule {
      */
     setTuning(value) {
         this.tuningSemitones = (value - 0.5) * 24; // -12 to +12
+        if (this.frequency) {
+            this.updateDelayLengths(this.frequency);
+        }
     }
 
     /**
@@ -48,6 +51,9 @@ export class DelayLinesModule {
         } else {
             // 0.5 -> 1.0, maps to 1.0 -> 2.0
             this.ratio = 1.0 + (value - 0.5) * 2;
+        }
+        if (this.frequency) {
+            this.updateDelayLengths(this.frequency);
         }
     }
 

@@ -47,20 +47,37 @@
             width: 50px;
             height: 50px;
             cursor: pointer;
-            color: #666;
+            color: #ff4a4a;
             font-size: 12px;
             font-weight: bold;
             transition: all 0.3s;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
+        .power-button:not(.active) {
+            animation: powerPulse 1.6s ease-in-out infinite;
+        }
+
         .power-button:hover {
-            color: #4a9eff;
+            color: #ff7373;
         }
 
         .power-button.active {
             color: #4eff4a;
             box-shadow: 0 0 20px rgba(78, 255, 74, 0.5);
+            animation: none;
+        }
+
+        @keyframes powerPulse {
+            0% {
+                box-shadow: 0 0 6px rgba(255, 74, 74, 0.35);
+            }
+            50% {
+                box-shadow: 0 0 18px rgba(255, 74, 74, 0.75);
+            }
+            100% {
+                box-shadow: 0 0 6px rgba(255, 74, 74, 0.35);
+            }
         }
 
         .synth-header-text {
@@ -293,6 +310,38 @@
             height: 100%;
         }
 
+        .visualizer-stats {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.45);
+            border-radius: 6px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-family: monospace;
+            font-size: 10px;
+            color: #d8e8ff;
+            pointer-events: none;
+        }
+
+        .visualizer-stats .stat-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .visualizer-stats .stat-label {
+            text-transform: uppercase;
+            color: #8cbcff;
+            letter-spacing: 0.05em;
+        }
+
+        .visualizer-stats .stat-value {
+            color: #fff;
+        }
+
         @media (max-width: 768px) {
             .synth-container {
                 padding: 15px;
@@ -336,6 +385,13 @@
 
         <div class="visualizer">
             <canvas class="visualizer-canvas" id="visualizer"></canvas>
+            <div class="visualizer-stats" id="visualizer-stats">
+                <div class="stat-row"><span class="stat-label">RMS</span><span class="stat-value" data-stat="rms">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">Peak</span><span class="stat-value" data-stat="peak">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">P-P</span><span class="stat-value" data-stat="p2p">0.000</span></div>
+                <div class="stat-row"><span class="stat-label">Crest</span><span class="stat-value" data-stat="crest">0.00</span></div>
+                <div class="stat-row"><span class="stat-label">DC</span><span class="stat-value" data-stat="dc">0.000</span></div>
+            </div>
         </div>
 
         <!-- Row 1: Sources + Envelope -->

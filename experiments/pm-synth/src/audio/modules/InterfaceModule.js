@@ -17,6 +17,7 @@ export class InterfaceModule {
         // State for pluck mode
         this.lastPeak = 0;
         this.peakDecay = 0.999;
+        this.prevInput = 0;
 
         // Constants for fast tanh approximation
         this.TANH_CLIP_THRESHOLD = 3;
@@ -61,19 +62,22 @@ export class InterfaceModule {
      * One-way filter: pass initial impulse, dampen subsequent
      */
     processPluck(input) {
-        const threshold = this.intensity * 0.5;
+        const brightness = 0.2 + this.intensity * 0.45;
+        let response;
 
-        // Detect peaks
         if (Math.abs(input) > Math.abs(this.lastPeak)) {
+            // Let the first spike through but brighten it slightly
             this.lastPeak = input;
-            return input;
+            response = input;
+        } else {
+            this.lastPeak *= this.peakDecay;
+            const transient = (input - this.prevInput) * brightness;
+            const damp = 0.35 + (1 - this.intensity) * 0.45;
+            response = input * damp + transient;
         }
 
-        // Decay peak tracking
-        this.lastPeak *= this.peakDecay;
-
-        // Dampen signal based on intensity
-        return input * (1 - this.intensity * 0.7);
+        this.prevInput = input;
+        return Math.max(-1, Math.min(1, response));
     }
 
     /**
@@ -81,9 +85,11 @@ export class InterfaceModule {
      * Sharp waveshaper with adjustable hardness
      */
     processHit(input) {
-        const hardness = 1 + this.intensity * 10;
-        const shaped = this.fastTanh(input * hardness);
-        return shaped / Math.sqrt(hardness);
+        const drive = 2 + this.intensity * 8;
+        const folded = Math.sin(input * drive * Math.PI * 0.5);
+        const hardness = 0.35 + this.intensity * 0.55;
+        const shaped = Math.sign(folded) * Math.pow(Math.abs(folded), hardness);
+        return Math.max(-1, Math.min(1, shaped));
     }
 
     /**
@@ -91,8 +97,12 @@ export class InterfaceModule {
      * Clarinet-style cubic nonlinearity
      */
     processReed(input) {
-        const stiffness = 0.8 + this.intensity * 8;
-        return this.fastTanh(input * stiffness);
+        const stiffness = 2.5 + this.intensity * 10;
+        const bias = (this.intensity - 0.5) * 0.25;
+        const excited = (input + bias) * stiffness;
+        const core = this.fastTanh(excited);
+        const gain = 0.6 + this.intensity * 0.5;
+        return Math.max(-1, Math.min(1, core * gain - bias * 0.3));
     }
 
     /**
@@ -100,10 +110,11 @@ export class InterfaceModule {
      * Soft symmetric nonlinearity (jet instability)
      */
     processFlute(input) {
-        const softness = 1 + this.intensity * 3;
-        // Polynomial approximation of soft saturation
-        const normalized = input / softness;
-        return normalized - (normalized * normalized * normalized) / 3;
+        const softness = 0.45 + this.intensity * 0.4;
+        const breath = (Math.random() * 2 - 1) * this.intensity * 0.04;
+        const mixed = (input + breath) * softness;
+        const shaped = mixed - (mixed * mixed * mixed) * 0.35;
+        return Math.max(-0.49, Math.min(0.49, shaped));
     }
 
     /**
@@ -111,13 +122,20 @@ export class InterfaceModule {
      * Asymmetric lip model (different + and - slopes)
      */
     processBrass(input) {
-        const asymmetry = 0.5 + this.intensity * 2;
+        const drive = 1.5 + this.intensity * 5;
+        const asymmetry = 0.4 + this.intensity * 0.5;
+        let shaped;
 
-        if (input > 0) {
-            return this.fastTanh(input * asymmetry);
+        if (input >= 0) {
+            const lifted = input * drive + (0.2 + this.intensity * 0.35);
+            shaped = this.fastTanh(Math.max(lifted, 0));
         } else {
-            return this.fastTanh(input / asymmetry);
+            const compressed = -input * (drive * (0.4 + this.intensity * 0.4));
+            shaped = -Math.pow(Math.min(compressed, 1.5), 1.3) * (0.35 + (1 - this.intensity) * 0.25);
         }
+
+        const buzz = this.fastTanh(shaped * (1.2 + this.intensity * 1.5));
+        return Math.max(-1, Math.min(1, buzz + this.intensity * 0.05));
     }
 
     /**
@@ -147,5 +165,6 @@ export class InterfaceModule {
      */
     reset() {
         this.lastPeak = 0;
+        this.prevInput = 0;
     }
 }

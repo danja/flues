@@ -32,6 +32,10 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
         this.gate = false;
         this.isPlaying = false;
         this.outputGain = 0.5;
+        this.dcBlockerX1 = 0;
+        this.dcBlockerY1 = 0;
+        this.prevDelayOutputs = { delay1: 0, delay2: 0 };
+        this.prevFilterOutput = 0;
 
         // Handle messages from main thread
         this.port.onmessage = (e) => {
@@ -65,6 +69,11 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
         this.filter.reset();
         this.modulation.reset();
         this.reverb.reset();
+        this.dcBlockerX1 = 0;
+        this.dcBlockerY1 = 0;
+        this.prevDelayOutputs.delay1 = 0;
+        this.prevDelayOutputs.delay2 = 0;
+        this.prevFilterOutput = 0;
 
         // Set gate
         this.envelope.setGate(true);
@@ -166,30 +175,25 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
 
         // Apply envelope
         const env = this.envelope.process();
-        if (env <= 0.001) {
-            this.isPlaying = false;
-            return 0;
-        }
         const envelopedSignal = sourceSignal * env;
 
         // Apply interface nonlinearity
         const interfaceOutput = this.interface.process(envelopedSignal);
 
-        // Get delay line outputs (first to get feedback values)
-        const delayOutputs = this.delayLines.process(0, modulatedFreq);
-
-        // Mix feedback from delay lines and filter
+        // Mix feedback from previous delay outputs and filter
         const feedbackSignal = this.feedback.process(
-            delayOutputs.delay1,
-            delayOutputs.delay2,
-            0  // Filter feedback (using previous value)
+            this.prevDelayOutputs.delay1,
+            this.prevDelayOutputs.delay2,
+            this.prevFilterOutput
         );
 
-        // Combine interface output with feedback
-        const delayInput = interfaceOutput + feedbackSignal;
+        // Combine interface output with feedback and remove DC offset
+        const rawDelayInput = interfaceOutput + feedbackSignal;
+        const delayInput = this.dcBlock(rawDelayInput);
+        const clampedDelayInput = Math.max(-1, Math.min(1, delayInput));
 
         // Process through delay lines with actual input
-        const finalDelayOutputs = this.delayLines.process(delayInput, modulatedFreq);
+        const finalDelayOutputs = this.delayLines.process(clampedDelayInput, this.frequency);
 
         // Mix delay outputs
         const delayMix = (finalDelayOutputs.delay1 + finalDelayOutputs.delay2) * 0.5;
@@ -203,7 +207,24 @@ class PMSynthWorkletProcessor extends AudioWorkletProcessor {
         // Apply reverb (at end of signal path)
         const output = this.reverb.process(preReverbOutput);
 
+        // Store outputs for next iteration feedback
+        this.prevDelayOutputs.delay1 = finalDelayOutputs.delay1;
+        this.prevDelayOutputs.delay2 = finalDelayOutputs.delay2;
+        this.prevFilterOutput = filterOutput;
+
+        if (!this.envelope.isPlaying() && Math.abs(output) < 1e-5 &&
+            Math.abs(this.prevDelayOutputs.delay1) < 1e-5 && Math.abs(this.prevDelayOutputs.delay2) < 1e-5) {
+            this.isPlaying = false;
+        }
+
         return output;
+    }
+
+    dcBlock(sample) {
+        const y = sample - this.dcBlockerX1 + 0.995 * this.dcBlockerY1;
+        this.dcBlockerX1 = sample;
+        this.dcBlockerY1 = y;
+        return y;
     }
 
     process(inputs, outputs, parameters) {

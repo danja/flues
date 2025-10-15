@@ -33,6 +33,14 @@ export class PMSynthEngine {
 
         // Output scaling
         this.outputGain = 0.5;
+
+        // DC blocker state
+        this.dcBlockerX1 = 0;
+        this.dcBlockerY1 = 0;
+
+        // Feedback memory
+        this.prevDelayOutputs = { delay1: 0, delay2: 0 };
+        this.prevFilterOutput = 0;
     }
 
     /**
@@ -53,6 +61,11 @@ export class PMSynthEngine {
         this.filter.reset();
         this.modulation.reset();
         this.reverb.reset();
+        this.dcBlockerX1 = 0;
+        this.dcBlockerY1 = 0;
+        this.prevDelayOutputs.delay1 = 0;
+        this.prevDelayOutputs.delay2 = 0;
+        this.prevFilterOutput = 0;
 
         // Set gate
         this.envelope.setGate(true);
@@ -84,32 +97,25 @@ export class PMSynthEngine {
 
         // Apply envelope
         const env = this.envelope.process();
-        if (env <= 0.001) {
-            this.isPlaying = false;
-            return 0;
-        }
         const envelopedSignal = sourceSignal * env;
 
         // Apply interface nonlinearity
         const interfaceOutput = this.interface.process(envelopedSignal);
 
-        // Get delay line outputs (they need feedback input)
-        const delayOutputs = this.delayLines.process(0, modulatedFreq);
-
-        // Mix feedback from delay lines and filter
-        // Note: We need the filter output, so we'll do this in two passes
-        // First pass: use previous filter output (slight delay)
+        // Mix feedback from previous delay outputs and filter
         const feedbackSignal = this.feedback.process(
-            delayOutputs.delay1,
-            delayOutputs.delay2,
-            0  // Will add filter feedback in next iteration
+            this.prevDelayOutputs.delay1,
+            this.prevDelayOutputs.delay2,
+            this.prevFilterOutput
         );
 
-        // Combine interface output with feedback
-        const delayInput = interfaceOutput + feedbackSignal;
+        // Combine interface output with feedback and remove DC offset
+        const rawDelayInput = interfaceOutput + feedbackSignal;
+        const delayInput = this.dcBlock(rawDelayInput);
+        const clampedDelayInput = Math.max(-1, Math.min(1, delayInput));
 
-        // Now process through delay lines with the actual input
-        const finalDelayOutputs = this.delayLines.process(delayInput, modulatedFreq);
+        // Process through delay lines with the actual input
+        const finalDelayOutputs = this.delayLines.process(clampedDelayInput, this.frequency);
 
         // Mix delay outputs (simple average)
         const delayMix = (finalDelayOutputs.delay1 + finalDelayOutputs.delay2) * 0.5;
@@ -123,7 +129,25 @@ export class PMSynthEngine {
         // Apply reverb (at end of signal path)
         const output = this.reverb.process(preReverbOutput);
 
+        // Store outputs for next iteration feedback
+        this.prevDelayOutputs.delay1 = finalDelayOutputs.delay1;
+        this.prevDelayOutputs.delay2 = finalDelayOutputs.delay2;
+        this.prevFilterOutput = filterOutput;
+
+        // Determine if voice can be turned off (envelope finished and tail faded)
+        if (!this.envelope.isPlaying() && Math.abs(output) < 1e-5 &&
+            Math.abs(this.prevDelayOutputs.delay1) < 1e-5 && Math.abs(this.prevDelayOutputs.delay2) < 1e-5) {
+            this.isPlaying = false;
+        }
+
         return output;
+    }
+
+    dcBlock(sample) {
+        const y = sample - this.dcBlockerX1 + 0.995 * this.dcBlockerY1;
+        this.dcBlockerX1 = sample;
+        this.dcBlockerY1 = y;
+        return y;
     }
 
     // ===== Parameter Setters =====
