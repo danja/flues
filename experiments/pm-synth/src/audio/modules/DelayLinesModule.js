@@ -21,8 +21,8 @@ export class DelayLinesModule {
         this.ratio = 1.0;           // 0.5 to 2.0 (delay2/delay1 ratio)
 
         // Current delay lengths
-        this.delayLength1 = 100;
-        this.delayLength2 = 100;
+        this.delayLength1 = 1000;
+        this.delayLength2 = 1000;
 
         // Current frequency
         this.frequency = 440;
@@ -95,7 +95,7 @@ export class DelayLinesModule {
         const nextPos1 = (readPos1Int + 1) % this.maxDelayLength;
 
         const output1 = this.delayLine1[readPos1Int] * (1 - readPos1Frac) +
-                       this.delayLine1[nextPos1] * readPos1Frac;
+            this.delayLine1[nextPos1] * readPos1Frac;
 
         // Read from delay line 2 with linear interpolation
         const readPos2Float = this.writePos2 - this.delayLength2;
@@ -105,7 +105,7 @@ export class DelayLinesModule {
         const nextPos2 = (readPos2Int + 1) % this.maxDelayLength;
 
         const output2 = this.delayLine2[readPos2Int] * (1 - readPos2Frac) +
-                       this.delayLine2[nextPos2] * readPos2Frac;
+            this.delayLine2[nextPos2] * readPos2Frac;
 
         // Write input to both delay lines
         this.delayLine1[this.writePos1] = input;
