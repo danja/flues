@@ -17,20 +17,26 @@ export class EnvelopeModule {
 
     /**
      * Set attack time
-     * @param {number} value - Normalized 0-1, maps to 0.001-0.5s
+     * @param {number} value - Normalized 0-1, maps to 0.001-1.0s
      */
     setAttack(value) {
-        // Exponential mapping for better control
-        this.attackTime = 0.001 * Math.pow(500, value);
+        // Exponential mapping: 0 = 0.001s (instant), 0.5 = 0.1s, 1.0 = 1.0s
+        // Using formula: time = min * (max/min)^value
+        const minTime = 0.001;  // 1ms
+        const maxTime = 1.0;    // 1000ms
+        this.attackTime = minTime * Math.pow(maxTime / minTime, value);
     }
 
     /**
      * Set release time
-     * @param {number} value - Normalized 0-1, maps to 0.01-2.0s
+     * @param {number} value - Normalized 0-1, maps to 0.01-3.0s
      */
     setRelease(value) {
-        // Exponential mapping for better control
-        this.releaseTime = 0.01 * Math.pow(200, value);
+        // Exponential mapping: 0 = 0.01s (fast), 0.5 = 0.17s, 1.0 = 3.0s
+        // Using formula: time = min * (max/min)^value
+        const minTime = 0.01;   // 10ms
+        const maxTime = 3.0;    // 3000ms
+        this.releaseTime = minTime * Math.pow(maxTime / minTime, value);
     }
 
     /**
