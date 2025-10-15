@@ -1,194 +1,249 @@
-# Digital Waveguide Clarinet Synthesizer
+# PM Synth - Physical Modelling Synthesizer
 
-A real-time clarinet synthesizer based on digital waveguide physical modeling, running entirely in the browser using the Web Audio API.
+A real-time general-purpose physical modeling synthesizer running entirely in the browser using the Web Audio API. Unlike traditional sample-based or subtractive synthesis, PM Synth recreates the actual physics of sound production, resulting in expressive, organic tones that respond naturally to parameter changes.
 
 ## Overview
 
-This synthesizer uses a **digital waveguide model** to physically simulate the acoustics of a clarinet. Unlike sample-based synthesis or simple oscillators, physical modeling recreates the actual physics of sound production, resulting in expressive, organic tones that respond naturally to parameter changes.
+PM Synth uses **digital waveguide synthesis** to physically model a wide variety of acoustic instruments:
 
-![Architecture Diagram](docs/architecture.svg)
+- **Plucked strings** (guitar, harp, sitar)
+- **Struck percussion** (piano, marimba, drums, gongs)
+- **Reed instruments** (clarinet, saxophone, oboe)
+- **Flute-like instruments** (flute, recorder, pan pipes)
+- **Brass instruments** (trumpet, trombone, horn)
+
+The modular architecture allows you to combine different sound sources, interface types, and processing modules to create unique timbres impossible with real instruments.
+
+## Features
+
+### Modular Architecture
+- **7 independent modules** with 17 controllable parameters
+- **5 interface types** for different instrument behaviors
+- **Dual delay lines** with tunable ratio for harmonic/inharmonic sounds
+- **Morphable filter** (lowpass → bandpass → highpass)
+- **LFO modulation** with bipolar AM/FM control
+
+### Technical
+- **AudioWorklet** processing for ultra-low latency (<10ms)
+- **Fallback support** with ScriptProcessorNode for older browsers
+- **Responsive PWA design** works on desktop, tablet, and mobile
+- **Zero latency** parameter changes
+- **No sample libraries** - pure algorithmic synthesis
+
+## Quick Start
+
+```bash
+cd experiments/pm-synth
+npm install
+npm run dev
+```
+
+Open http://localhost:5173 in your browser and click the PWR button to start.
 
 ## How It Works
-
-### Physical Model
-
-A clarinet consists of three main components:
-1. **Reed** - A nonlinear valve that modulates airflow based on pressure difference
-2. **Bore** - A cylindrical tube that creates standing waves (modeled as a delay line)
-3. **Excitation** - Breath pressure and turbulence noise
 
 ### Signal Flow
 
 ```
-Breath Pressure + Noise → Reed Nonlinearity → Delay Line → Filters → Output
-                              ↑                    ↓
-                              └────────────────────┘
-                                  Feedback Loop
+Keyboard (Gate + CV)
+    ↓
+Sources (DC, Noise, Tone) → Envelope (AR) → Interface → Delay Lines ← Feedback
+                                                ↓            ↓
+                                            Filter ←────────┘
+                                                ↓
+                                            Output
+                                                ↑
+                                        Modulation (LFO)
 ```
 
-#### 1. Excitation Generation
-- **Breath Pressure**: Controlled by the Breath knob (0.4 - 0.8 range)
-- **Noise**: White noise scaled by Noise knob (0 - 0.3), adds breath turbulence
-- **Envelope**: ADSR envelope shapes the excitation over time
+### Modules
 
-The excitation represents the mouthpiece pressure: `mouthPressure = breath × envelope + noise × envelope`
+#### 1. **Sources** - Excitation Generation
+Three independent signal sources that sum together:
+- **DC**: Constant pressure (like wind speed in a blown instrument)
+- **Noise**: White noise for breath turbulence
+- **Tone**: Sawtooth wave tracking pitch (adds harmonic content)
 
-#### 2. Reed Reflection (Nonlinearity)
+Each source has independent level control (0-100%).
 
-The reed is modeled as a nonlinear reflection function using a fast tanh approximation:
+#### 2. **Envelope** - Amplitude Shaping
+Attack-Release envelope applied to the source signal:
+- **Attack**: How quickly sound reaches full volume (0.001-0.5s)
+- **Release**: How quickly sound fades after note-off (0.01-2.0s)
 
-```
-pressureDiff = mouthPressure - borePressure
-flow = tanh(pressureDiff × stiffness)
-```
+#### 3. **Interface** - Physical Interaction Model
+Five types of physical interaction, each with intensity control:
 
-The Reed Stiffness parameter (0-1) controls how the reed responds:
-- **Low stiffness** (0): Soft, mellow tone - reed opens easily
-- **High stiffness** (1): Bright, harsh tone - reed resists opening
+- **Pluck** (0): Karplus-Strong plucked string
+  - Low intensity: soft nylon string
+  - High intensity: sharp pick attack
 
-This nonlinearity is crucial for creating the characteristic clarinet timbre with odd harmonics.
+- **Hit** (1): Struck percussion
+  - Low intensity: soft mallet
+  - High intensity: hard metal beater
 
-#### 3. Waveguide (Delay Line)
+- **Reed** (2): Clarinet-style reed (default)
+  - Low intensity: soft, mellow tone
+  - High intensity: bright, aggressive squawk
 
-The bore is simulated using a delay line whose length is determined by pitch:
+- **Flute** (3): Edge tone air jet
+  - Low intensity: breathy, gentle
+  - High intensity: focused, whistling
 
-```
-delayLength = sampleRate / frequency
-```
+- **Brass** (4): Lip vibration
+  - Low intensity: muted, soft
+  - High intensity: brassy, brilliant
 
-- Linear interpolation provides fractional delay for accurate pitch
-- Vibrato modulates the delay length: `length × (1 + vibrato × sin(phase))`
-- The delay line acts as a comb filter, creating the harmonic series
+#### 4. **Delay Lines** - Resonance
+Two parallel delay lines create the resonant body:
+- **Tuning**: Coarse pitch adjustment (-12 to +12 semitones)
+- **Ratio**: Delay2/Delay1 length ratio
+  - < 50: Inharmonic (drum/gong sounds)
+  - = 50: Equal length, harmonic (standard)
+  - > 50: Stretched harmonics
 
-#### 4. Feedback Mixing
+#### 5. **Feedback** - Energy Return
+Three independent feedback paths:
+- **Delay 1**: Feedback from first delay line (0-99%)
+- **Delay 2**: Feedback from second delay line (0-99%)
+- **Filter**: Post-filter feedback (0-99%)
 
-The waveguide feedback combines bore pressure and reed flow:
+Higher feedback = longer sustain and brighter tone.
 
-```
-newSample = borePressure + flow × 1.5
-```
+#### 6. **Filter** - Tone Shaping
+State-variable filter with morphable response:
+- **Frequency**: Cutoff/center frequency (20-20000 Hz)
+- **Q**: Resonance/bandwidth (0.5-20)
+- **Shape**: Filter type morphing
+  - 0: Lowpass (warm, muted)
+  - 50: Bandpass (nasal, vocal)
+  - 100: Highpass (thin, bright)
 
-The flow gain of 1.5 provides strong reed coupling while maintaining stability.
-
-#### 5. Loop Filters
-
-Two filters shape the tone in the feedback loop:
-
-**Lowpass Filter (Damping)**
-- One-pole IIR filter: `y[n] = a × x[n] + (1-a) × y[n-1]`
-- Cutoff: 0.3 - 0.99 (controlled by Damping knob)
-- Simulates high-frequency loss in the bore
-- Lower damping = darker, more muted tone
-
-**Highpass Filter (Brightness)**
-- DC blocker: prevents DC offset buildup
-- Cutoff: 0.001 - 0.011 (controlled by Brightness knob)
-- Higher brightness = removes more bass, thinner tone
-
-#### 6. Soft Saturation
-
-A tanh-like saturation function prevents runaway oscillations:
-
-```
-saturate(x) = x × (27 + x²) / (27 + 9x²)
-```
-
-Applied with a safety factor of 0.95 to keep the signal stable.
-
-#### 7. Output Envelope
-
-The final output is scaled by the envelope for natural attack and release characteristics.
+#### 7. **Modulation** - Movement
+LFO with bipolar AM/FM control:
+- **LFO Freq**: Modulation rate (0.1-20 Hz)
+- **AM/FM**: Bipolar control
+  - 0: Maximum amplitude modulation (tremolo)
+  - 50: No modulation
+  - 100: Maximum frequency modulation (vibrato)
 
 ## Controls
 
-### Reed & Excitation
-
-| Control | Range | Description |
-|---------|-------|-------------|
-| **Breath** | 0-100 | Breath pressure (0.4-0.8 internally). Higher = louder, more energy |
-| **Reed Stiffness** | 0-100 | Reed compliance (0-1). Higher = brighter, more harmonics |
-| **Noise** | 0-100 | Breath turbulence (0-0.3). Adds realistic air noise |
-| **Attack** | 0-100 | Envelope attack time (0.001-0.1s). How quickly notes start |
-
-### Bore & Resonance
-
-| Control | Range | Description |
-|---------|-------|-------------|
-| **Damping** | 0-100 | Lowpass filter cutoff (0.3-0.99). Lower = darker tone |
-| **Brightness** | 0-100 | Highpass filter amount (0.001-0.011). Higher = thinner, brighter |
-| **Vibrato** | 0-100 | Pitch modulation depth (0-1%). Adds expressiveness |
-| **Release** | 0-100 | Envelope release time (0.01-0.3s). How quickly notes fade |
-
 ### Keyboard
-
 - **Mouse/Touch**: Click or touch the on-screen keys
-- **Computer Keyboard**: Play notes using keys (AWSEDFTGYHUHJK)
-- **Monophonic**: Only one note at a time (like a real clarinet)
+- **Computer Keyboard**: Play using AWSEDFTGYHUHJK keys
+- **Monophonic**: One note at a time (like most wind/string instruments)
+
+### Parameter Ranges
+
+| Module | Parameter | Range | Default |
+|--------|-----------|-------|---------|
+| **Sources** | DC Level | 0-100 | 50 |
+| | Noise Level | 0-100 | 15 |
+| | Tone Level | 0-100 | 0 |
+| **Envelope** | Attack | 0-100 | 10 |
+| | Release | 0-100 | 50 |
+| **Interface** | Type | Pluck/Hit/Reed/Flute/Brass | Reed |
+| | Intensity | 0-100 | 50 |
+| **Delay Lines** | Tuning | 0-100 (±12 semitones) | 50 |
+| | Ratio | 0-100 (0.5-2.0×) | 50 |
+| **Feedback** | Delay 1 | 0-100 | 95 |
+| | Delay 2 | 0-100 | 95 |
+| | Filter | 0-100 | 0 |
+| **Filter** | Frequency | 0-100 (20Hz-20kHz) | 70 |
+| | Q | 0-100 (0.5-20) | 20 |
+| | Shape | 0-100 (LP-BP-HP) | 0 |
+| **Modulation** | LFO Freq | 0-100 (0.1-20Hz) | 30 |
+| | AM/FM | 0-100 (AM←→FM) | 50 |
+
+## Sound Design Tips
+
+### Plucked String (Guitar/Harp)
+- Interface: **Pluck**
+- Sources: DC 60%, Noise 10%
+- Feedback: Delay1 98%, Delay2 98%
+- Filter: Lowpass, Freq 80%
+
+### Struck Drum/Gong
+- Interface: **Hit**
+- Sources: DC 40%, Noise 30%
+- Delay Ratio: 30-40 (inharmonic)
+- Feedback: Delay1 85%, Delay2 90%
+
+### Clarinet
+- Interface: **Reed**
+- Sources: DC 50%, Noise 15%
+- Feedback: Delay1 95%, Delay2 95%
+- Filter: Lowpass, Freq 70%, Q 20%
+
+### Flute
+- Interface: **Flute**
+- Sources: DC 30%, Noise 25%
+- Feedback: Delay1 92%, Delay2 92%
+- Filter: Bandpass, Freq 60%, Q 40%
+
+### Trumpet
+- Interface: **Brass**
+- Sources: DC 60%, Tone 20%
+- Feedback: Delay1 93%, Delay2 93%
+- Filter: Bandpass, Freq 50%, Q 60%
+
+### Experimental
+Try these for unique sounds:
+- High **Filter Feedback** with Bandpass (self-oscillation)
+- Unequal **Delay Ratios** (metallic, bell-like)
+- **Tone Source** + Pluck interface (synthesized string)
+- **AM Modulation** + High Q filter (lo-fi radio)
 
 ## Technical Details
 
 ### Implementation
-
-- **Audio Engine**: `ClarinetEngine.js` - Core DSP algorithms
-- **Audio Processor**: `clarinet-worklet.js` - AudioWorklet for real-time processing
-- **Sample Rate**: 44.1 kHz (standard)
-- **Processing**: Per-sample digital waveguide simulation
+- **Audio Engine**: Modular DSP architecture (7 independent modules)
+- **Processing**: AudioWorklet (44.1 kHz, per-sample processing)
+- **Fallback**: ScriptProcessorNode for older browsers
+- **Latency**: <10ms with AudioWorklet
+- **CPU Usage**: ~5-15% (single core)
+- **Memory**: ~2-3 MB
 
 ### Browser Compatibility
+- ✅ **Chrome/Edge 66+**: Full AudioWorklet support
+- ✅ **Firefox 76+**: Full AudioWorklet support
+- ✅ **Safari 14.1+**: Full AudioWorklet support
+- ⚠️ **iOS Safari 14.5+**: Requires user interaction for audio
 
-- ✅ **Chrome/Edge**: Full support (AudioWorklet)
-- ✅ **Firefox**: Full support (AudioWorklet)
-- ✅ **Safari**: Full support (AudioWorklet)
-- ⚠️ **iOS Safari**: Requires user interaction to start audio
+### Architecture
 
-### Performance
+All audio modules follow a consistent API:
 
-- **CPU Usage**: ~5-15% (single core) depending on parameters
-- **Latency**: <10ms with AudioWorklet
-- **Memory**: ~1-2 MB
+```javascript
+class ModuleName {
+    constructor(sampleRate) { }
+    setParameter(name, value) { }  // 0-1 normalized
+    process(input, cv, gate) { }    // Returns output
+    reset() { }                     // Called on note-on
+}
+```
 
-## Theory Background
+**Module Files:**
+- `SourcesModule.js` (73 lines)
+- `EnvelopeModule.js` (85 lines)
+- `InterfaceModule.js` (150 lines)
+- `DelayLinesModule.js` (138 lines)
+- `FeedbackModule.js` (45 lines)
+- `FilterModule.js` (101 lines)
+- `ModulationModule.js` (93 lines)
 
-### Why Physical Modeling?
-
-Physical modeling has several advantages:
-- **Expressive**: Parameters behave like real instruments
-- **Compact**: No large sample libraries needed
-- **Flexible**: Can create sounds impossible with real instruments
-- **Educational**: Demonstrates acoustic physics principles
-
-### Clarinet Acoustics
-
-Key characteristics:
-- **Closed tube**: Clarinet acts as a closed cylindrical tube (reed closes one end)
-- **Odd harmonics**: Produces primarily odd-numbered harmonics (1st, 3rd, 5th, etc.)
-- **Nonlinear reed**: Creates rich harmonic content through amplitude-dependent behavior
-- **Register holes**: Real clarinets use register holes to jump octaves (not implemented here)
-
-### Digital Waveguide Synthesis
-
-Invented by Julius O. Smith III at Stanford (CCRMA), digital waveguide synthesis models wave propagation in acoustic systems:
-
-- **Delay lines** represent wave travel time
-- **Filters** simulate energy loss and dispersion
-- **Nonlinearities** create harmonic complexity
-- **Feedback** maintains oscillation
-
-This technique is computationally efficient and physically accurate, making it ideal for real-time synthesis.
+Each module is <200 lines, highly focused, and independently testable.
 
 ## Development
 
 ### Running Locally
-
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
-
 ### Building
-
 ```bash
 npm run build
 ```
@@ -196,61 +251,84 @@ npm run build
 Output is in the `dist/` directory.
 
 ### Testing
-
 ```bash
 npm test
-```
-
-## Architecture Files
-
-- **Mermaid Diagram**: `docs/architecture.mmd` - Editable flow diagram
-- **SVG Diagram**: `docs/architecture.svg` - Rendered block diagram
-
-To regenerate the SVG from the mermaid file:
-```bash
-npx @mermaid-js/mermaid-cli -i docs/architecture.mmd -o docs/architecture.svg
 ```
 
 ## Project Structure
 
 ```
-clarinet-synth/
-├── docs/
-│   ├── architecture.mmd      # Mermaid block diagram
-│   └── architecture.svg       # Rendered SVG diagram
+pm-synth/
 ├── src/
 │   ├── audio/
-│   │   ├── ClarinetEngine.js      # Core DSP algorithms
-│   │   ├── clarinet-worklet.js    # AudioWorklet processor
-│   │   └── ClarinetProcessor.js   # Web Audio API interface
+│   │   ├── modules/           # 7 DSP modules
+│   │   ├── PMSynthEngine.js   # Main synthesis engine
+│   │   ├── pm-synth-worklet.js # AudioWorklet processor
+│   │   └── PMSynthProcessor.js # Web Audio interface
 │   ├── ui/
-│   │   ├── KnobController.js      # Rotary knob controls
+│   │   ├── KnobController.js      # Rotary knob control
+│   │   ├── RotarySwitchController.js # 5-position switch
 │   │   ├── KeyboardController.js  # Musical keyboard
 │   │   └── Visualizer.js          # Waveform display
-│   └── main.js                # Application entry point
-├── index.html               # HTML entry
-├── package.json            # Dependencies
-└── README.md              # This file
+│   ├── main.js               # Application coordinator
+│   └── constants.js          # Default values
+├── docs/
+│   ├── requirements.md       # Original specification
+│   ├── PLAN.md              # Implementation plan
+│   └── IMPLEMENTATION_STATUS.md # Development status
+├── index.html               # UI layout
+├── package.json
+└── README.md               # This file
 ```
+
+## Theory Background
+
+### Digital Waveguide Synthesis
+
+Invented by Julius O. Smith III at Stanford (CCRMA), digital waveguide synthesis models wave propagation in acoustic systems:
+
+- **Delay lines** represent wave travel time in tubes/strings
+- **Filters** simulate energy loss and dispersion
+- **Nonlinearities** create harmonic complexity
+- **Feedback** maintains oscillation
+
+This technique is:
+- ✅ Computationally efficient (real-time on modest hardware)
+- ✅ Physically accurate (matches real acoustic behavior)
+- ✅ Expressive (parameters behave like real instruments)
+- ✅ Compact (no sample libraries required)
+
+### Why Physical Modeling?
+
+Unlike sample-based synthesis:
+- **Continuous control**: Every parameter responds in real-time
+- **Natural behavior**: Sounds behave like real physics
+- **Infinite variety**: No sample library limitations
+- **Educational**: Demonstrates acoustic principles
 
 ## References
 
 - Smith, J.O. "Physical Modeling Using Digital Waveguides", Computer Music Journal, 1992
-- Karjalainen, M. "Plucked-string models: From the Karplus-Strong algorithm to digital waveguides and beyond", Computer Music Journal, 1998
+- Karjalainen, M. "Plucked-string models: From Karplus-Strong to digital waveguides", Computer Music Journal, 1998
 - Välimäki, V. "Discrete-time modeling of acoustic tubes using fractional delay filters", Helsinki University of Technology, 1995
+- Cook, P. "Real Sound Synthesis for Interactive Applications", A K Peters, 2002
 
 ## Future Enhancements
 
 Potential improvements:
-- [ ] Polyphony (multiple notes simultaneously)
-- [ ] Register hole simulation (octave key)
-- [ ] Tone hole modeling (realistic fingering)
+- [ ] Polyphony (multiple simultaneous notes)
+- [ ] Preset system with save/load
 - [ ] MIDI input support
-- [ ] Preset system
-- [ ] Recording/export functionality
+- [ ] Recording/export to WAV
 - [ ] Spectral analysis display
-- [ ] Touch-sensitive breath control
+- [ ] Additional interface types (bow, bell, membrane)
+- [ ] Stereo processing
+- [ ] Reverb module
 
 ## License
 
 See parent project for license information.
+
+## Credits
+
+Part of the Flues project - exploring physical modeling synthesis from C to JavaScript.

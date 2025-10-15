@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physical Modelling Synthesizer</title>
+    <title>PM Synth - Physical Modelling Synthesizer</title>
     <style>
         * {
             margin: 0;
@@ -26,21 +26,53 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            max-width: 900px;
+            max-width: 1200px;
             width: 100%;
         }
 
         .synth-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .power-button {
+            position: absolute;
+            left: 0;
+            background: linear-gradient(145deg, #444, #222);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            color: #666;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .power-button:hover {
+            color: #4a9eff;
+        }
+
+        .power-button.active {
+            color: #4eff4a;
+            box-shadow: 0 0 20px rgba(78, 255, 74, 0.5);
+        }
+
+        .synth-header-text {
             text-align: center;
-            margin-bottom: 30px;
         }
 
         .synth-title {
             color: #4a9eff;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             margin-bottom: 5px;
         }
 
@@ -54,21 +86,23 @@
             background: #333;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .section-title {
             color: #4a9eff;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             text-transform: uppercase;
             margin-bottom: 15px;
             letter-spacing: 1px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
         }
 
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 20px;
         }
 
@@ -80,9 +114,9 @@
 
         .knob-container {
             position: relative;
-            width: 70px;
-            height: 70px;
-            margin-bottom: 10px;
+            width: 60px;
+            height: 60px;
+            margin-bottom: 8px;
         }
 
         .knob {
@@ -101,8 +135,8 @@
         .knob::before {
             content: '';
             position: absolute;
-            width: 4px;
-            height: 25px;
+            width: 3px;
+            height: 20px;
             background: #4a9eff;
             top: 8px;
             left: 50%;
@@ -111,18 +145,66 @@
             box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
         }
 
+        .knob:hover {
+            box-shadow:
+                inset 0 2px 5px rgba(0, 0, 0, 0.5),
+                0 2px 15px rgba(74, 158, 255, 0.3);
+        }
+
+        .switch-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            margin-bottom: 8px;
+        }
+
+        .switch {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #555, #333);
+            box-shadow:
+                inset 0 2px 5px rgba(0, 0, 0, 0.5),
+                0 2px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        .switch::before {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 22px;
+            background: #ff9500;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255, 149, 0, 0.5);
+        }
+
         .knob-label {
             color: #bbb;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .knob-value {
             color: #4a9eff;
             font-size: 10px;
             font-family: monospace;
+            font-weight: bold;
+        }
+
+        .switch-label {
+            color: #ff9500;
+            font-size: 10px;
+            font-family: monospace;
+            font-weight: bold;
+            text-align: center;
         }
 
         .keyboard {
@@ -132,7 +214,7 @@
             display: flex;
             justify-content: center;
             gap: 2px;
-            margin-top: 20px;
+            margin-top: 15px;
             flex-wrap: wrap;
         }
 
@@ -182,54 +264,12 @@
             color: white;
         }
 
-        .status-bar {
-            background: #222;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .status-item {
-            color: #888;
-            font-size: 12px;
-        }
-
-        .status-value {
-            color: #4a9eff;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .power-button {
-            background: linear-gradient(145deg, #444, #222);
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            cursor: pointer;
-            color: #666;
-            font-size: 20px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .power-button:hover {
-            color: #4a9eff;
-        }
-
-        .power-button.active {
-            color: #4eff4a;
-            box-shadow: 0 0 20px rgba(78, 255, 74, 0.5);
-        }
 
         .visualizer {
             background: #1a1a1a;
             border-radius: 8px;
             height: 80px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             position: relative;
             overflow: hidden;
         }
@@ -238,114 +278,30 @@
             width: 100%;
             height: 100%;
         }
-    </style>
-    <style>
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            body {
-                padding: 0;
-            }
 
+        @media (max-width: 768px) {
             .synth-container {
                 padding: 15px;
-                border-radius: 0;
-                min-height: 100vh;
-            }
-
-            .synth-title {
-                font-size: 22px;
-            }
-
-            .controls-grid {
-                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-                gap: 15px;
-            }
-
-            .knob-container {
-                width: 60px;
-                height: 60px;
-            }
-
-            .key {
-                width: 45px;
-                height: 130px;
-            }
-
-            .key.black {
-                width: 30px;
-                height: 90px;
-                margin: 0 -16px;
-            }
-
-            .status-bar {
-                flex-wrap: wrap;
-                padding: 10px;
-            }
-
-            .status-item {
-                font-size: 11px;
-                margin: 2px 5px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .synth-container {
-                padding: 10px;
             }
 
             .synth-header {
-                margin-bottom: 20px;
-            }
-
-            .synth-title {
-                font-size: 18px;
-                letter-spacing: 2px;
-            }
-
-            .control-section {
-                padding: 15px;
-            }
-
-            .controls-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-
-            .knob-container {
-                width: 80px;
-                height: 80px;
-            }
-
-            .keyboard {
-                padding: 10px;
-                gap: 3px;
-            }
-
-            .key {
-                width: 12vw;
-                height: 35vw;
-                font-size: 10px;
-            }
-
-            .key.black {
-                width: 8vw;
-                height: 22vw;
-                margin: 0 -4.5vw;
-            }
-
-            .status-bar {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 15px;
             }
 
             .power-button {
-                margin: 0 auto 10px;
+                position: static;
+                margin: 0 auto;
             }
 
-            .status-item {
-                display: flex;
-                justify-content: space-between;
-                margin: 4px 0;
+            .controls-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 15px;
+            }
+
+            .knob-container, .switch-container {
+                width: 50px;
+                height: 50px;
             }
         }
     </style>
@@ -353,30 +309,27 @@
 <body>
     <div class="synth-container">
         <div class="synth-header">
-            <div class="synth-title">Physical Modelling Synth</div>
-            <div class="synth-subtitle">Digital Waveguide Synthesis</div>
+            <button class="power-button" id="power-button">PWR</button>
+            <div class="synth-header-text">
+                <div class="synth-title">PM Synth</div>
+                <div class="synth-subtitle">Physical Modelling Synthesizer</div>
+            </div>
         </div>
 
         <div class="visualizer">
             <canvas class="visualizer-canvas" id="visualizer"></canvas>
         </div>
 
+        <!-- Sources Section -->
         <div class="control-section">
-            <div class="section-title">Reed & Excitation</div>
+            <div class="section-title">Sources</div>
             <div class="controls-grid">
                 <div class="control">
-                    <div class="knob-label">Breath</div>
+                    <div class="knob-label">DC</div>
                     <div class="knob-container">
-                        <div class="knob" id="breath-knob"></div>
+                        <div class="knob" id="dc-knob"></div>
                     </div>
-                    <div class="knob-value" id="breath-value">70</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Reed Stiff</div>
-                    <div class="knob-container">
-                        <div class="knob" id="reed-knob"></div>
-                    </div>
-                    <div class="knob-value" id="reed-value">50</div>
+                    <div class="knob-value" id="dc-value">50</div>
                 </div>
                 <div class="control">
                     <div class="knob-label">Noise</div>
@@ -386,38 +339,25 @@
                     <div class="knob-value" id="noise-value">15</div>
                 </div>
                 <div class="control">
+                    <div class="knob-label">Tone</div>
+                    <div class="knob-container">
+                        <div class="knob" id="tone-knob"></div>
+                    </div>
+                    <div class="knob-value" id="tone-value">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Envelope Section -->
+        <div class="control-section">
+            <div class="section-title">Envelope</div>
+            <div class="controls-grid">
+                <div class="control">
                     <div class="knob-label">Attack</div>
                     <div class="knob-container">
                         <div class="knob" id="attack-knob"></div>
                     </div>
                     <div class="knob-value" id="attack-value">10</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="control-section">
-            <div class="section-title">Bore & Resonance</div>
-            <div class="controls-grid">
-                <div class="control">
-                    <div class="knob-label">Damping</div>
-                    <div class="knob-container">
-                        <div class="knob" id="damping-knob"></div>
-                    </div>
-                    <div class="knob-value" id="damping-value">20</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Brightness</div>
-                    <div class="knob-container">
-                        <div class="knob" id="brightness-knob"></div>
-                    </div>
-                    <div class="knob-value" id="brightness-value">70</div>
-                </div>
-                <div class="control">
-                    <div class="knob-label">Vibrato</div>
-                    <div class="knob-container">
-                        <div class="knob" id="vibrato-knob"></div>
-                    </div>
-                    <div class="knob-value" id="vibrato-value">0</div>
                 </div>
                 <div class="control">
                     <div class="knob-label">Release</div>
@@ -429,6 +369,126 @@
             </div>
         </div>
 
+        <!-- Interface Section -->
+        <div class="control-section">
+            <div class="section-title">Interface</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">Type</div>
+                    <div class="switch-container">
+                        <div class="switch" id="interface-type-switch"></div>
+                    </div>
+                    <div class="switch-label" id="interface-type-label">Reed</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Intensity</div>
+                    <div class="knob-container">
+                        <div class="knob" id="interface-intensity-knob"></div>
+                    </div>
+                    <div class="knob-value" id="interface-intensity-value">50</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delay Lines Section -->
+        <div class="control-section">
+            <div class="section-title">Delay Lines</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">Tuning</div>
+                    <div class="knob-container">
+                        <div class="knob" id="tuning-knob"></div>
+                    </div>
+                    <div class="knob-value" id="tuning-value">50</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Ratio</div>
+                    <div class="knob-container">
+                        <div class="knob" id="ratio-knob"></div>
+                    </div>
+                    <div class="knob-value" id="ratio-value">50</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Section -->
+        <div class="control-section">
+            <div class="section-title">Feedback</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">Delay 1</div>
+                    <div class="knob-container">
+                        <div class="knob" id="delay1-fb-knob"></div>
+                    </div>
+                    <div class="knob-value" id="delay1-fb-value">95</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Delay 2</div>
+                    <div class="knob-container">
+                        <div class="knob" id="delay2-fb-knob"></div>
+                    </div>
+                    <div class="knob-value" id="delay2-fb-value">95</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Filter</div>
+                    <div class="knob-container">
+                        <div class="knob" id="filter-fb-knob"></div>
+                    </div>
+                    <div class="knob-value" id="filter-fb-value">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="control-section">
+            <div class="section-title">Filter</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">Frequency</div>
+                    <div class="knob-container">
+                        <div class="knob" id="filter-freq-knob"></div>
+                    </div>
+                    <div class="knob-value" id="filter-freq-value">70</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Q</div>
+                    <div class="knob-container">
+                        <div class="knob" id="filter-q-knob"></div>
+                    </div>
+                    <div class="knob-value" id="filter-q-value">20</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">Shape</div>
+                    <div class="knob-container">
+                        <div class="knob" id="filter-shape-knob"></div>
+                    </div>
+                    <div class="knob-value" id="filter-shape-value">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modulation Section -->
+        <div class="control-section">
+            <div class="section-title">Modulation</div>
+            <div class="controls-grid">
+                <div class="control">
+                    <div class="knob-label">LFO Freq</div>
+                    <div class="knob-container">
+                        <div class="knob" id="lfo-freq-knob"></div>
+                    </div>
+                    <div class="knob-value" id="lfo-freq-value">30</div>
+                </div>
+                <div class="control">
+                    <div class="knob-label">AM/FM</div>
+                    <div class="knob-container">
+                        <div class="knob" id="mod-type-level-knob"></div>
+                    </div>
+                    <div class="knob-value" id="mod-type-level-value">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard -->
         <div class="keyboard" id="keyboard">
             <div class="key white" data-note="C4">C4</div>
             <div class="key black" data-note="C#4">C#</div>
@@ -445,18 +505,6 @@
             <div class="key white" data-note="C5">C5</div>
         </div>
 
-        <div class="status-bar">
-            <button class="power-button" id="power-button">PWR</button>
-            <div class="status-item">
-                Status: <span class="status-value" id="status">OFF</span>
-            </div>
-            <div class="status-item">
-                Note: <span class="status-value" id="current-note">---</span>
-            </div>
-            <div class="status-item">
-                CPU: <span class="status-value" id="cpu">0%</span>
-            </div>
-        </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

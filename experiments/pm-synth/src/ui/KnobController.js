@@ -2,13 +2,14 @@
 // Handles rotary knob interactions
 
 export class KnobController {
-    constructor(element, valueElement, onChange, min = 0, max = 100, defaultValue = 50) {
+    constructor(element, valueElement, onChange, min = 0, max = 100, defaultValue = 50, bipolar = false) {
         this.element = element;
         this.valueElement = valueElement;
         this.onChange = onChange;
         this.min = min;
         this.max = max;
         this.value = defaultValue;
+        this.bipolar = bipolar;  // If true, displays centered at 50
         this.isDragging = false;
         this.startY = 0;
         this.startValue = 0;
@@ -70,7 +71,14 @@ export class KnobController {
     updateDisplay() {
         const rotation = (this.value / 100) * 270 - 135;
         this.element.style.transform = `rotate(${rotation}deg)`;
-        this.valueElement.textContent = Math.round(this.value);
+
+        if (this.bipolar) {
+            // Display as -50 to +50 for bipolar controls
+            const displayValue = Math.round(this.value - 50);
+            this.valueElement.textContent = displayValue >= 0 ? `+${displayValue}` : displayValue;
+        } else {
+            this.valueElement.textContent = Math.round(this.value);
+        }
     }
 
     setValue(value) {

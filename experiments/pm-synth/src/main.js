@@ -1,18 +1,40 @@
 // main.js
 // Main application initialization and coordination
 
-import { ClarinetProcessor } from './audio/ClarinetProcessor.js';
+import { PMSynthProcessor } from './audio/PMSynthProcessor.js';
+import { InterfaceType } from './audio/PMSynthEngine.js';
 import { KnobController } from './ui/KnobController.js';
+import { RotarySwitchController } from './ui/RotarySwitchController.js';
 import { KeyboardController } from './ui/KeyboardController.js';
 import { Visualizer } from './ui/Visualizer.js';
-import { DEFAULT_BREATH_UI, DEFAULT_REED_UI } from './constants.js';
+import {
+    DEFAULT_DC_LEVEL,
+    DEFAULT_NOISE_LEVEL,
+    DEFAULT_TONE_LEVEL,
+    DEFAULT_ATTACK,
+    DEFAULT_RELEASE,
+    DEFAULT_INTERFACE_TYPE,
+    DEFAULT_INTERFACE_INTENSITY,
+    DEFAULT_TUNING,
+    DEFAULT_RATIO,
+    DEFAULT_DELAY1_FEEDBACK,
+    DEFAULT_DELAY2_FEEDBACK,
+    DEFAULT_FILTER_FEEDBACK,
+    DEFAULT_FILTER_FREQUENCY,
+    DEFAULT_FILTER_Q,
+    DEFAULT_FILTER_SHAPE,
+    DEFAULT_LFO_FREQUENCY,
+    DEFAULT_MODULATION_TYPE_LEVEL,
+    INTERFACE_TYPE_NAMES
+} from './constants.js';
 
-class ClarinetSynthApp {
+class PMSynthApp {
     constructor() {
         this.processor = null;
         this.keyboard = null;
         this.visualizer = null;
         this.knobs = {};
+        this.switches = {};
         this.isActive = false;
         this.currentNote = null;
 
@@ -22,74 +44,153 @@ class ClarinetSynthApp {
     initializeUI() {
         // Power button
         const powerButton = document.getElementById('power-button');
-        powerButton.addEventListener('click', () => this.togglePower());
+        if (powerButton) {
+            powerButton.addEventListener('click', () => this.togglePower());
+        }
 
-        // Initialize knobs
-        this.knobs.breath = new KnobController(
-            document.getElementById('breath-knob'),
-            document.getElementById('breath-value'),
-            (value) => this.updateParameter('breath', value),
-            0, 100, DEFAULT_BREATH_UI
+        // Initialize Sources knobs
+        this.knobs.dcLevel = new KnobController(
+            document.getElementById('dc-knob'),
+            document.getElementById('dc-value'),
+            (value) => this.updateParameter('dcLevel', value),
+            0, 100, DEFAULT_DC_LEVEL
         );
 
-        this.knobs.reed = new KnobController(
-            document.getElementById('reed-knob'),
-            document.getElementById('reed-value'),
-            (value) => this.updateParameter('reed', value),
-            0, 100, DEFAULT_REED_UI
-        );
-
-        this.knobs.noise = new KnobController(
+        this.knobs.noiseLevel = new KnobController(
             document.getElementById('noise-knob'),
             document.getElementById('noise-value'),
-            (value) => this.updateParameter('noise', value),
-            0, 100, 15
+            (value) => this.updateParameter('noiseLevel', value),
+            0, 100, DEFAULT_NOISE_LEVEL
         );
 
+        this.knobs.toneLevel = new KnobController(
+            document.getElementById('tone-knob'),
+            document.getElementById('tone-value'),
+            (value) => this.updateParameter('toneLevel', value),
+            0, 100, DEFAULT_TONE_LEVEL
+        );
+
+        // Initialize Envelope knobs
         this.knobs.attack = new KnobController(
             document.getElementById('attack-knob'),
             document.getElementById('attack-value'),
             (value) => this.updateParameter('attack', value),
-            0, 100, 10
-        );
-
-        this.knobs.damping = new KnobController(
-            document.getElementById('damping-knob'),
-            document.getElementById('damping-value'),
-            (value) => this.updateParameter('damping', value),
-            0, 100, 20
-        );
-
-        this.knobs.brightness = new KnobController(
-            document.getElementById('brightness-knob'),
-            document.getElementById('brightness-value'),
-            (value) => this.updateParameter('brightness', value),
-            0, 100, 70
-        );
-
-        this.knobs.vibrato = new KnobController(
-            document.getElementById('vibrato-knob'),
-            document.getElementById('vibrato-value'),
-            (value) => this.updateParameter('vibrato', value),
-            0, 100, 0
+            0, 100, DEFAULT_ATTACK
         );
 
         this.knobs.release = new KnobController(
             document.getElementById('release-knob'),
             document.getElementById('release-value'),
             (value) => this.updateParameter('release', value),
-            0, 100, 50
+            0, 100, DEFAULT_RELEASE
+        );
+
+        // Initialize Interface controls
+        this.switches.interfaceType = new RotarySwitchController(
+            document.getElementById('interface-type-switch'),
+            document.getElementById('interface-type-label'),
+            INTERFACE_TYPE_NAMES,
+            (position) => this.updateParameter('interfaceType', position),
+            DEFAULT_INTERFACE_TYPE
+        );
+
+        this.knobs.interfaceIntensity = new KnobController(
+            document.getElementById('interface-intensity-knob'),
+            document.getElementById('interface-intensity-value'),
+            (value) => this.updateParameter('interfaceIntensity', value),
+            0, 100, DEFAULT_INTERFACE_INTENSITY
+        );
+
+        // Initialize Delay Lines knobs
+        this.knobs.tuning = new KnobController(
+            document.getElementById('tuning-knob'),
+            document.getElementById('tuning-value'),
+            (value) => this.updateParameter('tuning', value),
+            0, 100, DEFAULT_TUNING
+        );
+
+        this.knobs.ratio = new KnobController(
+            document.getElementById('ratio-knob'),
+            document.getElementById('ratio-value'),
+            (value) => this.updateParameter('ratio', value),
+            0, 100, DEFAULT_RATIO
+        );
+
+        // Initialize Feedback knobs
+        this.knobs.delay1Feedback = new KnobController(
+            document.getElementById('delay1-fb-knob'),
+            document.getElementById('delay1-fb-value'),
+            (value) => this.updateParameter('delay1Feedback', value),
+            0, 100, DEFAULT_DELAY1_FEEDBACK
+        );
+
+        this.knobs.delay2Feedback = new KnobController(
+            document.getElementById('delay2-fb-knob'),
+            document.getElementById('delay2-fb-value'),
+            (value) => this.updateParameter('delay2Feedback', value),
+            0, 100, DEFAULT_DELAY2_FEEDBACK
+        );
+
+        this.knobs.filterFeedback = new KnobController(
+            document.getElementById('filter-fb-knob'),
+            document.getElementById('filter-fb-value'),
+            (value) => this.updateParameter('filterFeedback', value),
+            0, 100, DEFAULT_FILTER_FEEDBACK
+        );
+
+        // Initialize Filter knobs
+        this.knobs.filterFrequency = new KnobController(
+            document.getElementById('filter-freq-knob'),
+            document.getElementById('filter-freq-value'),
+            (value) => this.updateParameter('filterFrequency', value),
+            0, 100, DEFAULT_FILTER_FREQUENCY
+        );
+
+        this.knobs.filterQ = new KnobController(
+            document.getElementById('filter-q-knob'),
+            document.getElementById('filter-q-value'),
+            (value) => this.updateParameter('filterQ', value),
+            0, 100, DEFAULT_FILTER_Q
+        );
+
+        this.knobs.filterShape = new KnobController(
+            document.getElementById('filter-shape-knob'),
+            document.getElementById('filter-shape-value'),
+            (value) => this.updateParameter('filterShape', value),
+            0, 100, DEFAULT_FILTER_SHAPE
+        );
+
+        // Initialize Modulation knobs
+        this.knobs.lfoFrequency = new KnobController(
+            document.getElementById('lfo-freq-knob'),
+            document.getElementById('lfo-freq-value'),
+            (value) => this.updateParameter('lfoFrequency', value),
+            0, 100, DEFAULT_LFO_FREQUENCY
+        );
+
+        this.knobs.modulationTypeLevel = new KnobController(
+            document.getElementById('mod-type-level-knob'),
+            document.getElementById('mod-type-level-value'),
+            (value) => this.updateParameter('modulationTypeLevel', value),
+            0, 100, DEFAULT_MODULATION_TYPE_LEVEL,
+            true  // Bipolar mode
         );
 
         // Initialize keyboard
-        this.keyboard = new KeyboardController(
-            document.getElementById('keyboard'),
-            (note, frequency) => this.handleNoteOn(note, frequency),
-            (note) => this.handleNoteOff(note)
-        );
+        const keyboardElement = document.getElementById('keyboard');
+        if (keyboardElement) {
+            this.keyboard = new KeyboardController(
+                keyboardElement,
+                (note, frequency) => this.handleNoteOn(note, frequency),
+                (note) => this.handleNoteOff(note)
+            );
+        }
 
         // Initialize visualizer
-        this.visualizer = new Visualizer(document.getElementById('visualizer'));
+        const visualizerElement = document.getElementById('visualizer');
+        if (visualizerElement) {
+            this.visualizer = new Visualizer(visualizerElement);
+        }
 
         // Update status display
         this.updateStatus();
@@ -106,30 +207,35 @@ class ClarinetSynthApp {
     async powerOn() {
         try {
             // Initialize audio processor
-            this.processor = new ClarinetProcessor();
+            this.processor = new PMSynthProcessor();
             await this.processor.initialize();
-            console.log(`main this.processor.isActive = ${this.processor.isActive}`);
 
-            // Apply current parameter values
-            this.updateParameter('breath', this.knobs.breath.value / 100);
-            this.updateParameter('reed', this.knobs.reed.value / 100);
-            this.updateParameter('noise', this.knobs.noise.value / 100);
-            this.updateParameter('attack', this.knobs.attack.value / 100);
-            this.updateParameter('damping', this.knobs.damping.value / 100);
-            this.updateParameter('brightness', this.knobs.brightness.value / 100);
-            this.updateParameter('vibrato', this.knobs.vibrato.value / 100);
-            this.updateParameter('release', this.knobs.release.value / 100);
+            // Apply all current parameter values
+            Object.entries(this.knobs).forEach(([key, knob]) => {
+                const paramName = this.getParameterName(key);
+                this.processor.setParameter(paramName, knob.value / 100);
+            });
+
+            // Apply switch positions
+            if (this.switches.interfaceType) {
+                this.processor.setParameter('interfaceType', this.switches.interfaceType.currentPosition);
+            }
 
             // Start visualizer
-            this.visualizer.start(() => this.processor.getAnalyserData());
+            if (this.visualizer) {
+                this.visualizer.start(() => this.processor.getAnalyserData());
+            }
 
             this.isActive = true;
 
             // Update UI
-            document.getElementById('power-button').classList.add('active');
+            const powerButton = document.getElementById('power-button');
+            if (powerButton) {
+                powerButton.classList.add('active');
+            }
             this.updateStatus();
 
-            console.log('Clarinet synthesizer powered on');
+            console.log('PM Synth powered on');
         } catch (error) {
             console.error('Failed to initialize audio:', error);
             alert('Failed to initialize audio. Please check browser compatibility.');
@@ -138,26 +244,33 @@ class ClarinetSynthApp {
 
     powerOff() {
         if (this.processor) {
-            this.keyboard.releaseAllKeys();
+            if (this.keyboard) {
+                this.keyboard.releaseAllKeys();
+            }
             this.processor.shutdown();
             this.processor = null;
         }
 
-        this.visualizer.stop();
+        if (this.visualizer) {
+            this.visualizer.stop();
+        }
+
         this.isActive = false;
         this.currentNote = null;
 
         // Update UI
-        document.getElementById('power-button').classList.remove('active');
+        const powerButton = document.getElementById('power-button');
+        if (powerButton) {
+            powerButton.classList.remove('active');
+        }
         this.updateStatus();
 
-        console.log('Clarinet synthesizer powered off');
+        console.log('PM Synth powered off');
     }
 
     handleNoteOn(note, frequency) {
         if (!this.isActive) return;
 
-        console.log(`[ClarinetSynthApp] handleNoteOn: ${note}, ${frequency}`);
         this.currentNote = note;
         this.processor.noteOn(frequency);
         this.updateStatus();
@@ -174,50 +287,46 @@ class ClarinetSynthApp {
     }
 
     updateParameter(param, value) {
-        console.log(`[ClarinetSynthApp] updateParameter: ${param}, ${value}`);
         if (this.processor && this.processor.isActive) {
             this.processor.setParameter(param, value);
         }
     }
 
-    updateStatus() {
-        const statusElement = document.getElementById('status');
-        const noteElement = document.getElementById('current-note');
-
-        statusElement.textContent = this.isActive ? 'ON' : 'OFF';
-        statusElement.style.color = this.isActive ? '#4eff4a' : '#ff4a4a';
-
-        noteElement.textContent = this.currentNote || '---';
-
-        // Simulate CPU usage (would need actual implementation)
-        if (this.isActive) {
-            this.updateCPU();
-        } else {
-            document.getElementById('cpu').textContent = '0%';
-        }
+    getParameterName(knobKey) {
+        // Map knob keys to parameter names
+        const mapping = {
+            dcLevel: 'dcLevel',
+            noiseLevel: 'noiseLevel',
+            toneLevel: 'toneLevel',
+            attack: 'attack',
+            release: 'release',
+            interfaceIntensity: 'interfaceIntensity',
+            tuning: 'tuning',
+            ratio: 'ratio',
+            delay1Feedback: 'delay1Feedback',
+            delay2Feedback: 'delay2Feedback',
+            filterFeedback: 'filterFeedback',
+            filterFrequency: 'filterFrequency',
+            filterQ: 'filterQ',
+            filterShape: 'filterShape',
+            lfoFrequency: 'lfoFrequency',
+            modulationTypeLevel: 'modulationTypeLevel'
+        };
+        return mapping[knobKey] || knobKey;
     }
 
-    updateCPU() {
-        // Rough approximation of CPU usage
-        // In real implementation, would use performance.now() timing
-        const usage = this.processor && this.processor.engine && this.processor.engine.isPlaying
-            ? Math.floor(15 + Math.random() * 10)
-            : Math.floor(5 + Math.random() * 5);
-        document.getElementById('cpu').textContent = usage + '%';
-
-        if (this.isActive) {
-            setTimeout(() => this.updateCPU(), 100);
-        }
+    updateStatus() {
+        // Status display removed - power button shows active state via CSS
     }
 }
 
 // Initialize app when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        window.synthApp = new ClarinetSynthApp();
+        window.synthApp = new PMSynthApp();
     });
 } else {
-    window.synthApp = new ClarinetSynthApp();
+    window.synthApp = new PMSynthApp();
 }
 
 // Cleanup on page unload
