@@ -30,6 +30,14 @@ import {
     INTERFACE_TYPE_NAMES
 } from './constants.js';
 
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+            console.warn('Service worker registration failed', err);
+        });
+    });
+}
+
 class PMSynthApp {
     constructor() {
         this.processor = null;

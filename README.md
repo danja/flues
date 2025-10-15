@@ -6,4 +6,14 @@ I want to try some physical modelling synthesis with DIY Daisy Seed-based Eurora
 
 [Experiments](https://danja.github.io/flues/)
 
+## Docs & Resources
+
+
+
+* Wikipedia : [Physical Modelling Synthesis](https://en.wikipedia.org/wiki/Physical_modelling_synthesis), [Digital waveguide synthesis](https://en.wikipedia.org/wiki/Digital_waveguide_synthesis), [Karplus-Strong Algorithm](https://en.wikipedia.org/wiki/Karplus%E2%80%93Strong_string_synthesis)
+* [Physical Audio Signal Processing](http://ccrma.stanford.edu/~jos/pasp/) *the Bible*
+
+
+
+
 
