@@ -30,7 +30,7 @@ A modular physical modeling synthesizer featuring **12 interface types** (8 phys
 
 #### LV2 Plugin: Stove Synth (Danny Ayers)
 
-The PM Synth engine is also available as a native LV2 instrument for Linux hosts.
+The Stove engine is also available as a native LV2 instrument for Linux hosts.
 
 - Bundle name in hosts: **Stove Synth (Danny Ayers)**
 - Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)

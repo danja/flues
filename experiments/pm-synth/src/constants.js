@@ -6,8 +6,8 @@
 // ============================================================================
 
 // Sources
-export const DEFAULT_DC_LEVEL = 50;      // 50%
-export const DEFAULT_NOISE_LEVEL = 15;   // 15%
+export const DEFAULT_DC_LEVEL = 0;       // 0% (off by default)
+export const DEFAULT_NOISE_LEVEL = 10;   // 10%
 export const DEFAULT_TONE_LEVEL = 0;     // 0% (off by default)
 
 // Envelope
@@ -23,8 +23,8 @@ export const DEFAULT_TUNING = 50;        // Center (0 semitones)
 export const DEFAULT_RATIO = 50;         // Center (1.0 ratio)
 
 // Feedback
-export const DEFAULT_DELAY1_FEEDBACK = 50;  // High feedback
-export const DEFAULT_DELAY2_FEEDBACK = 50;  // High feedback
+export const DEFAULT_DELAY1_FEEDBACK = 10;  // Low feedback
+export const DEFAULT_DELAY2_FEEDBACK = 10;  // Low feedback
 export const DEFAULT_FILTER_FEEDBACK = 0;   // No filter feedback
 
 // Filter
