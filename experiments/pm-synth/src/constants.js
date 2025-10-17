@@ -52,7 +52,11 @@ export const INTERFACE_TYPE_NAMES = [
     'Brass',
     'Bow',
     'Bell',
-    'Drum'
+    'Drum',
+    'Crystal',
+    'Vapor',
+    'Quantum',
+    'Plasma'
 ];
 
 // ============================================================================

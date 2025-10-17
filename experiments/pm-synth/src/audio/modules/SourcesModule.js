@@ -48,7 +48,8 @@ export class SourcesModule {
         // Update sawtooth frequency from CV
         this.sawtoothFrequency = cv;
 
-        // Generate DC (constant)
+        // Generate DC (constant pressure)
+        // This provides steady-state excitation for sustained interfaces
         const dc = this.dcLevel;
 
         // Generate white noise

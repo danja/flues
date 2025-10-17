@@ -198,3 +198,4 @@ Can be triggered via GitHub Actions "workflow_dispatch" event.
 - Web Audio API requires user interaction before audio can play; iOS needs explicit unlock.
 - Physical modelling synthesis is CPU-intensive but realistic.
 - The `www/` directory is git-tracked and contains built artifacts for GitHub Pages.
+- be sure and remove old code when it's no longer needed

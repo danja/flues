@@ -99,9 +99,6 @@ export class PMSynthEngine {
         const env = this.envelope.process();
         const envelopedSignal = sourceSignal * env;
 
-        // Apply interface nonlinearity
-        const interfaceOutput = this.interface.process(envelopedSignal);
-
         // Mix feedback from previous delay outputs and filter
         const feedbackSignal = this.feedback.process(
             this.prevDelayOutputs.delay1,
@@ -109,10 +106,17 @@ export class PMSynthEngine {
             this.prevFilterOutput
         );
 
-        // Combine interface output with feedback and remove DC offset
-        const rawDelayInput = interfaceOutput + feedbackSignal;
-        const delayInput = this.dcBlock(rawDelayInput);
-        const clampedDelayInput = Math.max(-1, Math.min(1, delayInput));
+        // DC block the feedback to prevent DC buildup in the loop
+        const cleanFeedback = this.dcBlock(feedbackSignal);
+
+        // Combine enveloped sources with clean feedback
+        const interfaceInput = envelopedSignal + cleanFeedback;
+
+        // Apply interface nonlinearity
+        const interfaceOutput = this.interface.process(interfaceInput);
+
+        // Clamp before entering delay lines
+        const clampedDelayInput = Math.max(-1, Math.min(1, interfaceOutput));
 
         // Process through delay lines with the actual input
         const finalDelayOutputs = this.delayLines.process(clampedDelayInput, this.frequency);
