@@ -59,6 +59,22 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/pm-synth.lv2/pm_synth_ui.so" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/pm-synth.lv2/pm_synth_ui.so")
+    file(RPATH_CHECK
+         FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/pm-synth.lv2/pm_synth_ui.so"
+         RPATH "")
+  endif()
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/pm-synth.lv2" TYPE MODULE FILES "/home/danny/github/flues/lv2/pm-synth/build/pm_synth_ui.so")
+  if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/pm-synth.lv2/pm_synth_ui.so" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/pm-synth.lv2/pm_synth_ui.so")
+    if(CMAKE_INSTALL_DO_STRIP)
+      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/pm-synth.lv2/pm_synth_ui.so")
+    endif()
+  endif()
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/pm-synth.lv2" TYPE FILE FILES
     "/home/danny/github/flues/lv2/pm-synth/pm-synth.lv2/manifest.ttl"
     "/home/danny/github/flues/lv2/pm-synth/pm-synth.lv2/pm-synth.ttl"

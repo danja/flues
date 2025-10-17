@@ -1,3 +1,0 @@
-/home/danny/.lv2/pm-synth.lv2/pm_synth.so
-/home/danny/.lv2/pm-synth.lv2/manifest.ttl
-/home/danny/.lv2/pm-synth.lv2/pm-synth.ttl

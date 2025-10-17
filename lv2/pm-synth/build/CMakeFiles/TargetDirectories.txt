@@ -1,4 +1,5 @@
 /home/danny/github/flues/lv2/pm-synth/build/CMakeFiles/pm_synth.dir
+/home/danny/github/flues/lv2/pm-synth/build/CMakeFiles/pm_synth_ui.dir
 /home/danny/github/flues/lv2/pm-synth/build/CMakeFiles/edit_cache.dir
 /home/danny/github/flues/lv2/pm-synth/build/CMakeFiles/rebuild_cache.dir
 /home/danny/github/flues/lv2/pm-synth/build/CMakeFiles/list_install_components.dir

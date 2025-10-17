@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
-project(pm_synth_lv2 VERSION 0.1 LANGUAGES CXX)
+project(pm_synth_lv2 VERSION 0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LV2 REQUIRED lv2)
+pkg_check_modules(GTK3 QUIET gtk+-3.0)
 
 add_library(pm_synth MODULE
     src/pm_synth_plugin.cpp
@@ -52,15 +55,47 @@ target_sources(pm_synth
 target_compile_definitions(pm_synth PRIVATE LV2_EXPORT_SHARED)
 
 target_link_libraries(pm_synth PRIVATE ${LV2_LIBRARIES})
+target_compile_options(pm_synth PRIVATE ${LV2_CFLAGS_OTHER})
 
 set_target_properties(pm_synth PROPERTIES
     PREFIX ""
     OUTPUT_NAME "pm_synth"
 )
 
+if (GTK3_FOUND)
+    add_library(pm_synth_ui MODULE
+        src/ui/FluesKnob.c
+        src/ui/pm_synth_ui.c
+    )
+
+    target_include_directories(pm_synth_ui
+        PRIVATE
+            ${GTK3_INCLUDE_DIRS}
+            ${LV2_INCLUDE_DIRS}
+            src/ui
+    )
+
+    target_link_libraries(pm_synth_ui PRIVATE ${GTK3_LIBRARIES} m)
+    target_compile_options(pm_synth_ui PRIVATE ${GTK3_CFLAGS_OTHER} ${LV2_CFLAGS_OTHER})
+    target_compile_definitions(pm_synth_ui PRIVATE LV2_EXPORT_SHARED)
+
+    set_target_properties(pm_synth_ui PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "pm_synth_ui"
+    )
+else()
+    message(WARNING "GTK+3 development files not found; pm_synth_ui target will not be built.")
+endif()
+
 install(TARGETS pm_synth
     LIBRARY DESTINATION pm-synth.lv2
 )
+
+if (TARGET pm_synth_ui)
+    install(TARGETS pm_synth_ui
+        LIBRARY DESTINATION pm-synth.lv2
+    )
+endif()
 
 install(FILES
     pm-synth.lv2/manifest.ttl

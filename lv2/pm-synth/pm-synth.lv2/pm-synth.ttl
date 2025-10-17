@@ -3,6 +3,7 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix lv2: <http://lv2plug.in/ns/lv2core#> .
 @prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 <https://danja.github.io/flues/plugins/pm-synth>
@@ -15,6 +16,7 @@
         foaf:homepage <https://danja.github.io/flues/>
     ] ;
     lv2:requiredFeature <http://lv2plug.in/ns/ext/urid#map> ;
+    ui:ui <https://danja.github.io/flues/plugins/pm-synth#ui> ;
     lv2:port [
         a lv2:OutputPort , lv2:AudioPort ;
         lv2:index 0 ;
@@ -181,3 +183,8 @@
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] .
+
+<https://danja.github.io/flues/plugins/pm-synth#ui>
+    a ui:Gtk3UI ;
+    ui:binary <pm_synth_ui.so> ;
+    rdfs:label "Flues PM Synth Panel" .
