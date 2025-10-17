@@ -1,0 +1,272 @@
+// synth_window.c
+// Main GTK4 synthesizer window with controls
+// Physical modeling synthesizer UI
+
+#include "pm_synth.h"
+#include "audio_backend.h"
+#include <gtk/gtk.h>
+#include <stdio.h>
+
+typedef struct {
+    GtkApplication *app;
+    GtkWidget *window;
+    PMSynthEngine *synth;
+    AudioBackend *audio;
+
+    // Control widgets
+    GtkWidget *power_button;
+    GtkWidget *interface_selector;
+    GtkScale *dc_scale;
+    GtkScale *noise_scale;
+    GtkScale *tone_scale;
+    GtkScale *attack_scale;
+    GtkScale *release_scale;
+    GtkScale *intensity_scale;
+    GtkScale *tuning_scale;
+    GtkScale *ratio_scale;
+    GtkScale *delay1_fb_scale;
+    GtkScale *delay2_fb_scale;
+    GtkScale *filter_fb_scale;
+    GtkScale *filter_freq_scale;
+    GtkScale *filter_q_scale;
+    GtkScale *filter_shape_scale;
+    GtkScale *lfo_freq_scale;
+    GtkScale *mod_depth_scale;
+    GtkScale *reverb_size_scale;
+    GtkScale *reverb_level_scale;
+
+    bool audio_running;
+    int current_note;
+} SynthWindow;
+
+// Audio callback
+static void audio_process_callback(float* output, int num_samples, void* user_data) {
+    SynthWindow* win = (SynthWindow*)user_data;
+    pm_synth_process(win->synth, output, num_samples);
+}
+
+// Control callbacks
+static void on_power_toggled(GtkToggleButton *button, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+
+    if (gtk_toggle_button_get_active(button)) {
+        if (audio_backend_start(win->audio)) {
+            win->audio_running = true;
+            gtk_button_set_label(GTK_BUTTON(button), "PWR");
+        }
+    } else {
+        audio_backend_stop(win->audio);
+        win->audio_running = false;
+    }
+}
+
+static void on_interface_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    guint selected = gtk_drop_down_get_selected(dropdown);
+    pm_synth_set_interface_type(win->synth, (InterfaceType)selected);
+}
+
+static void on_dc_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_dc_level(win->synth, gtk_range_get_value(range));
+}
+
+static void on_noise_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_noise_level(win->synth, gtk_range_get_value(range));
+}
+
+static void on_attack_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_attack(win->synth, gtk_range_get_value(range));
+}
+
+static void on_release_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_release(win->synth, gtk_range_get_value(range));
+}
+
+static void on_intensity_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_interface_intensity(win->synth, gtk_range_get_value(range));
+}
+
+static void on_delay1_fb_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_delay1_feedback(win->synth, gtk_range_get_value(range));
+}
+
+static void on_delay2_fb_changed(GtkRange *range, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_set_delay2_feedback(win->synth, gtk_range_get_value(range));
+}
+
+// Keyboard event handler
+static gboolean on_key_pressed(GtkEventControllerKey *controller,
+                               guint keyval, guint keycode,
+                               GdkModifierType state, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+
+    if (!win->audio_running) return FALSE;
+
+    // Simple keyboard mapping (A-K = C4-C5)
+    int note = -1;
+    switch (keyval) {
+        case GDK_KEY_a: note = 60; break; // C4
+        case GDK_KEY_w: note = 61; break; // C#4
+        case GDK_KEY_s: note = 62; break; // D4
+        case GDK_KEY_e: note = 63; break; // D#4
+        case GDK_KEY_d: note = 64; break; // E4
+        case GDK_KEY_f: note = 65; break; // F4
+        case GDK_KEY_t: note = 66; break; // F#4
+        case GDK_KEY_g: note = 67; break; // G4
+        case GDK_KEY_y: note = 68; break; // G#4
+        case GDK_KEY_h: note = 69; break; // A4
+        case GDK_KEY_u: note = 70; break; // A#4
+        case GDK_KEY_j: note = 71; break; // B4
+        case GDK_KEY_k: note = 72; break; // C5
+    }
+
+    if (note >= 0) {
+        win->current_note = note;
+        float freq = pm_synth_midi_to_frequency(note);
+        pm_synth_note_on(win->synth, freq);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static gboolean on_key_released(GtkEventControllerKey *controller,
+                                guint keyval, guint keycode,
+                                GdkModifierType state, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+    pm_synth_note_off(win->synth);
+    return TRUE;
+}
+
+// Create a labeled slider
+static GtkWidget* create_slider(const char *label, double min, double max,
+                                double value, GCallback callback, gpointer data) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    GtkWidget *label_widget = gtk_label_new(label);
+    GtkWidget *scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, min, max, 1.0);
+
+    gtk_range_set_value(GTK_RANGE(scale), value);
+    gtk_scale_set_draw_value(GTK_SCALE(scale), TRUE);
+    gtk_scale_set_value_pos(GTK_SCALE(scale), GTK_POS_RIGHT);
+
+    g_signal_connect(scale, "value-changed", callback, data);
+
+    gtk_box_append(GTK_BOX(box), label_widget);
+    gtk_box_append(GTK_BOX(box), scale);
+
+    return box;
+}
+
+static void activate(GtkApplication *app, gpointer user_data) {
+    SynthWindow *win = (SynthWindow*)user_data;
+
+    win->window = gtk_application_window_new(app);
+    gtk_window_set_title(GTK_WINDOW(win->window), "PM Synth");
+    gtk_window_set_default_size(GTK_WINDOW(win->window), 800, 600);
+
+    // Main layout
+    GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_widget_set_margin_start(main_box, 10);
+    gtk_widget_set_margin_end(main_box, 10);
+    gtk_widget_set_margin_top(main_box, 10);
+    gtk_widget_set_margin_bottom(main_box, 10);
+
+    // Power button
+    win->power_button = gtk_toggle_button_new_with_label("Click Here First");
+    g_signal_connect(win->power_button, "toggled", G_CALLBACK(on_power_toggled), win);
+    gtk_box_append(GTK_BOX(main_box), win->power_button);
+
+    // Interface selector
+    const char *interface_names[] = {
+        "Pluck", "Hit", "Reed", "Flute", "Brass", "Bow", "Bell", "Drum",
+        "Crystal", "Vapor", "Quantum", "Plasma", NULL
+    };
+    win->interface_selector = gtk_drop_down_new_from_strings(interface_names);
+    gtk_drop_down_set_selected(GTK_DROP_DOWN(win->interface_selector), 2); // Reed
+    g_signal_connect(win->interface_selector, "notify::selected",
+                    G_CALLBACK(on_interface_changed), win);
+
+    GtkWidget *interface_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_append(GTK_BOX(interface_box), gtk_label_new("Interface:"));
+    gtk_box_append(GTK_BOX(interface_box), win->interface_selector);
+    gtk_box_append(GTK_BOX(main_box), interface_box);
+
+    // Create control sections
+    GtkWidget *notebook = gtk_notebook_new();
+
+    // Sources page
+    GtkWidget *sources_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_append(GTK_BOX(sources_box), create_slider("DC", 0, 100, 0, G_CALLBACK(on_dc_changed), win));
+    gtk_box_append(GTK_BOX(sources_box), create_slider("Noise", 0, 100, 10, G_CALLBACK(on_noise_changed), win));
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), sources_box, gtk_label_new("Sources"));
+
+    // Envelope page
+    GtkWidget *env_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_append(GTK_BOX(env_box), create_slider("Attack", 0, 100, 10, G_CALLBACK(on_attack_changed), win));
+    gtk_box_append(GTK_BOX(env_box), create_slider("Release", 0, 100, 50, G_CALLBACK(on_release_changed), win));
+    gtk_box_append(GTK_BOX(env_box), create_slider("Intensity", 0, 100, 50, G_CALLBACK(on_intensity_changed), win));
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), env_box, gtk_label_new("Envelope"));
+
+    // Feedback page
+    GtkWidget *fb_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_append(GTK_BOX(fb_box), create_slider("Delay 1", 0, 100, 10, G_CALLBACK(on_delay1_fb_changed), win));
+    gtk_box_append(GTK_BOX(fb_box), create_slider("Delay 2", 0, 100, 10, G_CALLBACK(on_delay2_fb_changed), win));
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), fb_box, gtk_label_new("Feedback"));
+
+    gtk_box_append(GTK_BOX(main_box), notebook);
+
+    // Instructions
+    GtkWidget *info = gtk_label_new("Use keys A-K to play notes (C4-C5)");
+    gtk_box_append(GTK_BOX(main_box), info);
+
+    gtk_window_set_child(GTK_WINDOW(win->window), main_box);
+
+    // Add keyboard controller
+    GtkEventController *key_controller = gtk_event_controller_key_new();
+    g_signal_connect(key_controller, "key-pressed", G_CALLBACK(on_key_pressed), win);
+    g_signal_connect(key_controller, "key-released", G_CALLBACK(on_key_released), win);
+    gtk_widget_add_controller(win->window, key_controller);
+
+    gtk_window_present(GTK_WINDOW(win->window));
+}
+
+int main(int argc, char **argv) {
+    SynthWindow win = {0};
+
+    // Create synthesizer engine
+    win.synth = pm_synth_create(DEFAULT_SAMPLE_RATE);
+    if (!win.synth) {
+        fprintf(stderr, "Failed to create synth engine\n");
+        return 1;
+    }
+
+    // Create audio backend (PulseAudio)
+    win.audio = audio_backend_create(AUDIO_BACKEND_PULSEAUDIO,
+                                     DEFAULT_SAMPLE_RATE, DEFAULT_BUFFER_SIZE,
+                                     audio_process_callback, &win);
+    if (!win.audio) {
+        fprintf(stderr, "Failed to create audio backend\n");
+        pm_synth_destroy(win.synth);
+        return 1;
+    }
+
+    // Create GTK application
+    win.app = gtk_application_new("org.flues.pmsynth", G_APPLICATION_DEFAULT_FLAGS);
+    g_signal_connect(win.app, "activate", G_CALLBACK(activate), &win);
+
+    int status = g_application_run(G_APPLICATION(win.app), argc, argv);
+
+    // Cleanup
+    audio_backend_destroy(win.audio);
+    pm_synth_destroy(win.synth);
+    g_object_unref(win.app);
+
+    return status;
+}

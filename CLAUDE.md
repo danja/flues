@@ -131,11 +131,74 @@ npm run dev
 - Reverb: Size, Level
 - Keyboard: On-screen keys or `AWSEDFTGYHUHJK` computer keys (monophonic)
 
-## C Development
+## C. GTK Desktop Application
+
+### PM Synth GTK
+
+**Location:** `gtk-synth/`
+
+A standalone GTK4 desktop application that ports the `experiments/pm-synth` JavaScript synthesizer to native C code. Provides the same physical modeling synthesis engine with a native Linux UI.
+
+**Key Features:**
+- Native C implementation of all DSP modules
+- GTK4 interface with sliders and controls
+- PulseAudio audio backend
+- Real-time synthesis with low latency
+- Keyboard input for playing notes
+
+**Architecture:**
+- `include/` - Public API headers (pm_synth.h, dsp_modules.h, interface_strategy.h, dsp_utils.h, audio_backend.h)
+- `src/audio/` - DSP engine implementation
+  - `pm_synth_engine.c` - Main synthesizer coordinator
+  - `audio_backend_pulse.c` - PulseAudio threaded backend
+  - `modules/` - All 8 DSP modules (Sources, Envelope, Interface, DelayLines, Feedback, Filter, Modulation, Reverb)
+  - `modules/strategies/` - Interface strategies (Reed fully implemented, 11 stubs)
+- `src/ui/synth_window.c` - GTK4 main window and controls
+- `reference/` - Copied JavaScript code for reference during development
+- `docs/PORTING_NOTES.md` - Detailed translation patterns and mapping
+
+**Building:**
+```bash
+cd gtk-synth
+
+# Install dependencies (Ubuntu/Debian)
+sudo apt install build-essential meson ninja-build libgtk-4-dev libpulse-dev
+
+# Build and run
+meson setup builddir
+ninja -C builddir
+./builddir/pm-synth-gtk
+```
+
+**Usage:**
+1. Click "Click Here First" to enable audio
+2. Select interface type from dropdown (Reed, Pluck, etc.)
+3. Play notes with keyboard keys A-K (C4-C5)
+4. Adjust parameters with sliders
+
+**Implementation Status:**
+- ✓ Core engine and signal flow (matches JavaScript exactly)
+- ✓ All 8 DSP modules fully implemented
+- ✓ Reed interface strategy (full implementation)
+- ✓ Basic GTK4 UI with Sources/Envelope/Feedback controls
+- ⚠ Remaining 11 interface strategies (using simple stubs)
+- ⚠ Complete UI (missing Filter, Modulation, Reverb controls)
+- TODO: Waveform visualizer, MIDI input, preset system
+
+**Translation Fidelity:**
+The C code is a direct, line-by-line translation of the JavaScript algorithms. All DSP math is preserved exactly:
+- Same signal flow with DC blocker on feedback path only
+- Identical filter coefficients and state equations
+- Same Strategy pattern for interface types
+- Matching default parameter values from constants.js
+
+See `gtk-synth/docs/PORTING_NOTES.md` for detailed JavaScript→C translation patterns.
+
+## D. C Code (Legacy/Future)
 
 **Location:** `c-code/`
 
-To be organized as C implementations are developed.
+Reserved for future C implementations and experiments that don't fit the GTK desktop app pattern.
 
 ## Original Prototypes
 
