@@ -355,6 +355,11 @@ class PMSynthApp {
 
     async powerOn() {
         try {
+            const powerButton = document.getElementById('power-button');
+            if (powerButton) {
+                powerButton.disabled = true;
+            }
+
             // Initialize audio processor
             this.processor = new PMSynthProcessor();
             await this.processor.initialize();
@@ -378,9 +383,11 @@ class PMSynthApp {
             this.isActive = true;
 
             // Update UI
-            const powerButton = document.getElementById('power-button');
             if (powerButton) {
                 powerButton.classList.add('active');
+                powerButton.textContent = 'ON';
+                powerButton.setAttribute('aria-pressed', 'true');
+                powerButton.disabled = false;
             }
             this.updateStatus();
 
@@ -388,6 +395,10 @@ class PMSynthApp {
         } catch (error) {
             console.error('Failed to initialize audio:', error);
             alert('Failed to initialize audio. Please check browser compatibility.');
+            const powerButton = document.getElementById('power-button');
+            if (powerButton) {
+                powerButton.disabled = false;
+            }
         }
     }
 
@@ -414,6 +425,9 @@ class PMSynthApp {
         const powerButton = document.getElementById('power-button');
         if (powerButton) {
             powerButton.classList.remove('active');
+            powerButton.textContent = 'OFF';
+            powerButton.setAttribute('aria-pressed', 'false');
+            powerButton.disabled = false;
         }
         this.updateStatus();
 
