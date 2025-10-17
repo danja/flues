@@ -136,15 +136,6 @@ static void apply_css(GtkWidget* root) {
     GtkStyleContext* context = gtk_widget_get_style_context(root);
     gtk_style_context_add_class(context, "flues-root");
 
-#if GTK_CHECK_VERSION(3,16,0)
-    GdkDisplay* display = gdk_display_get_default();
-    if (display) {
-        gtk_style_context_add_provider_for_display(
-            display,
-            GTK_STYLE_PROVIDER(provider),
-            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    }
-#else
     GdkScreen* screen = gdk_screen_get_default();
     if (screen) {
         gtk_style_context_add_provider_for_screen(
@@ -152,7 +143,6 @@ static void apply_css(GtkWidget* root) {
             GTK_STYLE_PROVIDER(provider),
             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     }
-#endif
     g_object_unref(provider);
 }
 

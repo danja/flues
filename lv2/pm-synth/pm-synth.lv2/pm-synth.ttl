@@ -8,7 +8,7 @@
 
 <https://danja.github.io/flues/plugins/pm-synth>
     a lv2:InstrumentPlugin ;
-    doap:name "Flues PM Synth" ;
+    doap:name "Stove Synth" ;
     doap:description "Monophonic physical modelling synthesizer ported from the Flues browser experiment." ;
     doap:license <https://opensource.org/licenses/MIT> ;
     doap:maintainer [

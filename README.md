@@ -28,6 +28,17 @@ A modular physical modeling synthesizer featuring **12 interface types** (8 phys
 - Web Audio API with AudioWorklet processing
 - PWA support for offline use
 
+#### LV2 Plugin: Stove Synth (Danny Ayers)
+
+The PM Synth engine is also available as a native LV2 instrument for Linux hosts.
+
+- Bundle name in hosts: **Stove Synth (Danny Ayers)**
+- Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)
+- Root-level helper: `./build_pm_synth.sh --clean --install-default`
+  - Installs to `~/.lv2/pm-synth.lv2/`
+
+  There should be a knobs & all UI but that isn't working yet.
+
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.
 
@@ -39,5 +50,3 @@ Digital waveguide clarinet synthesizer - the original experiment that led to the
 * [AGENTS Project Notes](AGENTS.md)
 * Wikipedia: [Physical Modelling Synthesis](https://en.wikipedia.org/wiki/Physical_modelling_synthesis), [Digital waveguide synthesis](https://en.wikipedia.org/wiki/Digital_waveguide_synthesis), [Karplus-Strong Algorithm](https://en.wikipedia.org/wiki/Karplus%E2%80%93Strong_string_synthesis)
 * [Physical Audio Signal Processing](http://ccrma.stanford.edu/~jos/pasp/) - Julius O. Smith III
-
-
