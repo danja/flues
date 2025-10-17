@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared  -o pm_synth.so CMakeFiles/pm_synth.dir/src/pm_synth_plugin.cpp.o 
