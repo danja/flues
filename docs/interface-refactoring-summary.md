@@ -7,6 +7,23 @@ Successfully refactored the Interface module (experiments/pm-synth/src/audio/mod
 ## Implementation Date
 2025-10-17
 
+## Recent Updates (2025-10-17)
+
+### Added Hypothetical Interface Types
+- **Crystal** - Inharmonic resonator with golden ratio spacing and cross-coupling
+- **Vapor** - Chaotic aeroacoustic turbulence using logistic map oscillators
+- **Quantum** - Amplitude quantization with bit-depth reduction artifacts
+- **Plasma** - Electromagnetic waveguide with nonlinear dispersion
+
+### Signal Flow Improvements
+- **DC Source Fix**: Moved DC blocker from combined signal to feedback path only, allowing DC to properly bias interface operating point
+- **Crystal Fix**: Changed from self-oscillating to input-responsive using leaky integrators
+- All interfaces now respond correctly to DC pressure parameter
+
+### Code Cleanup
+- Removed `InterfaceModule.original.js` backup file
+- Updated both PMSynthEngine and worklet to use consistent signal flow
+
 ## Architecture Changes
 
 ### Before (Monolithic)
@@ -146,7 +163,10 @@ const name = interface.getStrategyName();   // For debugging
 - **All 19 InterfaceModule tests passing**
 - **125/127 total tests passing** (2 failures unrelated to refactoring, in EnvelopeModule)
 - **Build successful** - no integration issues
-- **Bundle size unchanged** (~40KB gzipped)
+- **Bundle sizes**:
+  - Main bundle: 43.43 KB (~11.90 KB gzipped)
+  - Worklet bundle: 7.80 KB (includes all 12 interface strategies)
+  - Total module count: 38 (up from 33, reflecting new strategies and utilities)
 
 ## Performance Characteristics
 
@@ -172,26 +192,35 @@ Based on `interface-algorithms-research.md`, the architecture now supports:
 - Enhance `BellStrategy` with geometric nonlinearity (tension modulation, mode coupling)
 - Upgrade `DrumStrategy` with membrane model (pitch glides, inharmonic modes)
 
-### Phase 5: Hypothetical Interfaces
-- `CrystalStrategy` - Idealized inharmonic resonator
-- `VaporStrategy` - Chaotic aeroacoustic turbulence
-- `QuantumStrategy` - Amplitude quantization artifacts
-- `PlasmaStrategy` - Electromagnetic waveguide with nonlinear dispersion
+### Phase 5: Hypothetical Interfaces ✅ COMPLETED
+- ✅ `CrystalStrategy` - Idealized inharmonic resonator with golden ratio spacing
+- ✅ `VaporStrategy` - Chaotic aeroacoustic turbulence with 3 coupled logistic maps
+- ✅ `QuantumStrategy` - Amplitude quantization with bit-depth reduction (8-bit to 3-bit)
+- ✅ `PlasmaStrategy` - Electromagnetic waveguide with amplitude-dependent dispersion
 
 ## Files Modified
 
 ### Created
-- `src/audio/modules/interface/InterfaceStrategy.js`
-- `src/audio/modules/interface/InterfaceFactory.js`
-- `src/audio/modules/interface/strategies/*.js` (8 files)
-- `src/audio/modules/interface/utils/*.js` (4 files)
+- `src/audio/modules/interface/InterfaceStrategy.js` - Base class with InterfaceType enum
+- `src/audio/modules/interface/InterfaceFactory.js` - Factory with tree-shaking prevention
+- `src/audio/modules/interface/strategies/*.js` (12 files):
+  - Physical models: PluckStrategy, HitStrategy, ReedStrategy, FluteStrategy, BrassStrategy, BowStrategy, BellStrategy, DrumStrategy
+  - Hypothetical: CrystalStrategy, VaporStrategy, QuantumStrategy, PlasmaStrategy
+- `src/audio/modules/interface/utils/*.js` (4 files):
+  - NonlinearityLib.js - Waveshaping and nonlinear functions
+  - ExcitationGen.js - Excitation generators and chaotic oscillators
+  - DelayUtils.js - Fractional delay and interpolation
+  - EnergyTracker.js - RMS, peak following, integrators
 
 ### Modified
-- `src/audio/modules/InterfaceModule.js` (refactored to use strategies)
-- `tests/unit/modules/InterfaceModule.test.js` (updated to use new getters API)
+- `src/audio/modules/InterfaceModule.js` - Refactored to use Strategy pattern context class
+- `src/audio/PMSynthEngine.js` - Updated signal flow (DC blocker on feedback only)
+- `src/audio/pm-synth-worklet.js` - Updated signal flow to match engine
+- `src/constants.js` - Added 4 new interface type names
+- `tests/unit/modules/InterfaceModule.test.js` - Updated to use new getters API
 
-### Preserved
-- `src/audio/modules/InterfaceModule.original.js` (backup of original implementation)
+### Removed
+- `src/audio/modules/InterfaceModule.original.js` - No longer needed after successful refactoring
 
 ## Conclusion
 

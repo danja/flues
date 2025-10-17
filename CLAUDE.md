@@ -96,7 +96,12 @@ A modular physical modelling synthesizer that expands the clarinet experiment in
 - `src/audio/modules/` - Eight focused DSP modules:
   - `SourcesModule.js` - DC, white-noise, and sawtooth excitation sources
   - `EnvelopeModule.js` - Gate-driven attack/release amplifier
-  - `InterfaceModule.js` - Eight interaction models (pluck, hit, reed, flute, brass, bow, bell, drum)
+  - `InterfaceModule.js` - Strategy pattern context class managing 12 interface types
+  - `interface/` - Modular interface system:
+    - `InterfaceStrategy.js` - Base class and InterfaceType enum
+    - `InterfaceFactory.js` - Factory for creating strategy instances
+    - `strategies/` - 12 concrete implementations (8 physical + 4 hypothetical)
+    - `utils/` - Shared DSP utilities (nonlinearity, excitation, delay, energy tracking)
   - `DelayLinesModule.js` - Dual delay lines with pitch tuning and ratio control
   - `FeedbackModule.js` - Independent delay and post-filter feedback returns
   - `FilterModule.js` - State-variable filter morphing through LP/BP/HP
@@ -106,7 +111,7 @@ A modular physical modelling synthesizer that expands the clarinet experiment in
 - `src/audio/pm-synth-worklet.js` - Bundled AudioWorklet processor with ScriptProcessor fallback
 - `src/ui/` - Knob and rotary switch controllers, keyboard, waveform visualizer
 - `src/main.js` - UI wiring, install prompt handling, power management
-- `docs/` - Requirements, implementation plan, and status tracker
+- `docs/` - Requirements, implementation plan, research, and refactoring documentation
 
 **Running:**
 ```bash
@@ -118,7 +123,7 @@ npm run dev
 **Controls:**
 - Sources: DC, Noise, Tone levels
 - Envelope: Attack, Release
-- Interface: 8-position type switch, Intensity
+- Interface: 12-position type switch (Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma), Intensity
 - Delay Lines: Tuning, Ratio
 - Feedback: Delay 1, Delay 2, Filter returns
 - Filter: Frequency, Q, Shape morph
