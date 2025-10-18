@@ -2,7 +2,7 @@
 
 Synth experiments. 
 
-I really want to try some physical modelling synthesis with DIY Daisy Seed-based Eurorack module(s). But while I'm trying to sort out PCBs I'm having a play with the algorithms in HTML/JS. 
+I really want to try some physical modelling synthesis with DIY Daisy Seed-based Eurorack module(s). But while I'm trying to sort out PCBs I'm having a play with the algorithms. 
 
 [Experiments](https://danja.github.io/flues/)
 
@@ -11,8 +11,13 @@ I really want to try some physical modelling synthesis with DIY Daisy Seed-based
 ### PM Synthesizer (Stove)
 A modular physical modeling synthesizer featuring **12 interface types** (8 physical models + 4 hypothetical) with strategy pattern architecture.
 
+Available in three implementations:
+
+#### 1. Web App (Browser)
 * **[Try it live](https://danja.github.io/flues/pm-synth/)**
 * [Project README](experiments/pm-synth/README.md)
+* Web Audio API with AudioWorklet processing
+* PWA support for offline use
 * Documentation:
   * [Implementation Plan](experiments/pm-synth/docs/PLAN.md)
   * [Implementation Status](experiments/pm-synth/docs/IMPLEMENTATION_STATUS.md)
@@ -21,23 +26,25 @@ A modular physical modeling synthesizer featuring **12 interface types** (8 phys
   * [Signal Flow Documentation](docs/interface-signal-flow.md)
   * [Adding New Interfaces Guide](docs/adding-new-interface-guide.md)
 
-**Features:**
-- 12 interface types: Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma
-- Modular DSP architecture with strategy pattern
-- Real-time parameter control
-- Web Audio API with AudioWorklet processing
-- PWA support for offline use
+#### 2. GTK4 Desktop App (Linux Native)
+* **[Project README](gtk-synth/README.md)**
+* Native C implementation with GTK4 interface
+* PulseAudio backend with threaded processing
+* All 12 interface strategies fully implemented
+* Complete DSP engine matching JavaScript exactly
+* Build: `cd gtk-synth && meson setup builddir && ninja -C builddir`
 
-#### LV2 Plugin: Stove Synth (Danny Ayers)
-
-The Stove engine is also available as a native LV2 instrument for Linux hosts.
-
-- Bundle name in hosts: **Stove Synth (Danny Ayers)**
-- Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)
-- Root-level helper: `./build_pm_synth.sh --clean --install-default`
+#### 3. LV2 Plugin: Stove Synth
+* Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)
+* Root-level helper: `./build_pm_synth.sh --clean --install-default`
   - Installs to `~/.lv2/pm-synth.lv2/`
+* Note: custom UI not yet functional
 
-  There should be a knobs & all UI but that isn't working yet.
+**Features (all implementations):**
+- 12 interface types: Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma
+- Modular DSP architecture (8 modules) with strategy pattern
+- Real-time parameter control (18 parameters)
+- High-fidelity physical modeling algorithms
 
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.

@@ -36,9 +36,19 @@ gtk-synth/
 │   │       ├── filter_module.c
 │   │       ├── modulation_module.c
 │   │       ├── reverb_module.c
-│   │       └── strategies/
-│   │           ├── reed_strategy.c      (full implementation)
-│   │           └── all_strategies_stub.c (stubs for remaining 11)
+│   │       └── strategies/          # All 12 interface types
+│   │           ├── pluck_strategy.c
+│   │           ├── hit_strategy.c
+│   │           ├── reed_strategy.c
+│   │           ├── flute_strategy.c
+│   │           ├── brass_strategy.c
+│   │           ├── bow_strategy.c
+│   │           ├── bell_strategy.c
+│   │           ├── drum_strategy.c
+│   │           ├── crystal_strategy.c
+│   │           ├── vapor_strategy.c
+│   │           ├── quantum_strategy.c
+│   │           └── plasma_strategy.c
 │   └── ui/               # GTK4 user interface
 │       └── synth_window.c
 ├── reference/            # Original JavaScript code for reference
@@ -95,68 +105,106 @@ ninja -C builddir
 ## Usage
 
 1. **Start the application**: Run `pm-synth-gtk` (or `./builddir/pm-synth-gtk` if not installed)
-2. **Enable audio**: Click the "Click Here First" button to initialize audio
-3. **Select interface**: Choose from the dropdown (Reed, Pluck, etc.)
-4. **Play notes**: Use keyboard keys A-K to play C4-C5
+2. **Select interface**: Choose from the dropdown (Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma)
+3. **Play notes**: Use keyboard keys A-K to play C4-C5
    - `A` = C4, `W` = C#4, `S` = D4, `E` = D#4, `D` = E4, `F` = F4
    - `T` = F#4, `G` = G4, `Y` = G#4, `H` = A4, `U` = A#4, `J` = B4, `K` = C5
-5. **Adjust parameters**: Use the sliders in the tabbed interface
+4. **Adjust parameters**: Use the knobs/sliders to control all DSP modules
 
 ## Controls
 
-### Sources Tab
-- **DC**: Constant DC offset (0-100%)
-- **Noise**: White noise level (0-100%)
+All controls are arranged in a single-page layout with 8 module sections:
 
-### Envelope Tab
-- **Attack**: Attack time (1ms-1000ms)
-- **Release**: Release time (10ms-5000ms)
-- **Intensity**: Interface behavior intensity (0-100%)
+### Row 1: Sources, Envelope, Interface
+- **Sources**
+  - DC: Constant DC offset (0-100%)
+  - Noise: White noise level (0-100%)
+  - Tone: Sawtooth tone level (0-100%, follows note pitch)
+- **Envelope**
+  - Attack: Attack time (0-100)
+  - Release: Release time (0-100)
+- **Interface**
+  - Type: Dropdown selector (12 interface types)
+  - Intensity: Interface behavior intensity (0-100%)
 
-### Feedback Tab
-- **Delay 1**: Feedback amount from first delay line (0-100%)
-- **Delay 2**: Feedback amount from second delay line (0-100%)
+### Row 2: Delay Lines, Feedback
+- **Delay Lines**
+  - Tuning: Pitch tuning adjustment (0-100)
+  - Ratio: Delay line length ratio (0-100)
+- **Feedback**
+  - Delay 1: Feedback from first delay line (0-99%, default 95%)
+  - Delay 2: Feedback from second delay line (0-99%, default 95%)
+  - Filter: Post-filter feedback (0-99%, default 0%)
+
+### Row 3: Filter, Modulation, Reverb
+- **Filter**
+  - Frequency: Cutoff frequency (0-100)
+  - Q: Resonance (0-100)
+  - Shape: Filter shape morph LP→BP→HP (0-100)
+- **Modulation**
+  - LFO Freq: LFO frequency (0-100)
+  - Depth: AM↔FM modulation depth (0-100)
+- **Reverb**
+  - Size: Room size (0-100)
+  - Level: Wet/dry mix (0-100)
 
 ## Implementation Status
 
 ### Complete ✓
-- [x] Core synth engine structure
+- [x] Core synth engine structure matching JavaScript exactly
 - [x] All 8 DSP modules (Sources, Envelope, Interface, DelayLines, Feedback, Filter, Modulation, Reverb)
 - [x] Interface Strategy pattern infrastructure
-- [x] Reed interface (full implementation)
-- [x] PulseAudio backend
-- [x] GTK4 UI with basic controls
-- [x] Keyboard input
+- [x] **All 12 interface strategies** fully implemented:
+  - [x] Pluck - One-way damping with transient brightening
+  - [x] Hit - Sharp waveshaper with adjustable hardness
+  - [x] Reed - Pressure-driven reed model with flow/opening dynamics
+  - [x] Flute - Soft jet instability with breath turbulence
+  - [x] Brass - Asymmetric lip buzz nonlinearity
+  - [x] Bow - Stick-slip friction with controllable bite
+  - [x] Bell - Metallic waveshaping with evolving harmonics
+  - [x] Drum - Energy accumulator with percussive drive
+  - [x] Crystal - Inharmonic resonator with golden-ratio partials
+  - [x] Vapor - Chaotic aeroacoustic turbulence (3 coupled oscillators)
+  - [x] Quantum - Amplitude quantization with zipper artifacts
+  - [x] Plasma - Electromagnetic waveguide with nonlinear dispersion
+- [x] PulseAudio backend with threaded processing
+- [x] Complete GTK4 UI with all 18 parameter controls
+- [x] Keyboard input (computer keys A-K)
 - [x] Meson build system
+- [x] Signal flow exactly matches JavaScript (DC blocker on feedback path only)
 
 ### TODO
-- [ ] Complete implementations for remaining 11 interface strategies
-  - Translate from `reference/modules/interface/strategies/*.js`
-  - Currently using simple tanh() stubs
-- [ ] Add remaining UI controls:
-  - Tuning, Ratio (Delay Lines)
-  - Filter Feedback (Feedback)
-  - Filter Frequency, Q, Shape (Filter)
-  - LFO Frequency, Modulation Depth (Modulation)
-  - Reverb Size, Level (Reverb)
-- [ ] Add waveform visualizer
+- [ ] Waveform visualizer
 - [ ] JACK backend support
 - [ ] MIDI input support
 - [ ] Preset saving/loading
+- [ ] Improve UI styling/aesthetics
 
-## Translating Interface Strategies
+## Interface Strategy Architecture
 
-To complete an interface strategy implementation:
+All 12 interface strategies follow a consistent pattern using the Strategy design pattern:
 
-1. Read the JavaScript implementation in `reference/modules/interface/strategies/`
-2. Create a new C file in `src/audio/modules/strategies/`
-3. Follow the pattern used in `reed_strategy.c`:
-   - Define implementation data structure
-   - Create vtable with function pointers
-   - Implement process, reset, set_intensity, set_gate, destroy functions
-   - Export the creator function
-4. Remove the stub from `all_strategies_stub.c`
-5. Add the new .c file to `meson.build`
+1. **Base class**: `InterfaceStrategy` struct with vtable pointer
+2. **Vtable**: Function pointers for `process()`, `reset()`, `set_intensity()`, `set_gate()`, `destroy()`
+3. **Implementation**: Each strategy has its own state struct and implements the vtable functions
+4. **Factory**: `interface_strategy_create()` creates the appropriate strategy based on type enum
+
+Example structure from `reed_strategy.c`:
+```c
+typedef struct {
+    float reed_state;  // Strategy-specific state
+} ReedImpl;
+
+static float reed_process(InterfaceStrategy* self, float input) {
+    // DSP algorithm translated from JavaScript
+}
+
+InterfaceStrategy* reed_strategy_create(float sample_rate) {
+    // Allocate strategy and impl_data, return initialized instance
+}
+```
+
+All strategies are direct line-by-line translations from the JavaScript originals in `reference/modules/interface/strategies/`.
 
 ## Signal Flow
 
