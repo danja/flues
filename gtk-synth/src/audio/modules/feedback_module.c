@@ -9,8 +9,9 @@ FeedbackModule* feedback_create(void) {
     FeedbackModule* fb = (FeedbackModule*)calloc(1, sizeof(FeedbackModule));
     if (!fb) return NULL;
 
-    fb->delay1_amount = 0.35f;
-    fb->delay2_amount = 0.35f;
+    // Defaults match JavaScript: 0.95, 0.95, 0.0
+    fb->delay1_amount = 0.95f;
+    fb->delay2_amount = 0.95f;
     fb->filter_amount = 0.0f;
 
     return fb;

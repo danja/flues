@@ -49,6 +49,8 @@ static void on_interface_changed(GtkDropDown *dropdown, GParamSpec *pspec, gpoin
     SynthWindow *win = (SynthWindow*)user_data;
     guint selected = gtk_drop_down_get_selected(dropdown);
     pm_synth_set_interface_type(win->synth, (InterfaceType)selected);
+    printf("Interface changed to: %s\n", pm_synth_interface_name((InterfaceType)selected));
+    (void)pspec; // Unused
 }
 
 static void on_dc_changed(GtkRange *range, gpointer user_data) {
@@ -328,8 +330,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
     // FEEDBACK module
     GtkWidget *feedback_frame = create_module_frame("FEEDBACK");
     GtkWidget *feedback_box = gtk_frame_get_child(GTK_FRAME(feedback_frame));
-    gtk_box_append(GTK_BOX(feedback_box), create_knob("Delay 1", 0, 100, 10, G_CALLBACK(on_delay1_fb_changed), win));
-    gtk_box_append(GTK_BOX(feedback_box), create_knob("Delay 2", 0, 100, 10, G_CALLBACK(on_delay2_fb_changed), win));
+    gtk_box_append(GTK_BOX(feedback_box), create_knob("Delay 1", 0, 100, 95, G_CALLBACK(on_delay1_fb_changed), win));
+    gtk_box_append(GTK_BOX(feedback_box), create_knob("Delay 2", 0, 100, 95, G_CALLBACK(on_delay2_fb_changed), win));
     gtk_box_append(GTK_BOX(feedback_box), create_knob("Filter", 0, 100, 0, G_CALLBACK(on_filter_fb_changed), win));
     gtk_box_append(GTK_BOX(row2), feedback_frame);
 

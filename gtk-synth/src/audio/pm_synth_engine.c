@@ -179,10 +179,13 @@ void pm_synth_note_on(PMSynthEngine* synth, float frequency) {
     synth->prev_delay2_out = 0.0f;
     synth->prev_filter_out = 0.0f;
 
+    // Set frequency for tone oscillator and delay lines
+    sources_set_tone_frequency(synth->sources, frequency);
+    delay_lines_set_frequency(synth->delay_lines, frequency);
+
     // Set gates
     envelope_set_gate(synth->envelope, true);
     interface_set_gate(synth->interface, true);
-    delay_lines_set_frequency(synth->delay_lines, frequency);
 }
 
 void pm_synth_note_off(PMSynthEngine* synth) {
@@ -229,15 +232,18 @@ void pm_synth_set_ratio(PMSynthEngine* synth, float value) {
 }
 
 void pm_synth_set_delay1_feedback(PMSynthEngine* synth, float value) {
-    feedback_set_delay1(synth->feedback, value / 100.0f);
+    // Map 0-100 to 0-0.99 (like JavaScript)
+    feedback_set_delay1(synth->feedback, (value / 100.0f) * 0.99f);
 }
 
 void pm_synth_set_delay2_feedback(PMSynthEngine* synth, float value) {
-    feedback_set_delay2(synth->feedback, value / 100.0f);
+    // Map 0-100 to 0-0.99 (like JavaScript)
+    feedback_set_delay2(synth->feedback, (value / 100.0f) * 0.99f);
 }
 
 void pm_synth_set_filter_feedback(PMSynthEngine* synth, float value) {
-    feedback_set_filter(synth->feedback, value / 100.0f);
+    // Map 0-100 to 0-0.99 (like JavaScript)
+    feedback_set_filter(synth->feedback, (value / 100.0f) * 0.99f);
 }
 
 void pm_synth_set_filter_frequency(PMSynthEngine* synth, float value) {

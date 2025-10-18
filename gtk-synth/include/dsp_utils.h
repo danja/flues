@@ -9,6 +9,22 @@
 #include <stdlib.h>
 
 // ============================================================================
+// Mathematical Constants
+// ============================================================================
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+#ifndef M_E
+#define M_E 2.71828182845904523536
+#endif
+
+// Golden ratio and powers
+#define PHI 1.618033988749895f
+#define PHI2 2.618033988749895f
+
+// ============================================================================
 // Nonlinearity Functions
 // ============================================================================
 
@@ -37,9 +53,17 @@ static inline float soft_clip(float x) {
     return 1.5f * x - 0.5f * x * x * x;
 }
 
-static inline float cubic_waveshaper(float x, float amount) {
-    const float wet = x * (1.5f - 0.5f * x * x);
-    return x + amount * (wet - x);
+static inline float cubic_waveshaper(float x, float alpha) {
+    const float x3 = x * x * x;
+    return x - alpha * x3;
+}
+
+static inline float sine_fold(float x, float drive) {
+    return sinf(x * drive * M_PI * 0.5f);
+}
+
+static inline float soft_clip_drive(float x, float drive) {
+    return fast_tanh(x * drive);
 }
 
 static inline float power_function(float x, float exponent) {
@@ -100,22 +124,6 @@ static inline float white_noise(void) {
 }
 
 // ============================================================================
-// Mathematical Constants
-// ============================================================================
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#ifndef M_E
-#define M_E 2.71828182845904523536
-#endif
-
-// Golden ratio and powers
-#define PHI 1.618033988749895f
-#define PHI2 2.618033988749895f
-
-// ============================================================================
 // DC Blocker
 // ============================================================================
 
@@ -135,6 +143,68 @@ static inline float dc_blocker_process(DCBlocker* blocker, float x) {
     blocker->x1 = x;
     blocker->y1 = y;
     return y;
+}
+
+// ============================================================================
+// Chaotic Oscillator (Logistic Map)
+// ============================================================================
+
+typedef struct {
+    float r;  // Chaos parameter (3.57+ = chaotic)
+    float x;
+} ChaoticOscillator;
+
+static inline void chaotic_oscillator_init(ChaoticOscillator* osc, float r) {
+    osc->r = r;
+    osc->x = 0.5f;
+}
+
+static inline void chaotic_oscillator_set_r(ChaoticOscillator* osc, float r) {
+    osc->r = fmaxf(2.5f, fminf(4.0f, r));
+}
+
+static inline float chaotic_oscillator_process(ChaoticOscillator* osc, float amplitude) {
+    osc->x = osc->r * osc->x * (1.0f - osc->x);
+    // Map from [0, 1] to [-1, 1]
+    return (osc->x * 2.0f - 1.0f) * amplitude;
+}
+
+static inline void chaotic_oscillator_reset(ChaoticOscillator* osc) {
+    osc->x = 0.5f;
+}
+
+// ============================================================================
+// Amplitude Tracker
+// ============================================================================
+
+typedef struct {
+    float amplitude;
+    float coefficient;
+} AmplitudeTracker;
+
+static inline void amplitude_tracker_init(AmplitudeTracker* tracker, float smoothing_time, float sample_rate) {
+    tracker->amplitude = 0.0f;
+    if (smoothing_time <= 0.0f) {
+        tracker->coefficient = 0.0f;
+    } else {
+        tracker->coefficient = expf(-1.0f / (smoothing_time * sample_rate));
+    }
+}
+
+static inline float amplitude_tracker_process(AmplitudeTracker* tracker, float sample) {
+    const float instant = fabsf(sample);
+
+    if (tracker->coefficient == 0.0f) {
+        tracker->amplitude = instant;
+    } else {
+        tracker->amplitude = tracker->amplitude * tracker->coefficient + instant * (1.0f - tracker->coefficient);
+    }
+
+    return tracker->amplitude;
+}
+
+static inline void amplitude_tracker_reset(AmplitudeTracker* tracker) {
+    tracker->amplitude = 0.0f;
 }
 
 #endif // DSP_UTILS_H
