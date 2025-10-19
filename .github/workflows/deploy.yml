@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies (disyn)
         run: |
           cd experiments/disyn
-          npm ci
+          npm install
 
       - name: Build clarinet-synth
         run: |
