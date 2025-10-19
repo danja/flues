@@ -188,25 +188,36 @@ select:focus {
 .keyboard__keys {
   position: relative;
   user-select: none;
-  padding: 16px 18px 24px;
+  padding: 12px 18px 20px;
   background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
   border-radius: 18px;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  width: 100%;
+}
+
+.keyboard__keys::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.2);
 }
 
 .keyboard__white-keys {
   display: flex;
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 .keyboard__black-keys {
   position: absolute;
-  top: 16px;
+  top: 12px;
   left: 18px;
   right: 18px;
-  bottom: 60%;
+  bottom: 58%;
   pointer-events: none;
   z-index: 2;
 }
@@ -215,13 +226,17 @@ select:focus {
   position: relative;
   cursor: pointer;
   transition: transform 0.04s ease, box-shadow 0.06s ease;
+  touch-action: none;
 }
 
 .key.white {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: 160px;
+  flex: 1 1 0;
+  min-width: 38px;
+  max-width: 80px;
+  height: 150px;
   margin: 0 2px;
   border-radius: 0 0 12px 12px;
   background: linear-gradient(180deg, #e2e8f0 0%, #cbd5f5 60%, #f8fafc 100%);
@@ -229,9 +244,17 @@ select:focus {
   box-shadow: inset 0 -6px 10px rgba(15, 23, 42, 0.15), 0 8px 16px rgba(8, 15, 40, 0.35);
 }
 
+.key.white:first-child {
+  margin-left: 0;
+}
+
+.key.white:last-child {
+  margin-right: 0;
+}
+
 .key.white .key__label {
   margin-bottom: 8px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-family: 'IBM Plex Mono', monospace;
   color: rgba(15, 23, 42, 0.6);
 }
@@ -239,7 +262,7 @@ select:focus {
 .keyboard__black-keys .key.black {
   pointer-events: auto;
   position: absolute;
-  height: 100px;
+  height: 95px;
   border-radius: 0 0 8px 8px;
   background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -366,6 +389,26 @@ select:focus {
   }
 
   .keyboard__keys {
-    overflow-x: auto;
+    padding: 12px 12px 18px;
+  }
+
+  .key.white {
+    min-width: 32px;
+    height: 120px;
+  }
+
+  .keyboard__black-keys .key.black {
+    height: 80px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .key.white {
+    max-width: 64px;
+    height: 170px;
+  }
+
+  .keyboard__black-keys .key.black {
+    height: 110px;
   }
 }

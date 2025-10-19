@@ -11,6 +11,7 @@ export class OscillatorModule {
     this.phase = 0;
     this.modPhase = 0;
     this.secondaryPhase = 0;
+    this.secondaryPhaseNeg = 0;
   }
 
   stepPhase(phase, frequency) {
@@ -24,6 +25,8 @@ export class OscillatorModule {
         return this.processDirichletPulse(params, frequency);
       case 'dsfSingleSided':
         return this.processDSF(params, frequency);
+      case 'dsfDoubleSided':
+        return this.processDSFDouble(params, frequency);
       case 'tanhSquare':
         return this.processTanhSquare(params, frequency);
       case 'tanhSaw':
@@ -73,13 +76,34 @@ export class OscillatorModule {
     const w = this.phase * TWO_PI;
     const t = this.secondaryPhase * TWO_PI;
 
-    const numerator = Math.sin(w) - decay * Math.sin(w - t);
-    const denominator = 1 - 2 * decay * Math.cos(t) + decay * decay;
+    return this.computeDSFComponent(w, t, decay);
+  }
 
+  processDSFDouble(params, frequency) {
+    const decay = Math.min(params.decay?.mapped ?? 0.5, 0.96);
+    const ratio = params.ratio?.mapped ?? 1.2;
+
+    this.phase = this.stepPhase(this.phase, frequency);
+    this.secondaryPhase = this.stepPhase(this.secondaryPhase, frequency * ratio);
+    this.secondaryPhaseNeg = this.stepPhase(this.secondaryPhaseNeg, frequency * ratio);
+
+    const w = this.phase * TWO_PI;
+    const tPos = this.secondaryPhase * TWO_PI;
+    const tNeg = -this.secondaryPhaseNeg * TWO_PI;
+
+    const positive = this.computeDSFComponent(w, tPos, decay);
+    const negative = this.computeDSFComponent(w, tNeg, decay);
+
+    return 0.5 * (positive + negative);
+  }
+
+  computeDSFComponent(w, t, decay) {
+    const denominator = 1 - 2 * decay * Math.cos(t) + decay * decay;
     if (Math.abs(denominator) < EPSILON) {
       return 0;
     }
 
+    const numerator = Math.sin(w) - decay * Math.sin(w - t);
     const normalise = Math.sqrt(1 - decay * decay);
     return (numerator / denominator) * normalise;
   }
@@ -133,4 +157,3 @@ export class OscillatorModule {
     return carrier * Math.exp(index * (modulator - 1)) * envelope;
   }
 }
-

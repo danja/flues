@@ -79,6 +79,7 @@ Implement algorithm catalogue with metadata to drive UI labels, parameter ranges
 |--------------|--------|---------|---------|----------------------|
 | `bandLimitedPulse` | Dirichlet kernel (Doc §I) | Harmonic count (map 0‒1 → N=1‒64) | Low-pass tilt (map 0‒1 → exponent shaping) | Use guarded division, compute numerator/denominator per sample; optionally cache sine table or use direct `sin` for clarity. |
 | `dsfSingleSided` | Moorer DSF (Doc §I) | Decay `a` (0.0‒0.98) | Inharmonic ratio `θ/ω` (0.5‒4× fundamental) | Implement normalisation Eq. (6); maintain stable `a` to avoid blow-up, clamp near 1. |
+| `dsfDoubleSided` | Moorer DSF (double-sided, Doc §I) | Decay `a` (0.0‒0.96) | Spread ratio `θ/ω` (0.5‒4.5×) | Sum positive/negative DSF contributions to cover symmetric sidebands while maintaining normalization. |
 | `tanhSquare` | Hyperbolic waveshaping (Doc §II) | Drive/index (map to sinus amplitude) | Output trim (auto-scaling vs manual) | Evaluate tanh via built-in `Math.tanh`; pre-scale input sine, add anti-alias guard for high drive. |
 | `tanhSaw` | Waveshaping + heterodyning (Doc §II) | Drive/index | Even-harmonic blend (0‒1 crossfade with cosine heterodyne) | Derive saw using square heterodyning Eq. (9); expose second parameter as blend between square & saw. |
 | `paf` | Phase-Aligned Formant (Doc §IV) | Formant ratio (0.5‒6×) | Bandwidth (Hz mapped 50‒3000) | Precompute integer `n`, compute exponential decay `kg`; port article pseudo-code to JS. |

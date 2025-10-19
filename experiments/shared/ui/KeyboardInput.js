@@ -156,6 +156,7 @@ export class KeyboardInput {
             const offset = this.keyMap[event.key.toLowerCase()];
             if (offset === undefined) return;
             event.preventDefault();
+            event.stopPropagation();
             const midi = this.baseMidiNote + offset;
             if (!this.activeNotes.has(midi)) {
                 this._triggerNoteOn(midi);
@@ -166,6 +167,7 @@ export class KeyboardInput {
             const offset = this.keyMap[event.key.toLowerCase()];
             if (offset === undefined) return;
             event.preventDefault();
+            event.stopPropagation();
             const midi = this.baseMidiNote + offset;
             this._triggerNoteOff(midi);
         };

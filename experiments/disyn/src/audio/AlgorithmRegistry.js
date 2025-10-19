@@ -53,6 +53,29 @@ export const ALGORITHMS = [
     ],
   },
   {
+    id: 'dsfDoubleSided',
+    label: 'Double-Sided DSF',
+    description: 'Moorer DSF generating symmetric sidebands above and below the carrier.',
+    params: [
+      {
+        id: 'decay',
+        label: 'Decay',
+        unit: 'a',
+        default: 0.55,
+        mapValue: (v) => clamp01(v) * 0.96,
+        format: (v) => v.toFixed(2),
+      },
+      {
+        id: 'ratio',
+        label: 'Spread',
+        unit: 'θ/ω',
+        default: 0.6,
+        mapValue: (v) => expoMap(v, 0.5, 4.5),
+        format: (v) => v.toFixed(2),
+      },
+    ],
+  },
+  {
     id: 'tanhSquare',
     label: 'Tanh Square',
     description: 'Hyperbolic tangent waveshaping of a sinusoidal carrier.',
@@ -177,4 +200,3 @@ export function resolveParamValue(algorithmId, paramId, normalizedValue) {
     formatted: definition.format(mapped),
   };
 }
-

@@ -37,6 +37,11 @@ jobs:
           cd experiments/pm-synth
           npm ci
 
+      - name: Install dependencies (disyn)
+        run: |
+          cd experiments/disyn
+          npm ci
+
       - name: Build clarinet-synth
         run: |
           cd experiments/clarinet-synth
@@ -47,12 +52,18 @@ jobs:
           cd experiments/pm-synth
           npm run build
 
+      - name: Build disyn
+        run: |
+          cd experiments/disyn
+          npm run build
+
       - name: Copy to www
         run: |
-          rm -rf www/clarinet-synth www/pm-synth
-          mkdir -p www/clarinet-synth www/pm-synth
+          rm -rf www/clarinet-synth www/pm-synth www/disyn
+          mkdir -p www/clarinet-synth www/pm-synth www/disyn
           cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/
           cp -r experiments/pm-synth/dist/. www/pm-synth/
+          cp -r experiments/disyn/dist/. www/disyn/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
