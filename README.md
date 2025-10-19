@@ -1,16 +1,14 @@
 # flues
 
-Synth experiments. 
+[Live synth experiments](https://danja.github.io/flues/)
 
-I really want to try some physical modelling synthesis with DIY Daisy Seed-based Eurorack module(s). But while I'm trying to sort out PCBs I'm having a play with the algorithms. 
+First attempt was a physical modelling approach to clarinet. Second, a more general physical modelling setup. Latest addition explores fairly obscure distortion synthesis techniques largely based on Victor Lazzarini’s [Distortion Synthesis tutorial in Csound Journal Issue 11](https://csoundjournal.com/issue11/distortionSynthesis.html), with a browser-based Disyn instrument covering DSF, waveshaping, and modified FM algorithms.
 
-[Experiments](https://danja.github.io/flues/)
-
-Recent additions explore distortion synthesis techniques inspired by Victor Lazzarini’s [Distortion Synthesis tutorial in Csound Journal Issue 11](https://csoundjournal.com/issue11/distortionSynthesis.html), with a browser-based Disyn instrument covering DSF, waveshaping, and modified FM algorithms.
+I'm aiming to put some of these things onto hardware (Daisy Seed) but making browser-based, LV2 and standalone versions seems a useful exercise. Good fun!
 
 ## Projects
 
-### PM Synthesizer (Stove)
+### Stove
 A modular physical modeling synthesizer featuring **12 interface types** (8 physical models + 4 hypothetical) with strategy pattern architecture.
 
 Available in three implementations:
