@@ -56,6 +56,8 @@ export class KeyboardInput {
         this.velocity = velocity;
 
         this.activeNotes = new Set();
+        this.pointerNotes = new Map();
+        this.container.style.touchAction = 'none';
 
         this._bindPointerEvents();
         this._bindKeyboardEvents();
@@ -92,51 +94,99 @@ export class KeyboardInput {
     }
 
     _bindPointerEvents() {
-        const keys = this.container.querySelectorAll('[data-midi], [data-note]');
-        keys.forEach((keyEl) => {
-            const identifier = keyEl.dataset.midi ?? keyEl.dataset.note;
+        this._onPointerDown = (event) => {
+            const key = this._findKeyFromEvent(event);
+            if (!key) return;
+            event.preventDefault();
+            this._triggerNoteOn(key.midi);
+            this.pointerNotes.set(event.pointerId, key.midi);
+        };
 
-            keyEl.addEventListener('mousedown', (event) => {
-                event.preventDefault();
-                this._press(identifier);
-            });
+        this._onPointerMove = (event) => {
+            if (!this.pointerNotes.has(event.pointerId)) return;
+            const key = this._findKeyFromEvent(event);
+            const currentMidi = this.pointerNotes.get(event.pointerId);
 
-            keyEl.addEventListener('mouseup', () => {
-                this._release(identifier);
-            });
+            if (!key) {
+                if (currentMidi !== null && currentMidi !== undefined) {
+                    this._triggerNoteOff(currentMidi);
+                }
+                this.pointerNotes.set(event.pointerId, null);
+                return;
+            }
 
-            keyEl.addEventListener('mouseleave', () => {
-                this._release(identifier);
-            });
+            if (key.midi === currentMidi) return;
 
-            keyEl.addEventListener('touchstart', (event) => {
-                event.preventDefault();
-                this._press(identifier);
-            }, { passive: false });
+            if (currentMidi !== null && currentMidi !== undefined) {
+                this._triggerNoteOff(currentMidi);
+            }
+            this._triggerNoteOn(key.midi);
+            this.pointerNotes.set(event.pointerId, key.midi);
+        };
 
-            keyEl.addEventListener('touchend', (event) => {
-                event.preventDefault();
-                this._release(identifier);
-            }, { passive: false });
-        });
+        this._onPointerUp = (event) => {
+            const midi = this.pointerNotes.get(event.pointerId);
+            if (midi !== undefined && midi !== null) {
+                this._triggerNoteOff(midi);
+            }
+            this.pointerNotes.delete(event.pointerId);
+        };
+
+        this._onPointerCancel = (event) => {
+            const midi = this.pointerNotes.get(event.pointerId);
+            if (midi !== undefined && midi !== null) {
+                this._triggerNoteOff(midi);
+            }
+            this.pointerNotes.delete(event.pointerId);
+        };
+
+        this._onContextMenu = (event) => {
+            event.preventDefault();
+        };
+
+        this.container.addEventListener('pointerdown', this._onPointerDown);
+        window.addEventListener('pointermove', this._onPointerMove);
+        window.addEventListener('pointerup', this._onPointerUp);
+        window.addEventListener('pointercancel', this._onPointerCancel);
+        this.container.addEventListener('contextmenu', this._onContextMenu);
     }
 
     _bindKeyboardEvents() {
-        document.addEventListener('keydown', (event) => {
+        this._onKeyDown = (event) => {
             const offset = this.keyMap[event.key.toLowerCase()];
             if (offset === undefined) return;
+            event.preventDefault();
             const midi = this.baseMidiNote + offset;
             if (!this.activeNotes.has(midi)) {
                 this._triggerNoteOn(midi);
             }
-        });
+        };
 
-        document.addEventListener('keyup', (event) => {
+        this._onKeyUp = (event) => {
             const offset = this.keyMap[event.key.toLowerCase()];
             if (offset === undefined) return;
+            event.preventDefault();
             const midi = this.baseMidiNote + offset;
             this._triggerNoteOff(midi);
-        });
+        };
+
+        document.addEventListener('keydown', this._onKeyDown);
+        document.addEventListener('keyup', this._onKeyUp);
+    }
+
+    _findKeyFromEvent(event) {
+        const target = event.target.closest('[data-midi], [data-note]');
+        if (!target || !this.container.contains(target)) {
+            return null;
+        }
+
+        const identifier = target.dataset.midi ?? target.dataset.note;
+        const midi = this._resolveMidi(identifier);
+        if (midi === null) {
+            return null;
+        }
+
+        return { midi };
     }
 
     _resolveMidi(identifier) {
@@ -217,6 +267,22 @@ export class KeyboardInput {
 
     releaseAll() {
         [...this.activeNotes].forEach((midi) => this._triggerNoteOff(midi));
+        this.pointerNotes.clear();
+    }
+
+    destroy() {
+        this.releaseAll();
+        if (this._onPointerDown) {
+            this.container.removeEventListener('pointerdown', this._onPointerDown);
+            window.removeEventListener('pointermove', this._onPointerMove);
+            window.removeEventListener('pointerup', this._onPointerUp);
+            window.removeEventListener('pointercancel', this._onPointerCancel);
+            this.container.removeEventListener('contextmenu', this._onContextMenu);
+        }
+
+        if (this._onKeyDown) {
+            document.removeEventListener('keydown', this._onKeyDown);
+            document.removeEventListener('keyup', this._onKeyUp);
+        }
     }
 }
-

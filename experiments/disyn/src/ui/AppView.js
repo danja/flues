@@ -26,6 +26,26 @@ const mapReleaseSeconds = (normalized) => {
   return min * Math.pow(max / min, normalized);
 };
 
+const LARGE_SCREEN_QUERY = '(min-width: 900px)';
+const KEY_SEQUENCE = ['a', 'w', 's', 'e', 'd', 'f', 't', 'g', 'y', 'h', 'u', 'j', 'k', 'o', 'l', 'p', ';', "'", ']', 'z', 'x', 'c', 'v', 'b', 'n'];
+
+const NOTE_PATTERN = [
+  { name: 'C', isBlack: false },
+  { name: 'C#', isBlack: true },
+  { name: 'D', isBlack: false },
+  { name: 'D#', isBlack: true },
+  { name: 'E', isBlack: false },
+  { name: 'F', isBlack: false },
+  { name: 'F#', isBlack: true },
+  { name: 'G', isBlack: false },
+  { name: 'G#', isBlack: true },
+  { name: 'A', isBlack: false },
+  { name: 'A#', isBlack: true },
+  { name: 'B', isBlack: false },
+];
+
+const KEYBOARD_HORIZONTAL_PADDING = 18;
+
 export class AppView {
   constructor(container) {
     this.container = container;
@@ -45,6 +65,16 @@ export class AppView {
     this.algorithmKnobs = new Map();
     this.envelopeKnobs = new Map();
     this.reverbKnobs = new Map();
+
+    this.keyboardMedia = window.matchMedia(LARGE_SCREEN_QUERY);
+    this.currentOctaves = this.keyboardMedia.matches ? 2 : 1;
+    this.handleMediaChange = (event) => {
+      const octaves = event.matches ? 2 : 1;
+      this.updateKeyboardLayout(octaves);
+    };
+    this.handleResize = () => {
+      this.updateKeyboardLayout(this.currentOctaves);
+    };
   }
 
   mount() {
@@ -55,6 +85,8 @@ export class AppView {
     this.setupKeyboard();
     this.setupPowerButton();
     this.setupMidiControls();
+    this.keyboardMedia.addEventListener('change', this.handleMediaChange);
+    window.addEventListener('resize', this.handleResize);
 
     // Prime UI with default algorithm settings
     this.updateAlgorithmParams(DEFAULT_ALGORITHM_ID, getDefaultParamState());
@@ -98,7 +130,7 @@ export class AppView {
           <h2 class="panel__title">Keyboard & MIDI</h2>
           <div class="keyboard">
             <div class="keyboard__keys" data-keyboard-keys></div>
-            <div class="keyboard__legend">A W S E D F T G Y H U J K</div>
+            <div class="keyboard__legend" data-keyboard-legend></div>
           </div>
           <div class="midi-status">
             <span class="status-pill status-pill--off" data-midi-pill>MIDI Offline</span>
@@ -275,39 +307,153 @@ export class AppView {
   }
 
   setupKeyboard() {
-    const keysContainer = this.container.querySelector('[data-keyboard-keys]');
-    keysContainer.innerHTML = '';
+    this.keysContainer = this.container.querySelector('[data-keyboard-keys]');
+    this.keyboardLegend = this.container.querySelector('[data-keyboard-legend]');
+    this.updateKeyboardLayout(this.currentOctaves);
+  }
 
-    const whiteKeys = [
-      { midi: 60, label: 'C4' },
-      { midi: 62, label: 'D4' },
-      { midi: 64, label: 'E4' },
-      { midi: 65, label: 'F4' },
-      { midi: 67, label: 'G4' },
-      { midi: 69, label: 'A4' },
-      { midi: 71, label: 'B4' },
-      { midi: 72, label: 'C5' },
-      { midi: 74, label: 'D5' },
-      { midi: 76, label: 'E5' },
-      { midi: 77, label: 'F5' },
-      { midi: 79, label: 'G5' },
-      { midi: 81, label: 'A5' },
-    ];
+  updateKeyboardLayout(octaves) {
+    this.currentOctaves = octaves;
+    if (!this.keysContainer) return;
 
-    whiteKeys.forEach((key) => {
-      const keyElement = document.createElement('div');
-      keyElement.className = 'key';
-      keyElement.dataset.midi = key.midi;
-      keyElement.textContent = key.label;
-      keysContainer.appendChild(keyElement);
-    });
+    const layout = this.generateKeyLayout(octaves);
+    this.renderKeyboardLayers(layout);
+    this.updateKeyboardLegend(octaves);
+    this.initializeKeyboardInput(octaves);
+  }
+
+  initializeKeyboardInput(octaves) {
+    if (this.keyboard && typeof this.keyboard.destroy === 'function') {
+      this.keyboard.destroy();
+    }
 
     this.keyboard = new KeyboardInput({
-      container: keysContainer,
+      container: this.keysContainer,
       baseMidiNote: 60,
+      keyMap: this.getKeyMapForOctaves(octaves),
       onNoteOn: (payload) => this.handleNoteOn(payload),
       onNoteOff: (payload) => this.handleNoteOff(payload),
     });
+  }
+
+  generateKeyLayout(octaves) {
+    const whiteKeys = [];
+    const blackKeys = [];
+
+    let midi = 60; // C4
+    let octave = 4;
+    let whiteIndex = 0;
+
+    for (let o = 0; o < octaves; o++) {
+      NOTE_PATTERN.forEach((step) => {
+        const noteName = `${step.name}${octave}`;
+        if (step.isBlack) {
+          blackKeys.push({
+            midi,
+            name: noteName,
+            precedingWhiteIndex: Math.max(whiteIndex - 1, 0),
+          });
+        } else {
+          whiteKeys.push({
+            midi,
+            name: noteName,
+            label: noteName,
+          });
+          whiteIndex += 1;
+        }
+        midi += 1;
+        if (!step.isBlack && step.name === 'B') {
+          octave += 1;
+        }
+      });
+    }
+
+    const topNoteName = `C${octave}`;
+    whiteKeys.push({
+      midi,
+      name: topNoteName,
+      label: topNoteName,
+    });
+
+    return {
+      whiteKeys,
+      blackKeys,
+    };
+  }
+
+  renderKeyboardLayers({ whiteKeys, blackKeys }) {
+    this.keysContainer.innerHTML = '';
+
+    const whiteLayer = document.createElement('div');
+    whiteLayer.className = 'keyboard__white-keys';
+
+    const whiteElements = whiteKeys.map((key) => {
+      const el = document.createElement('div');
+      el.className = 'key white';
+      el.dataset.midi = key.midi;
+      el.dataset.note = key.name;
+      el.innerHTML = `<span class="key__label">${key.label}</span>`;
+      whiteLayer.appendChild(el);
+      return el;
+    });
+
+    this.keysContainer.appendChild(whiteLayer);
+
+    const whiteRects = whiteElements.map((el) => el.getBoundingClientRect());
+    const containerRect = this.keysContainer.getBoundingClientRect();
+    const paddingLeft = parseFloat(getComputedStyle(this.keysContainer).paddingLeft) || KEYBOARD_HORIZONTAL_PADDING;
+
+    const blackLayer = document.createElement('div');
+    blackLayer.className = 'keyboard__black-keys';
+
+    blackKeys.forEach((key) => {
+      const prevIndex = key.precedingWhiteIndex;
+      const nextIndex = prevIndex + 1;
+      const prevRect = whiteRects[prevIndex];
+      const nextRect = whiteRects[nextIndex];
+      if (!prevRect || !nextRect) return;
+
+      const el = document.createElement('div');
+      el.className = 'key black';
+      el.dataset.midi = key.midi;
+      el.dataset.note = key.name;
+
+      const center = (prevRect.right + nextRect.left) / 2;
+      const availableWidth = Math.min(prevRect.width, nextRect.width);
+      const keyWidth = Math.max(availableWidth * 0.6, 20);
+      const left = center - keyWidth / 2 - containerRect.left - paddingLeft;
+
+      el.style.width = `${keyWidth}px`;
+      el.style.left = `${left}px`;
+
+      blackLayer.appendChild(el);
+    });
+
+    this.keysContainer.appendChild(blackLayer);
+  }
+
+  updateKeyboardLegend(octaves) {
+    if (!this.keyboardLegend) return;
+    const totalNotes = octaves * 12 + 1;
+    const sequence = KEY_SEQUENCE.slice(0, totalNotes).map((key) => key.toUpperCase());
+
+    if (octaves === 1) {
+      this.keyboardLegend.textContent = sequence.join(' ');
+    } else {
+      const midpoint = Math.ceil(sequence.length / 2);
+      const firstRow = sequence.slice(0, midpoint).join(' ');
+      const secondRow = sequence.slice(midpoint).join(' ');
+      this.keyboardLegend.innerHTML = `${firstRow}<br>${secondRow}`;
+    }
+  }
+
+  getKeyMapForOctaves(octaves) {
+    const totalNotes = octaves * 12 + 1;
+    const map = {};
+    KEY_SEQUENCE.slice(0, totalNotes).forEach((key, index) => {
+      map[key] = index;
+    });
+    return map;
   }
 
   async handleNoteOn(payload) {

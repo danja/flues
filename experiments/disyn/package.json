@@ -10,6 +10,7 @@
     "test": "vitest run --pool vmThreads --maxWorkers=1"
   },
   "devDependencies": {
+    "jsdom": "^27.0.1",
     "vite": "^7.1.10",
     "vitest": "^3.2.4"
   }

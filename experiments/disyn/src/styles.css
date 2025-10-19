@@ -186,39 +186,64 @@ select:focus {
 }
 
 .keyboard__keys {
-  display: flex;
   position: relative;
   user-select: none;
-  padding: 16px 18px;
+  padding: 16px 18px 24px;
   background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
   border-radius: 18px;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.keyboard__white-keys {
+  display: flex;
+  position: relative;
+  z-index: 1;
+}
+
+.keyboard__black-keys {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  right: 18px;
+  bottom: 60%;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .key {
   position: relative;
-  flex: 1;
+  cursor: pointer;
+  transition: transform 0.04s ease, box-shadow 0.06s ease;
+}
+
+.key.white {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
   height: 160px;
   margin: 0 2px;
   border-radius: 0 0 12px 12px;
   background: linear-gradient(180deg, #e2e8f0 0%, #cbd5f5 60%, #f8fafc 100%);
   border: 1px solid rgba(15, 23, 42, 0.25);
   box-shadow: inset 0 -6px 10px rgba(15, 23, 42, 0.15), 0 8px 16px rgba(8, 15, 40, 0.35);
-  cursor: pointer;
-  transition: transform 0.04s ease, box-shadow 0.06s ease;
 }
 
-.key.black {
+.key.white .key__label {
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-family: 'IBM Plex Mono', monospace;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.keyboard__black-keys .key.black {
+  pointer-events: auto;
   position: absolute;
-  width: 32px;
   height: 100px;
-  margin: 0;
-  background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
   border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
   border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: inset 0 -8px 12px rgba(8, 15, 40, 0.45), 0 8px 16px rgba(8, 15, 40, 0.45);
-  z-index: 2;
-  transform: translateX(-16px);
 }
 
 .key.active {
@@ -228,12 +253,15 @@ select:focus {
 
 .keyboard__legend {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.75rem;
   color: rgba(148, 163, 184, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  text-align: center;
 }
 
 .status-pill {
@@ -341,4 +369,3 @@ select:focus {
     overflow-x: auto;
   }
 }
-
