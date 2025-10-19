@@ -1,0 +1,18 @@
+{
+  "name": "disyn",
+  "version": "0.1.0",
+  "description": "Disyn distortion synthesizer experiment",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run --pool vmThreads --maxWorkers=1"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}
+
