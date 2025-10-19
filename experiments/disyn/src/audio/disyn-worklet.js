@@ -2,6 +2,8 @@ import { OscillatorModule } from './modules/OscillatorModule.js';
 import { EnvelopeModule } from './modules/EnvelopeModule.js';
 import { ReverbModule } from './modules/ReverbModule.js';
 
+const sampleRate = globalThis.sampleRate;
+
 class DisynProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -141,4 +143,3 @@ class DisynProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('disyn-processor', DisynProcessor);
-
