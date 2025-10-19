@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run --pool vmThreads --maxWorkers=1"
+    "test": "vitest run --pool vmThreads --maxWorkers=1",
+    "postbuild": "node ./scripts/copy-worklet-modules.cjs"
   },
   "devDependencies": {
     "jsdom": "^27.0.1",
