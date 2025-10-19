@@ -6,6 +6,8 @@ I really want to try some physical modelling synthesis with DIY Daisy Seed-based
 
 [Experiments](https://danja.github.io/flues/)
 
+Recent additions explore distortion synthesis techniques inspired by Victor Lazzarini’s [Distortion Synthesis tutorial in Csound Journal Issue 11](https://csoundjournal.com/issue11/distortionSynthesis.html), with a browser-based Disyn instrument covering DSF, waveshaping, and modified FM algorithms.
+
 ## Projects
 
 ### PM Synthesizer (Stove)
