@@ -194,11 +194,65 @@ The C code is a direct, line-by-line translation of the JavaScript algorithms. A
 
 See `gtk-synth/docs/PORTING_NOTES.md` for detailed JavaScript→C translation patterns.
 
-## D. C Code (Legacy/Future)
+## D. LV2 Plugins
+
+### Disyn LV2 Plugin
+
+**Location:** `lv2/disyn/`
+
+A standalone LV2 plugin that ports the `experiments/disyn` JavaScript distortion synthesizer to native C++. Provides seven distortion synthesis algorithms in a monophonic instrument plugin.
+
+**Key Features:**
+- Native C++ implementation of distortion algorithms
+- Seven synthesis modes: Dirichlet Pulse, DSF Single/Double, Tanh Square/Saw, PAF, Modified FM
+- Real-time synthesis with low latency
+- LV2 standard interface for DAW integration
+- Attack/Release envelope and Schroeder reverb
+
+**Architecture:**
+- `src/modules/` - DSP modules (OscillatorModule.hpp, EnvelopeModule.hpp, ReverbModule.hpp)
+- `src/DisynEngine.hpp` - Main synthesizer coordinator
+- `src/disyn_plugin.cpp` - LV2 interface and MIDI handling
+- `disyn.lv2/*.ttl` - LV2 metadata and port definitions
+
+**Building:**
+```bash
+cd lv2/disyn
+cmake -S . -B build
+cmake --build build
+cmake --install build --prefix ~/.lv2
+```
+
+**Usage:**
+Load in any LV2 host (Ardour, Carla, Jalv):
+```bash
+jalv.gtk https://danja.github.io/flues/plugins/disyn
+```
+
+**Implementation Status:**
+- ✓ All 7 algorithms fully implemented
+- ✓ Monophonic voice management
+- ✓ Sample-accurate MIDI processing
+- ✓ Attack/Release envelope
+- ✓ Schroeder reverb with size/level controls
+- ✓ Algorithm selector and per-algorithm parameters
+- ⚠ Monophonic only (no polyphony yet)
+- TODO: GTK UI, preset system, polyphony
+
+**Translation Fidelity:**
+The C++ code is a direct, line-by-line translation of the JavaScript algorithms. All DSP math is preserved exactly:
+- Same synthesis algorithms with identical formulas
+- Identical parameter mapping (exponential/linear curves)
+- Same signal flow: oscillator → envelope → reverb
+- Matching default parameter values
+
+See `lv2/disyn/README.md` for detailed usage and `experiments/disyn/docs/DISYN-LV2.md` for implementation notes.
+
+## E. C Code (Legacy/Future)
 
 **Location:** `c-code/`
 
-Reserved for future C implementations and experiments that don't fit the GTK desktop app pattern.
+Reserved for future C implementations and experiments that don't fit the GTK desktop app or LV2 plugin patterns.
 
 ## Original Prototypes
 

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared  -o disyn.so CMakeFiles/disyn.dir/src/disyn_plugin.cpp.o 
