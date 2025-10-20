@@ -3,6 +3,8 @@
 #include <cstring>
 #include <memory>
 #include <algorithm>
+#include <cstdio>
+#include <ctime>
 
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
@@ -13,6 +15,22 @@
 #include "PMSynthEngine.hpp"
 
 #define PMSYNTH_URI "https://danja.github.io/flues/plugins/pm-synth"
+#define PLUGIN_VERSION "v1.0.2-debug-2024-10-20"
+#define LOG_PREFIX "[PM-Synth Plugin] "
+
+// Constructor runs when library is loaded
+__attribute__((constructor))
+static void on_plugin_library_load() {
+    time_t now = time(nullptr);
+    std::fprintf(stderr, "\n");
+    std::fprintf(stderr, "========================================\n");
+    std::fprintf(stderr, LOG_PREFIX "DSP PLUGIN LOADED! %s\n", PLUGIN_VERSION);
+    std::fprintf(stderr, LOG_PREFIX "Time: %s", ctime(&now));
+    std::fprintf(stderr, LOG_PREFIX "Binary: pm_synth.so\n");
+    std::fprintf(stderr, "========================================\n");
+    std::fprintf(stderr, "\n");
+    std::fflush(stderr);
+}
 
 namespace flues::pm {
 
@@ -157,12 +175,18 @@ static void handle_midi(PMSynthLV2* self, const uint8_t* msg, uint32_t size) {
 extern "C" {
 
 static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
-                              const char*, const LV2_Feature* const* features) {
+                              const char* bundle_path, const LV2_Feature* const* features) {
     using namespace flues::pm;
+
+    std::fprintf(stderr, LOG_PREFIX "instantiate() called\n");
+    std::fprintf(stderr, LOG_PREFIX "  Sample rate: %.1f Hz\n", rate);
+    std::fprintf(stderr, LOG_PREFIX "  Bundle path: %s\n", bundle_path);
 
     auto* self = new PMSynthLV2();
     self->sampleRate = static_cast<float>(rate);
     self->engine = std::make_unique<PMSynthEngine>(self->sampleRate);
+
+    std::fprintf(stderr, LOG_PREFIX "  Engine created successfully\n");
     self->midiIn = nullptr;
     self->audioOut = nullptr;
 
@@ -204,10 +228,15 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->midiEventUrid = self->map->map(self->map->handle, LV2_MIDI__MidiEvent);
     self->atomSequenceUrid = self->map->map(self->map->handle, LV2_ATOM__Sequence);
 
+    std::fprintf(stderr, LOG_PREFIX "instantiate() complete! Instance: %p\n", (void*)self);
+    std::fflush(stderr);
+
     return self;
 }
 
 static void cleanup(LV2_Handle instance) {
+    std::fprintf(stderr, LOG_PREFIX "cleanup() called\n");
+    std::fflush(stderr);
     auto* self = static_cast<flues::pm::PMSynthLV2*>(instance);
     delete self;
 }

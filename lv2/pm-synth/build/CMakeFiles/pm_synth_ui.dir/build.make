@@ -69,47 +69,31 @@ include CMakeFiles/pm_synth_ui.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/pm_synth_ui.dir/flags.make
 
-CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o: CMakeFiles/pm_synth_ui.dir/flags.make
-CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o: /home/danny/github/flues/lv2/pm-synth/src/ui/FluesKnob.c
-CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o: CMakeFiles/pm_synth_ui.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/lv2/pm-synth/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o -MF CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o.d -o CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o -c /home/danny/github/flues/lv2/pm-synth/src/ui/FluesKnob.c
+CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o: CMakeFiles/pm_synth_ui.dir/flags.make
+CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o: /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui_x11.c
+CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o: CMakeFiles/pm_synth_ui.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/lv2/pm-synth/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o -MF CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o.d -o CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o -c /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui_x11.c
 
-CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.i"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/danny/github/flues/lv2/pm-synth/src/ui/FluesKnob.c > CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.i
+CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui_x11.c > CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.i
 
-CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.s"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/danny/github/flues/lv2/pm-synth/src/ui/FluesKnob.c -o CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.s
-
-CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o: CMakeFiles/pm_synth_ui.dir/flags.make
-CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o: /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui.c
-CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o: CMakeFiles/pm_synth_ui.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/lv2/pm-synth/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o -MF CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o.d -o CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o -c /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui.c
-
-CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.i"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui.c > CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.i
-
-CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.s"
-	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui.c -o CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.s
+CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/danny/github/flues/lv2/pm-synth/src/ui/pm_synth_ui_x11.c -o CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.s
 
 # Object files for target pm_synth_ui
 pm_synth_ui_OBJECTS = \
-"CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o" \
-"CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o"
+"CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o"
 
 # External object files for target pm_synth_ui
 pm_synth_ui_EXTERNAL_OBJECTS =
 
-pm_synth_ui.so: CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o
-pm_synth_ui.so: CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o
+pm_synth_ui.so: CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o
 pm_synth_ui.so: CMakeFiles/pm_synth_ui.dir/build.make
 pm_synth_ui.so: CMakeFiles/pm_synth_ui.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/danny/github/flues/lv2/pm-synth/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking C shared module pm_synth_ui.so"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/danny/github/flues/lv2/pm-synth/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C shared module pm_synth_ui.so"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pm_synth_ui.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

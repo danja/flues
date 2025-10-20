@@ -237,6 +237,9 @@ PKG_CONFIG_ARGN:STRING=
 PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
 
 //Path to a library.
+pkgcfg_lib_CAIRO_cairo:FILEPATH=/usr/lib/x86_64-linux-gnu/libcairo.so
+
+//Path to a library.
 pkgcfg_lib_GTK3_atk-1.0:FILEPATH=/usr/lib/x86_64-linux-gnu/libatk-1.0.so
 
 //Path to a library.
@@ -275,6 +278,9 @@ pkgcfg_lib_GTK3_pangocairo-1.0:FILEPATH=/usr/lib/x86_64-linux-gnu/libpangocairo-
 //Path to a library.
 pkgcfg_lib_GTK3_z:FILEPATH=/usr/lib/x86_64-linux-gnu/libz.so
 
+//Path to a library.
+pkgcfg_lib_X11_X11:FILEPATH=/usr/lib/x86_64-linux-gnu/libX11.so
+
 //Value Computed by CMake
 pm_synth_lv2_BINARY_DIR:STATIC=/home/danny/github/flues/lv2/pm-synth/build
 
@@ -289,6 +295,41 @@ pm_synth_lv2_SOURCE_DIR:STATIC=/home/danny/github/flues/lv2/pm-synth
 # INTERNAL cache entries
 ########################
 
+CAIRO_CFLAGS:INTERNAL=-I/usr/include/cairo;-I/usr/include;-I/usr/include/libpng16;-I/usr/include/freetype2;-I/usr/include/pixman-1
+CAIRO_CFLAGS_I:INTERNAL=
+CAIRO_CFLAGS_OTHER:INTERNAL=
+CAIRO_FOUND:INTERNAL=1
+CAIRO_INCLUDEDIR:INTERNAL=/usr/include
+CAIRO_INCLUDE_DIRS:INTERNAL=/usr/include/cairo;/usr/include;/usr/include/libpng16;/usr/include/freetype2;/usr/include/pixman-1
+CAIRO_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lcairo
+CAIRO_LDFLAGS_OTHER:INTERNAL=
+CAIRO_LIBDIR:INTERNAL=/usr/lib/x86_64-linux-gnu
+CAIRO_LIBRARIES:INTERNAL=cairo
+CAIRO_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
+CAIRO_LIBS:INTERNAL=
+CAIRO_LIBS_L:INTERNAL=
+CAIRO_LIBS_OTHER:INTERNAL=
+CAIRO_LIBS_PATHS:INTERNAL=
+CAIRO_MODULE_NAME:INTERNAL=cairo
+CAIRO_PREFIX:INTERNAL=/usr
+CAIRO_STATIC_CFLAGS:INTERNAL=-I/usr/include/cairo;-I/usr/include;-I/usr/include/libpng16;-I/usr/include/freetype2;-I/usr/include/pixman-1;-DXML_STATIC
+CAIRO_STATIC_CFLAGS_I:INTERNAL=
+CAIRO_STATIC_CFLAGS_OTHER:INTERNAL=-DXML_STATIC
+CAIRO_STATIC_INCLUDE_DIRS:INTERNAL=/usr/include/cairo;/usr/include;/usr/include/libpng16;/usr/include/freetype2;/usr/include/pixman-1
+CAIRO_STATIC_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lcairo;-lm;-ldl;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lz;-lm;-lz;-lm;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lz;-lfontconfig;-lbz2;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lz;-lm;-lz;-lm;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lz;-L/usr/lib/x86_64-linux-gnu;-lbrotlicommon;-L/usr/lib/x86_64-linux-gnu;-lexpat;-lm;-lfreetype;-lbz2;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lz;-lpng16;-lm;-lz;-lm;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lz;-lbrotlidec;-L/usr/lib/x86_64-linux-gnu;-lbrotlicommon;-lX11;-lpthread;-L/usr/lib/x86_64-linux-gnu;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-lXext;-L/usr/lib/x86_64-linux-gnu;-lpthread;-L/usr/lib/x86_64-linux-gnu;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-lXrender;-lX11;-lpthread;-L/usr/lib/x86_64-linux-gnu;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-L/usr/lib/x86_64-linux-gnu;-lX11;-lpthread;-L/usr/lib/x86_64-linux-gnu;-L/usr/lib/x86_64-linux-gnu;-lXau;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-lxcb-render;-L/usr/lib/x86_64-linux-gnu;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-lxcb-shm;-L/usr/lib/x86_64-linux-gnu;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-lXdmcp;-lpixman-1
+CAIRO_STATIC_LDFLAGS_OTHER:INTERNAL=
+CAIRO_STATIC_LIBDIR:INTERNAL=
+CAIRO_STATIC_LIBRARIES:INTERNAL=cairo;m;dl;z;m;z;m;z;fontconfig;bz2;z;m;z;m;z;brotlicommon;expat;m;freetype;bz2;z;png16;m;z;m;z;brotlidec;brotlicommon;X11;pthread;xcb;Xau;Xext;pthread;xcb;Xau;Xrender;X11;pthread;xcb;Xau;X11;pthread;Xau;xcb;Xau;xcb-render;xcb;Xau;xcb-shm;xcb;Xau;Xdmcp;pixman-1
+CAIRO_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu
+CAIRO_STATIC_LIBS:INTERNAL=
+CAIRO_STATIC_LIBS_L:INTERNAL=
+CAIRO_STATIC_LIBS_OTHER:INTERNAL=
+CAIRO_STATIC_LIBS_PATHS:INTERNAL=
+CAIRO_VERSION:INTERNAL=1.18.0
+CAIRO_cairo_INCLUDEDIR:INTERNAL=
+CAIRO_cairo_LIBDIR:INTERNAL=
+CAIRO_cairo_PREFIX:INTERNAL=
+CAIRO_cairo_VERSION:INTERNAL=
 //ADVANCED property for variable: CMAKE_ADDR2LINE
 CMAKE_ADDR2LINE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_AR
@@ -510,12 +551,53 @@ LV2_lv2_VERSION:INTERNAL=
 PKG_CONFIG_ARGN-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: PKG_CONFIG_EXECUTABLE
 PKG_CONFIG_EXECUTABLE-ADVANCED:INTERNAL=1
+X11_CFLAGS:INTERNAL=-I/usr/include
+X11_CFLAGS_I:INTERNAL=
+X11_CFLAGS_OTHER:INTERNAL=
+X11_FOUND:INTERNAL=1
+X11_INCLUDEDIR:INTERNAL=/usr/include
+X11_INCLUDE_DIRS:INTERNAL=/usr/include
+X11_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lX11
+X11_LDFLAGS_OTHER:INTERNAL=
+X11_LIBDIR:INTERNAL=/usr/lib/x86_64-linux-gnu
+X11_LIBRARIES:INTERNAL=X11
+X11_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
+X11_LIBS:INTERNAL=
+X11_LIBS_L:INTERNAL=
+X11_LIBS_OTHER:INTERNAL=
+X11_LIBS_PATHS:INTERNAL=
+X11_MODULE_NAME:INTERNAL=x11
+X11_PREFIX:INTERNAL=/usr
+X11_STATIC_CFLAGS:INTERNAL=-I/usr/include
+X11_STATIC_CFLAGS_I:INTERNAL=
+X11_STATIC_CFLAGS_OTHER:INTERNAL=
+X11_STATIC_INCLUDE_DIRS:INTERNAL=/usr/include
+X11_STATIC_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lX11;-lpthread;-L/usr/lib/x86_64-linux-gnu;-lxcb;-L/usr/lib/x86_64-linux-gnu;-lXau;-lXdmcp
+X11_STATIC_LDFLAGS_OTHER:INTERNAL=
+X11_STATIC_LIBDIR:INTERNAL=
+X11_STATIC_LIBRARIES:INTERNAL=X11;pthread;xcb;Xau;Xdmcp
+X11_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu;/usr/lib/x86_64-linux-gnu
+X11_STATIC_LIBS:INTERNAL=
+X11_STATIC_LIBS_L:INTERNAL=
+X11_STATIC_LIBS_OTHER:INTERNAL=
+X11_STATIC_LIBS_PATHS:INTERNAL=
+X11_VERSION:INTERNAL=1.8.7
+X11_x11_INCLUDEDIR:INTERNAL=
+X11_x11_LIBDIR:INTERNAL=
+X11_x11_PREFIX:INTERNAL=
+X11_x11_VERSION:INTERNAL=
 //linker supports push/pop state
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
+__pkg_config_arguments_CAIRO:INTERNAL=REQUIRED;cairo
 __pkg_config_arguments_GTK3:INTERNAL=QUIET;gtk+-3.0
 __pkg_config_arguments_LV2:INTERNAL=REQUIRED;lv2
+__pkg_config_arguments_X11:INTERNAL=REQUIRED;x11
+__pkg_config_checked_CAIRO:INTERNAL=1
 __pkg_config_checked_GTK3:INTERNAL=1
 __pkg_config_checked_LV2:INTERNAL=1
+__pkg_config_checked_X11:INTERNAL=1
+//ADVANCED property for variable: pkgcfg_lib_CAIRO_cairo
+pkgcfg_lib_CAIRO_cairo-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_GTK3_atk-1.0
 pkgcfg_lib_GTK3_atk-1.0-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_GTK3_cairo
@@ -542,5 +624,7 @@ pkgcfg_lib_GTK3_pango-1.0-ADVANCED:INTERNAL=1
 pkgcfg_lib_GTK3_pangocairo-1.0-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_GTK3_z
 pkgcfg_lib_GTK3_z-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: pkgcfg_lib_X11_X11
+pkgcfg_lib_X11_X11-ADVANCED:INTERNAL=1
 prefix_result:INTERNAL=/usr/lib/x86_64-linux-gnu
 

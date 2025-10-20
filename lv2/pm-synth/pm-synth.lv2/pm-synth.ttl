@@ -185,6 +185,6 @@
     ] .
 
 <https://danja.github.io/flues/plugins/pm-synth#ui>
-    a ui:Gtk3UI ;
+    a ui:X11UI ;
     ui:binary <pm_synth_ui.so> ;
     rdfs:label "Flues PM Synth Panel" .

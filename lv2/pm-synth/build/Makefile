@@ -211,53 +211,29 @@ src/pm_synth_plugin.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth.dir/build.make CMakeFiles/pm_synth.dir/src/pm_synth_plugin.cpp.s
 .PHONY : src/pm_synth_plugin.cpp.s
 
-src/ui/FluesKnob.o: src/ui/FluesKnob.c.o
-.PHONY : src/ui/FluesKnob.o
+src/ui/pm_synth_ui_x11.o: src/ui/pm_synth_ui_x11.c.o
+.PHONY : src/ui/pm_synth_ui_x11.o
 
 # target to build an object file
-src/ui/FluesKnob.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o
-.PHONY : src/ui/FluesKnob.c.o
+src/ui/pm_synth_ui_x11.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o
+.PHONY : src/ui/pm_synth_ui_x11.c.o
 
-src/ui/FluesKnob.i: src/ui/FluesKnob.c.i
-.PHONY : src/ui/FluesKnob.i
-
-# target to preprocess a source file
-src/ui/FluesKnob.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.i
-.PHONY : src/ui/FluesKnob.c.i
-
-src/ui/FluesKnob.s: src/ui/FluesKnob.c.s
-.PHONY : src/ui/FluesKnob.s
-
-# target to generate assembly for a file
-src/ui/FluesKnob.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.s
-.PHONY : src/ui/FluesKnob.c.s
-
-src/ui/pm_synth_ui.o: src/ui/pm_synth_ui.c.o
-.PHONY : src/ui/pm_synth_ui.o
-
-# target to build an object file
-src/ui/pm_synth_ui.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o
-.PHONY : src/ui/pm_synth_ui.c.o
-
-src/ui/pm_synth_ui.i: src/ui/pm_synth_ui.c.i
-.PHONY : src/ui/pm_synth_ui.i
+src/ui/pm_synth_ui_x11.i: src/ui/pm_synth_ui_x11.c.i
+.PHONY : src/ui/pm_synth_ui_x11.i
 
 # target to preprocess a source file
-src/ui/pm_synth_ui.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.i
-.PHONY : src/ui/pm_synth_ui.c.i
+src/ui/pm_synth_ui_x11.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.i
+.PHONY : src/ui/pm_synth_ui_x11.c.i
 
-src/ui/pm_synth_ui.s: src/ui/pm_synth_ui.c.s
-.PHONY : src/ui/pm_synth_ui.s
+src/ui/pm_synth_ui_x11.s: src/ui/pm_synth_ui_x11.c.s
+.PHONY : src/ui/pm_synth_ui_x11.s
 
 # target to generate assembly for a file
-src/ui/pm_synth_ui.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.s
-.PHONY : src/ui/pm_synth_ui.c.s
+src/ui/pm_synth_ui_x11.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pm_synth_ui.dir/build.make CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.s
+.PHONY : src/ui/pm_synth_ui_x11.c.s
 
 # Help Target
 help:
@@ -276,12 +252,9 @@ help:
 	@echo "... src/pm_synth_plugin.o"
 	@echo "... src/pm_synth_plugin.i"
 	@echo "... src/pm_synth_plugin.s"
-	@echo "... src/ui/FluesKnob.o"
-	@echo "... src/ui/FluesKnob.i"
-	@echo "... src/ui/FluesKnob.s"
-	@echo "... src/ui/pm_synth_ui.o"
-	@echo "... src/ui/pm_synth_ui.i"
-	@echo "... src/ui/pm_synth_ui.s"
+	@echo "... src/ui/pm_synth_ui_x11.o"
+	@echo "... src/ui/pm_synth_ui_x11.i"
+	@echo "... src/ui/pm_synth_ui_x11.s"
 .PHONY : help
 
 

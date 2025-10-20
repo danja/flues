@@ -1,1 +1,1 @@
-/usr/bin/cc -fPIC -shared  -o pm_synth_ui.so CMakeFiles/pm_synth_ui.dir/src/ui/FluesKnob.c.o CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui.c.o  -lgtk-3 -lgdk-3 -lz -lpangocairo-1.0 -lpango-1.0 -lharfbuzz -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lm 
+/usr/bin/cc -fPIC -shared  -o pm_synth_ui.so CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o  -lX11 -lcairo -lm -lpthread 

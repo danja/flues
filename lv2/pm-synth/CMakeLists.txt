@@ -8,7 +8,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LV2 REQUIRED lv2)
-pkg_check_modules(GTK3 QUIET gtk+-3.0)
+pkg_check_modules(X11 REQUIRED x11)
+pkg_check_modules(CAIRO REQUIRED cairo)
 
 add_library(pm_synth MODULE
     src/pm_synth_plugin.cpp
@@ -62,40 +63,47 @@ set_target_properties(pm_synth PROPERTIES
     OUTPUT_NAME "pm_synth"
 )
 
-if (GTK3_FOUND)
-    add_library(pm_synth_ui MODULE
-        src/ui/FluesKnob.c
-        src/ui/pm_synth_ui.c
-    )
+add_library(pm_synth_ui MODULE
+    src/ui/pm_synth_ui_x11.c
+)
 
-    target_include_directories(pm_synth_ui
-        PRIVATE
-            ${GTK3_INCLUDE_DIRS}
-            ${LV2_INCLUDE_DIRS}
-            src/ui
-    )
+target_include_directories(pm_synth_ui
+    PRIVATE
+        ${LV2_INCLUDE_DIRS}
+        ${X11_INCLUDE_DIRS}
+        ${CAIRO_INCLUDE_DIRS}
+        src/ui
+)
 
-    target_link_libraries(pm_synth_ui PRIVATE ${GTK3_LIBRARIES} m)
-    target_compile_options(pm_synth_ui PRIVATE ${GTK3_CFLAGS_OTHER} ${LV2_CFLAGS_OTHER})
-    target_compile_definitions(pm_synth_ui PRIVATE LV2_EXPORT_SHARED)
+target_link_libraries(pm_synth_ui
+    PRIVATE
+        ${LV2_LIBRARIES}
+        ${X11_LIBRARIES}
+        ${CAIRO_LIBRARIES}
+        m
+        pthread
+)
 
-    set_target_properties(pm_synth_ui PROPERTIES
-        PREFIX ""
-        OUTPUT_NAME "pm_synth_ui"
-    )
-else()
-    message(WARNING "GTK+3 development files not found; pm_synth_ui target will not be built.")
-endif()
+target_compile_options(pm_synth_ui PRIVATE
+    ${LV2_CFLAGS_OTHER}
+    ${X11_CFLAGS_OTHER}
+    ${CAIRO_CFLAGS_OTHER}
+)
+
+target_compile_definitions(pm_synth_ui PRIVATE LV2_EXPORT_SHARED)
+
+set_target_properties(pm_synth_ui PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "pm_synth_ui"
+)
 
 install(TARGETS pm_synth
     LIBRARY DESTINATION pm-synth.lv2
 )
 
-if (TARGET pm_synth_ui)
-    install(TARGETS pm_synth_ui
-        LIBRARY DESTINATION pm-synth.lv2
-    )
-endif()
+install(TARGETS pm_synth_ui
+    LIBRARY DESTINATION pm-synth.lv2
+)
 
 install(FILES
     pm-synth.lv2/manifest.ttl
