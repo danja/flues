@@ -132,7 +132,7 @@ typedef struct {
 } GroupLayout;
 
 static const GroupLayout kGroupLayout[GROUP_COUNT] = {
-    [GROUP_SOURCE] = { 0, 3 },
+    [GROUP_SOURCE] = { 0, 6 },
     [GROUP_INTERFACE] = { 1, 2 },
     [GROUP_ENVELOPE] = { 1, 2 },
     [GROUP_DELAY] = { 2, 4 },
