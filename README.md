@@ -38,7 +38,6 @@ Available in three implementations:
 * Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)
 * Root-level helper: `./build_pm_synth.sh --clean --install-default`
   - Installs to `~/.lv2/pm-synth.lv2/`
-* Note: custom UI not yet functional
 
 **Features (all implementations):**
 - 12 interface types: Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma
