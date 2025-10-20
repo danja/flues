@@ -51,6 +51,13 @@ Digital waveguide clarinet synthesizer - the original experiment that led to the
 * **[Try it live](https://danja.github.io/flues/clarinet-synth/)**
 * [Project README](experiments/clarinet-synth/README.md)
 
+### Floozy
+Hybrid LV2 instrument that grafts Disyn's distortion algorithms onto the Stove physical-modelling engine. A Disyn source block feeds the Stove interface/delay/filter/modulation/reverb chain, giving aggressive spectra inside the resonant acoustic loop.
+
+* LV2 plugin source: [`lv2/floozy/`](lv2/floozy)
+* [Plugin README](lv2/floozy/README.md)
+* Build helper: `./build_pm_synth.sh --install-default` (builds/distributes pm-synth, disyn, floozy bundles)
+
 ## Reference Materials
 * [CLAUDE.md](CLAUDE.md) - Project guidelines and development practices
 * [AGENTS Project Notes](AGENTS.md)
