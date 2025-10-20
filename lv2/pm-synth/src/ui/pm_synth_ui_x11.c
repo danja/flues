@@ -18,16 +18,16 @@
 #define PMSYNTH_UI_URI PMSYNTH_URI "#ui"
 #define LOG_PREFIX "[PM-Synth UI] "
 
-#define WINDOW_WIDTH 900
-#define WINDOW_HEIGHT 460
+#define DEFAULT_WINDOW_WIDTH 940
+#define DEFAULT_WINDOW_HEIGHT 560
 
 #define GROUP_PADDING 16
-#define GROUP_GAP_X 16
+#define GROUP_GAP_X 18
 #define GROUP_GAP_Y 28
 #define TITLE_HEIGHT 22
-#define KNOB_SIZE 96
-#define KNOB_HEIGHT 110
-#define KNOB_SPACING_X 18
+#define KNOB_SIZE 92
+#define KNOB_HEIGHT 108
+#define KNOB_SPACING_X 16
 #define KNOB_SPACING_Y 18
 
 typedef enum {
@@ -113,16 +113,16 @@ static const GroupLayout kGroupLayout[GROUP_COUNT] = {
     [GROUP_STEAM] = { 0, 3 },
     [GROUP_INTERFACE] = { 0, 2 },
     [GROUP_ENVELOPE] = { 0, 2 },
-    [GROUP_PIPE] = { 1, 2 },
-    [GROUP_FILTER] = { 1, 2 },
-    [GROUP_MODULATION] = { 1, 2 },
+    [GROUP_PIPE] = { 1, 4 },
+    [GROUP_FILTER] = { 1, 4 },
+    [GROUP_MODULATION] = { 2, 2 },
     [GROUP_REVERB] = { 2, 2 },
 };
 
 static const GroupIndex kRowGroups[][4] = {
     { GROUP_STEAM, GROUP_INTERFACE, GROUP_ENVELOPE, GROUP_COUNT },
-    { GROUP_PIPE, GROUP_FILTER, GROUP_MODULATION, GROUP_COUNT },
-    { GROUP_REVERB, GROUP_COUNT, GROUP_COUNT, GROUP_COUNT }
+    { GROUP_PIPE, GROUP_FILTER, GROUP_COUNT, GROUP_COUNT },
+    { GROUP_MODULATION, GROUP_REVERB, GROUP_COUNT, GROUP_COUNT }
 };
 
 typedef struct {
@@ -163,6 +163,11 @@ typedef struct {
     pthread_t thread;
     pthread_mutex_t mutex;
     volatile bool running;
+
+    int width;
+    int height;
+    int content_width;
+    int content_height;
 
     Knob knobs[PORT_TOTAL_COUNT];
     bool knob_used[PORT_TOTAL_COUNT];
@@ -329,7 +334,7 @@ static void draw_ui(PMSynthUI* ui) {
     cairo_t* cr = cairo_create(ui->surface);
 
     // Background
-    cairo_rectangle(cr, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    cairo_rectangle(cr, 0, 0, ui->width, ui->height);
     cairo_set_source_rgb(cr, 0.07, 0.08, 0.11);
     cairo_fill(cr);
 
@@ -488,8 +493,14 @@ static void* event_thread_main(void* data) {
     return NULL;
 }
 
-static void setup_layout(PMSynthUI* ui) {
+static void setup_layout(PMSynthUI* ui, int available_width) {
     memset(ui->groups, 0, sizeof(ui->groups));
+    memset(ui->knob_used, 0, sizeof(ui->knob_used));
+
+    const int row_count = 3;
+    int row_heights[3] = {0};
+    int row_widths[3] = {0};
+    int row_counts[3] = {0};
 
     for (int g = 0; g < GROUP_COUNT; ++g) {
         ui->groups[g].row = kGroupLayout[g].row;
@@ -501,9 +512,6 @@ static void setup_layout(PMSynthUI* ui) {
         ui->groups[desc->group].count++;
     }
 
-    // Pre-compute group dimensions
-    int row_heights[4] = {0};
-    const int row_count = 3;
     for (int g = 0; g < GROUP_COUNT; ++g) {
         GroupState* group = &ui->groups[g];
         group->rows = (group->count + group->columns - 1) / group->columns;
@@ -524,9 +532,36 @@ static void setup_layout(PMSynthUI* ui) {
         }
     }
 
+    int max_row_width = 0;
+    for (int row = 0; row < row_count; ++row) {
+        int width = 0;
+        int count = 0;
+        for (int idx = 0; kRowGroups[row][idx] != GROUP_COUNT; ++idx) {
+            GroupIndex group_index = kRowGroups[row][idx];
+            width += ui->groups[group_index].width;
+            count++;
+        }
+        if (count > 0) {
+            width += (count - 1) * GROUP_GAP_X;
+        }
+        row_widths[row] = width;
+        row_counts[row] = count;
+        if (width > max_row_width) {
+            max_row_width = width;
+        }
+    }
+
     int current_y = 20;
     for (int row = 0; row < row_count; ++row) {
-        int current_x = 20;
+        if (row_counts[row] == 0) {
+            continue;
+        }
+        int row_width = row_widths[row];
+        int start_x = (available_width - row_width) / 2;
+        if (start_x < 20) {
+            start_x = 20;
+        }
+        int current_x = start_x;
         for (int idx = 0; kRowGroups[row][idx] != GROUP_COUNT; ++idx) {
             GroupIndex group_index = kRowGroups[row][idx];
             GroupState* group = &ui->groups[group_index];
@@ -534,10 +569,15 @@ static void setup_layout(PMSynthUI* ui) {
             group->y = current_y;
             current_x += group->width + GROUP_GAP_X;
         }
-        current_y += row_heights[row] + GROUP_GAP_Y;
+        current_y += row_heights[row];
+        if (row < row_count - 1 && row_counts[row + 1] > 0) {
+            current_y += GROUP_GAP_Y;
+        }
     }
 
-    // Assign knob positions
+    ui->content_width = max_row_width + 40;
+    ui->content_height = current_y + 20;
+
     for (int g = 0; g < GROUP_COUNT; ++g) {
         ui->groups[g].assigned = 0;
     }
@@ -592,6 +632,8 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
     ui->controller = controller;
     ui->active_knob = -1;
     ui->needs_redraw = true;
+    ui->content_width = 0;
+    ui->content_height = 0;
 
     Display* display = XOpenDisplay(NULL);
     if (!display) {
@@ -610,6 +652,21 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
         }
     }
 
+    int target_width = DEFAULT_WINDOW_WIDTH;
+    int target_height = DEFAULT_WINDOW_HEIGHT;
+
+    setup_layout(ui, target_width);
+    if (ui->content_width > target_width) {
+        target_width = ui->content_width;
+        setup_layout(ui, target_width);
+    }
+    if (ui->content_height > target_height) {
+        target_height = ui->content_height;
+    }
+
+    ui->width = target_width;
+    ui->height = target_height;
+
     XSetWindowAttributes attrs;
     attrs.background_pixel = BlackPixel(display, ui->screen);
     attrs.event_mask = ExposureMask |
@@ -623,8 +680,8 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
         parent,
         0,
         0,
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT,
+        ui->width,
+        ui->height,
         0,
         CopyFromParent,
         InputOutput,
@@ -648,8 +705,8 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
         display,
         ui->window,
         DefaultVisual(display, ui->screen),
-        WINDOW_WIDTH,
-        WINDOW_HEIGHT);
+        ui->width,
+        ui->height);
 
     if (!ui->surface) {
         fprintf(stderr, LOG_PREFIX "Failed to create Cairo surface\n");
@@ -660,7 +717,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
         return NULL;
     }
 
-    setup_layout(ui);
+    cairo_xlib_surface_set_size(ui->surface, ui->width, ui->height);
 
     ui->running = true;
     if (pthread_create(&ui->thread, NULL, event_thread_main, ui) != 0) {
