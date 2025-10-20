@@ -174,6 +174,19 @@ disyn/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/disyn.dir/build.make CMakeFiles/disyn.dir/build
 .PHONY : disyn/fast
 
+#=============================================================================
+# Target rules for targets named disyn_ui
+
+# Build rule for target.
+disyn_ui: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 disyn_ui
+.PHONY : disyn_ui
+
+# fast build rule for target.
+disyn_ui/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/disyn_ui.dir/build.make CMakeFiles/disyn_ui.dir/build
+.PHONY : disyn_ui/fast
+
 src/disyn_plugin.o: src/disyn_plugin.cpp.o
 .PHONY : src/disyn_plugin.o
 
@@ -198,6 +211,30 @@ src/disyn_plugin.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/disyn.dir/build.make CMakeFiles/disyn.dir/src/disyn_plugin.cpp.s
 .PHONY : src/disyn_plugin.cpp.s
 
+src/ui/disyn_ui_x11.o: src/ui/disyn_ui_x11.c.o
+.PHONY : src/ui/disyn_ui_x11.o
+
+# target to build an object file
+src/ui/disyn_ui_x11.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/disyn_ui.dir/build.make CMakeFiles/disyn_ui.dir/src/ui/disyn_ui_x11.c.o
+.PHONY : src/ui/disyn_ui_x11.c.o
+
+src/ui/disyn_ui_x11.i: src/ui/disyn_ui_x11.c.i
+.PHONY : src/ui/disyn_ui_x11.i
+
+# target to preprocess a source file
+src/ui/disyn_ui_x11.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/disyn_ui.dir/build.make CMakeFiles/disyn_ui.dir/src/ui/disyn_ui_x11.c.i
+.PHONY : src/ui/disyn_ui_x11.c.i
+
+src/ui/disyn_ui_x11.s: src/ui/disyn_ui_x11.c.s
+.PHONY : src/ui/disyn_ui_x11.s
+
+# target to generate assembly for a file
+src/ui/disyn_ui_x11.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/disyn_ui.dir/build.make CMakeFiles/disyn_ui.dir/src/ui/disyn_ui_x11.c.s
+.PHONY : src/ui/disyn_ui_x11.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -211,9 +248,13 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... disyn"
+	@echo "... disyn_ui"
 	@echo "... src/disyn_plugin.o"
 	@echo "... src/disyn_plugin.i"
 	@echo "... src/disyn_plugin.s"
+	@echo "... src/ui/disyn_ui_x11.o"
+	@echo "... src/ui/disyn_ui_x11.i"
+	@echo "... src/ui/disyn_ui_x11.s"
 .PHONY : help
 
 

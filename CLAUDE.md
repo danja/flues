@@ -248,6 +248,33 @@ The C++ code is a direct, line-by-line translation of the JavaScript algorithms.
 
 See `lv2/disyn/README.md` for detailed usage and `experiments/disyn/docs/DISYN-LV2.md` for implementation notes.
 
+**2025-02 UI update:** Added a self-contained X11/Cairo control panel (`src/ui/disyn_ui_x11.c`) so hosts that ignore GTK embed paths still show a fully rendered GUI. Layout mirrors the algorithm workflow (Algorithm/Params, Envelope, Reverb, Master) and includes a discrete selector with labelled scale points for the seven modes. CMake now builds `disyn_ui.so` linking against `x11`, `cairo`, and `pthread`; manifests/TTLs advertise the new X11 UI (`disyn.ttl`, `manifest.ttl`). Reinstall the bundle after building to pick up the UI binary.
+
+### Floozy LV2 Plugin
+
+**Location:** `lv2/floozy/`
+
+Hybrid LV2 instrument that merges Disyn’s distortion algorithms with the PM-Synth physical modelling signal chain. A Disyn-driven source block feeds the PM-style interface/pipe/filter/modulation/reverb pipeline, yielding aggressive spectral content that still sits within the resonant acoustic feedback loop.
+
+- DSP: `src/floozy_plugin.cpp`, `src/FloozyEngine.hpp`, `src/modules/FloozySourceModule.hpp` (wraps Disyn oscillators + PM noise/DC sources).
+- UI: raw X11/Cairo panel (`src/ui/floozy_ui_x11.c`) laid out in five rows (Source, Interface/Envelope, Delay, Filter, Modulation/Reverb + master).
+- Metadata: `floozy.lv2/manifest.ttl`, `floozy.lv2/floozy.ttl`.
+
+**Build:** from repo root `cmake -S lv2/floozy -B lv2/floozy/build && cmake --build lv2/floozy/build`. Install with `cmake --install lv2/floozy/build --prefix ~/.lv2`.
+
+### PM Synth LV2 UI Refactor (2025-02)
+
+**What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.
+
+**Key steps:**
+- Removed `FluesKnob` GTK custom widget and the accompaning `pm_synth_ui.c`.
+- Added `pm_synth_ui_x11.c` which creates its own X11 child window, renders all groups and rotary controls with Cairo, and drives interaction directly.
+- Introduced an internal event/render thread using `XInitThreads`, `XPending`, and `pthread` to handle events and redraws independently of the host idle interface.
+- Layout logic now centres each control group, adapts the window size from the measured content, and mirrors the original three-row design (Steam/Interface/Envelope; Pipe/Filter; Modulation/Reverb).
+- Updated `CMakeLists.txt` to link against `x11`, `cairo`, and `pthread` instead of GTK, ensuring the UI builds wherever those minimal dependencies exist.
+
+**Result:** The UI paints immediately in Reaper/Ardour, no stale buffers, knob interaction works, and the window dimensions match the control grid. Reinstall `pm_synth_ui.so` after building to pick up the change.
+
 ## E. C Code (Legacy/Future)
 
 **Location:** `c-code/`

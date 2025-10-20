@@ -1,4 +1,5 @@
 /home/danny/github/flues/lv2/disyn/build/CMakeFiles/disyn.dir
+/home/danny/github/flues/lv2/disyn/build/CMakeFiles/disyn_ui.dir
 /home/danny/github/flues/lv2/disyn/build/CMakeFiles/edit_cache.dir
 /home/danny/github/flues/lv2/disyn/build/CMakeFiles/rebuild_cache.dir
 /home/danny/github/flues/lv2/disyn/build/CMakeFiles/list_install_components.dir

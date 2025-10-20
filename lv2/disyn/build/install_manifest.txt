@@ -1,3 +1,4 @@
 /home/danny/.lv2/disyn.lv2/disyn.so
 /home/danny/.lv2/disyn.lv2/manifest.ttl
 /home/danny/.lv2/disyn.lv2/disyn.ttl
+/home/danny/.lv2/disyn.lv2/disyn_ui.so

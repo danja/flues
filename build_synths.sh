@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="${ROOT_DIR}/lv2/pm-synth"
-BUILD_DIR="${PROJECT_DIR}/build"
+
+declare -a PROJECTS=("pm-synth" "disyn" "floozy")
 
 CUSTOM_INSTALL_PREFIX=""
 AUTO_INSTALL=false
@@ -76,38 +76,52 @@ if ! pkg-config --exists lv2; then
     exit 1
 fi
 
-if ! pkg-config --exists gtk+-3.0; then
-    echo "note: GTK+3 development files are missing, the graphical UI will be skipped."
-    echo "      Install them to get the Steampipe-style panel (e.g. sudo apt install libgtk-3-dev)."
+MISSING_DEPS=()
+if ! pkg-config --exists x11; then
+    MISSING_DEPS+=("x11")
+fi
+if ! pkg-config --exists cairo; then
+    MISSING_DEPS+=("cairo")
+fi
+if ((${#MISSING_DEPS[@]})); then
+    echo "warning: missing development packages: ${MISSING_DEPS[*]}"
+    echo "         UI binaries require X11 and Cairo. Install with e.g. sudo apt install libx11-dev libcairo2-dev."
 else
-    echo "info: GTK+3 detected; the graphical UI will be built."
+    echo "info: X11 and Cairo detected; all plugin UIs will be built."
 fi
-
-if "${CLEAN}" && [[ -d "${BUILD_DIR}" ]]; then
-    echo "info: removing existing build directory '${BUILD_DIR}'."
-    rm -rf "${BUILD_DIR}"
-fi
-
-echo "info: configuring project..."
-cmake -S "${PROJECT_DIR}" -B "${BUILD_DIR}"
-
-echo "info: building..."
-cmake --build "${BUILD_DIR}"
 
 DEFAULT_LV2_DIR="${HOME}/.lv2"
-if [[ "${AUTO_INSTALL}" == true ]]; then
-    echo "info: installing into default LV2 directory '${DEFAULT_LV2_DIR}'."
-    mkdir -p "${DEFAULT_LV2_DIR}"
-    cmake --install "${BUILD_DIR}" --prefix "${DEFAULT_LV2_DIR}"
-elif [[ -n "${CUSTOM_INSTALL_PREFIX}" ]]; then
-    echo "info: installing into '${CUSTOM_INSTALL_PREFIX}'..."
-    cmake --install "${BUILD_DIR}" --prefix "${CUSTOM_INSTALL_PREFIX}"
-fi
+declare -a BUILT_BUNDLES=()
+
+for project in "${PROJECTS[@]}"; do
+    PROJECT_DIR="${ROOT_DIR}/lv2/${project}"
+    BUILD_DIR="${PROJECT_DIR}/build"
+
+    if "${CLEAN}" && [[ -d "${BUILD_DIR}" ]]; then
+        echo "info: removing existing build directory '${BUILD_DIR}'."
+        rm -rf "${BUILD_DIR}"
+    fi
+
+    echo "info: configuring ${project}..."
+    cmake -S "${PROJECT_DIR}" -B "${BUILD_DIR}"
+
+    echo "info: building ${project}..."
+    cmake --build "${BUILD_DIR}"
+
+    if [[ "${AUTO_INSTALL}" == true ]]; then
+        echo "info: installing ${project} into default LV2 directory '${DEFAULT_LV2_DIR}'."
+        mkdir -p "${DEFAULT_LV2_DIR}"
+        cmake --install "${BUILD_DIR}" --prefix "${DEFAULT_LV2_DIR}"
+    elif [[ -n "${CUSTOM_INSTALL_PREFIX}" ]]; then
+        echo "info: installing ${project} into '${CUSTOM_INSTALL_PREFIX}'."
+        cmake --install "${BUILD_DIR}" --prefix "${CUSTOM_INSTALL_PREFIX}"
+    fi
+
+    BUILT_BUNDLES+=("${BUILD_DIR}/${project}.lv2")
+done
 
 echo "info: build complete."
-echo "      Artifacts are in '${BUILD_DIR}/pm-synth.lv2/'."
-if pkg-config --exists gtk+-3.0; then
-    echo "      Bundle contains both 'pm_synth.so' and 'pm_synth_ui.so'."
-else
-    echo "      Bundle contains 'pm_synth.so' (UI skipped due to missing GTK+3 headers)."
-fi
+echo "      Bundles generated:"
+for bundle in "${BUILT_BUNDLES[@]}"; do
+    echo "        - ${bundle}/"
+done

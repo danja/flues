@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC -shared  -o disyn_ui.so CMakeFiles/disyn_ui.dir/src/ui/disyn_ui_x11.c.o  -lX11 -lcairo -lm -lpthread 

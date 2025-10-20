@@ -36,7 +36,7 @@ Available in three implementations:
 
 #### 3. LV2 Plugin: Stove Synth
 * Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)
-* Root-level helper: `./build_pm_synth.sh --clean --install-default`
+* Root-level helper: `./build_synths.sh --clean --install-default`
   - Installs to `~/.lv2/pm-synth.lv2/`
 
 **Features (all implementations):**

@@ -1,0 +1,4 @@
+/home/danny/.lv2/floozy.lv2/floozy.so
+/home/danny/.lv2/floozy.lv2/floozy_ui.so
+/home/danny/.lv2/floozy.lv2/manifest.ttl
+/home/danny/.lv2/floozy.lv2/floozy.ttl
