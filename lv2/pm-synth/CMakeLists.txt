@@ -18,7 +18,7 @@ add_library(pm_synth MODULE
 target_include_directories(pm_synth
     PRIVATE
         ${LV2_INCLUDE_DIRS}
-        src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 file(GLOB_RECURSE PM_SYNTH_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
