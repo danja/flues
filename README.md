@@ -4,7 +4,11 @@
 
 First attempt was a physical modelling approach to clarinet. Second, a more general physical modelling setup. Latest addition explores fairly obscure distortion synthesis techniques largely based on Victor Lazzarini’s [Distortion Synthesis tutorial in Csound Journal Issue 11](https://csoundjournal.com/issue11/distortionSynthesis.html), with a browser-based Disyn instrument covering DSF, waveshaping, and modified FM algorithms.
 
-I'm aiming to put some of these things onto hardware (Daisy Seed) but making browser-based, LV2 and standalone versions seems a useful exercise. Good fun!
+I typically work in a DAW (Reaper) so although the browser-based synths are usable from there, for convenience it made sense to port them into plugins. I work on Linux so LV2s were the obvious choice. At this point it occurred to me that it would also make sense to combine them, hence **Floozy** :
+
+![Floozy screenshot](docs/images/floozy-plugin.png)
+
+I'm aiming to put some of these things onto hardware (Daisy Seed) next. Good fun!
 
 ## Projects
 
