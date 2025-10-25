@@ -47,7 +47,7 @@ enum PortIndex : uint32_t {
 };
 
 struct FloozyDevLV2 {
-    std::unique_ptr<FloozyEngine> engine;
+    std::unique_ptr<FloozyPolyEngine> engine;
     float sampleRate;
 
     const LV2_Atom_Sequence* midiIn;
@@ -80,8 +80,6 @@ struct FloozyDevLV2 {
     LV2_URID_Map* map;
     LV2_URID midiEventUrid;
     LV2_URID atomSequenceUrid;
-
-    int currentNote;
 };
 
 static void apply_parameters(FloozyDevLV2* self) {
@@ -95,33 +93,33 @@ static void apply_parameters(FloozyDevLV2* self) {
         }
     };
 
-    apply(self->sourceAlgorithm, &FloozyEngine::setAlgorithm);
-    apply(self->sourceParam1, &FloozyEngine::setParam1);
-    apply(self->sourceParam2, &FloozyEngine::setParam2);
-    apply(self->sourceLevel, &FloozyEngine::setToneLevel);
-    apply(self->sourceNoise, &FloozyEngine::setNoiseLevel);
-    apply(self->sourceDC, &FloozyEngine::setDCLevel);
-    apply(self->envelopeAttack, &FloozyEngine::setAttack);
-    apply(self->envelopeRelease, &FloozyEngine::setRelease);
+    apply(self->sourceAlgorithm, &FloozyPolyEngine::setAlgorithm);
+    apply(self->sourceParam1, &FloozyPolyEngine::setParam1);
+    apply(self->sourceParam2, &FloozyPolyEngine::setParam2);
+    apply(self->sourceLevel, &FloozyPolyEngine::setToneLevel);
+    apply(self->sourceNoise, &FloozyPolyEngine::setNoiseLevel);
+    apply(self->sourceDC, &FloozyPolyEngine::setDCLevel);
+    apply(self->envelopeAttack, &FloozyPolyEngine::setAttack);
+    apply(self->envelopeRelease, &FloozyPolyEngine::setRelease);
 
     if (self->interfaceType) {
         self->engine->setInterfaceType(*self->interfaceType);
     }
 
-    apply(self->interfaceIntensity, &FloozyEngine::setInterfaceIntensity);
-    apply(self->tuning, &FloozyEngine::setTuning);
-    apply(self->ratio, &FloozyEngine::setRatio);
-    apply(self->delay1Feedback, &FloozyEngine::setDelay1Feedback);
-    apply(self->delay2Feedback, &FloozyEngine::setDelay2Feedback);
-    apply(self->filterFeedback, &FloozyEngine::setFilterFeedback);
-    apply(self->filterFrequency, &FloozyEngine::setFilterFrequency);
-    apply(self->filterQ, &FloozyEngine::setFilterQ);
-    apply(self->filterShape, &FloozyEngine::setFilterShape);
-    apply(self->lfoFrequency, &FloozyEngine::setLFOFrequency);
-    apply(self->modulationTypeLevel, &FloozyEngine::setModulationTypeLevel);
-    apply(self->reverbSize, &FloozyEngine::setReverbSize);
-    apply(self->reverbLevel, &FloozyEngine::setReverbLevel);
-    apply(self->masterGain, &FloozyEngine::setMasterGain);
+    apply(self->interfaceIntensity, &FloozyPolyEngine::setInterfaceIntensity);
+    apply(self->tuning, &FloozyPolyEngine::setTuning);
+    apply(self->ratio, &FloozyPolyEngine::setRatio);
+    apply(self->delay1Feedback, &FloozyPolyEngine::setDelay1Feedback);
+    apply(self->delay2Feedback, &FloozyPolyEngine::setDelay2Feedback);
+    apply(self->filterFeedback, &FloozyPolyEngine::setFilterFeedback);
+    apply(self->filterFrequency, &FloozyPolyEngine::setFilterFrequency);
+    apply(self->filterQ, &FloozyPolyEngine::setFilterQ);
+    apply(self->filterShape, &FloozyPolyEngine::setFilterShape);
+    apply(self->lfoFrequency, &FloozyPolyEngine::setLFOFrequency);
+    apply(self->modulationTypeLevel, &FloozyPolyEngine::setModulationTypeLevel);
+    apply(self->reverbSize, &FloozyPolyEngine::setReverbSize);
+    apply(self->reverbLevel, &FloozyPolyEngine::setReverbLevel);
+    apply(self->masterGain, &FloozyPolyEngine::setMasterGain);
 }
 
 static void handle_midi(FloozyDevLV2* self, const uint8_t* msg, uint32_t size) {
@@ -136,28 +134,20 @@ static void handle_midi(FloozyDevLV2* self, const uint8_t* msg, uint32_t size) {
     switch (status) {
         case LV2_MIDI_MSG_NOTE_ON: {
             if (data2 == 0) {
-                if (self->currentNote == static_cast<int>(data1)) {
-                    self->engine->noteOff();
-                    self->currentNote = -1;
-                }
+                self->engine->noteOff(static_cast<int>(data1));
                 break;
             }
             const float freq = 440.0f * std::pow(2.0f, (static_cast<int>(data1) - 69) / 12.0f);
-            self->engine->noteOn(freq);
-            self->currentNote = static_cast<int>(data1);
+            self->engine->noteOn(static_cast<int>(data1), freq);
             break;
         }
         case LV2_MIDI_MSG_NOTE_OFF: {
-            if (self->currentNote == static_cast<int>(data1)) {
-                self->engine->noteOff();
-                self->currentNote = -1;
-            }
+            self->engine->noteOff(static_cast<int>(data1));
             break;
         }
         case LV2_MIDI_MSG_CONTROLLER: {
             if (data1 == LV2_MIDI_CTL_ALL_SOUNDS_OFF || data1 == LV2_MIDI_CTL_ALL_NOTES_OFF) {
-                self->engine->noteOff();
-                self->currentNote = -1;
+                self->engine->allNotesOff();
             }
             break;
         }
@@ -176,7 +166,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
 
     auto* self = new FloozyDevLV2();
     self->sampleRate = static_cast<float>(rate);
-    self->engine = std::make_unique<FloozyEngine>(self->sampleRate);
+    self->engine = std::make_unique<FloozyPolyEngine>(self->sampleRate);
 
     self->midiIn = nullptr;
     self->audioOut = nullptr;
@@ -208,8 +198,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->map = nullptr;
     self->midiEventUrid = 0;
     self->atomSequenceUrid = 0;
-    self->currentNote = -1;
-
     for (const LV2_Feature* const* f = features; f && *f; ++f) {
         if (!strcmp((*f)->URI, LV2_URID__map)) {
             self->map = static_cast<LV2_URID_Map*>((*f)->data);

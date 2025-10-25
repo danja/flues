@@ -1,6 +1,6 @@
 # Floozy Dev LV2 Plugin
 
-Floozy Dev is a hybrid LV2 instrument that fuses the distortion-rich source algorithms from **Disyn** with the resonant acoustic signal chain of the **PM Synth**. The result is a single-voice synthesizer capable of combining aggressive spectral content with the expressive feedback, filtering, and modulation found in the Stove pipeline.
+Floozy Dev is a hybrid LV2 instrument that fuses the distortion-rich source algorithms from **Disyn** with the resonant acoustic signal chain of the **PM Synth**. The result is an 8-voice polyphonic synthesizer capable of combining aggressive spectral content with the expressive feedback, filtering, and modulation found in the Stove pipeline.
 
 ## Signal Flow
 
@@ -40,8 +40,8 @@ Master Gain → Audio Out
 - AM↔FM modulation module with bipolar depth and LFO frequency
 
 ### Reverb & Output
-- Schroeder reverb (size/level)
-- Master gain post processing
+- Shared Schroeder reverb (size/level) fed by all voices
+- Master gain post processing with per-sample summing safeguards
 
 ## Build
 
@@ -66,7 +66,7 @@ Knobs respond to drag, mouse-wheel, and MIDI port updates. Algorithm selection d
 
 ## MIDI
 
-Monophonic: note-on triggers the engine with frequency-transposed oscillator + pipe; note-off releases the envelope. All-notes-off CCs flush the voice state.
+Polyphonic: up to eight concurrent notes with intelligent voice stealing. Note-on events retune the selected voice, note-off releases its envelope, and All-Notes-Off/All-Sounds-Off flush every voice and the shared reverb tail.
 
 ## Directory Layout
 

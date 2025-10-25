@@ -11,7 +11,7 @@
 <https://danja.github.io/flues/plugins/floozy-dev>
     a lv2:InstrumentPlugin ;
     doap:name "Floozy Dev" ;
-    doap:description "Hybrid physical/modulation synthesizer combining PM-Synth acoustic modules with Disyn distortion sources." ;
+    doap:description "Hybrid 8-voice physical/modulation synthesizer combining PM-Synth acoustic modules with Disyn distortion sources." ;
     doap:license <https://opensource.org/licenses/MIT> ;
     doap:maintainer [
         foaf:name "Danny Ayers" ;
