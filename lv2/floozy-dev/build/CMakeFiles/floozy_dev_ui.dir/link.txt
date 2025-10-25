@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC -shared  -o floozy-dev_ui.so CMakeFiles/floozy_dev_ui.dir/src/ui/floozy_ui_x11.c.o  -lX11 -lcairo -lm -lpthread 

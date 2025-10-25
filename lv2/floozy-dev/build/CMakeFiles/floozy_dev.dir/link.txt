@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared  -o floozy-dev.so CMakeFiles/floozy_dev.dir/src/floozy_plugin.cpp.o 

@@ -1,0 +1,284 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/floozy-dev>
+    a lv2:InstrumentPlugin ;
+    doap:name "Floozy Dev" ;
+    doap:description "Hybrid physical/modulation synthesizer combining PM-Synth acoustic modules with Disyn distortion sources." ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:requiredFeature urid:map ;
+    ui:ui <https://danja.github.io/flues/plugins/floozy-dev#ui> ;
+    lv2:port [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 0 ;
+        lv2:symbol "audio_out" ;
+        lv2:name "Audio Out"
+    ] , [
+        a lv2:InputPort , atom:AtomPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_in" ;
+        lv2:name "MIDI In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "sourceAlgorithm" ;
+        lv2:name "Source Algorithm" ;
+        lv2:default 3 ;
+        lv2:minimum 0 ;
+        lv2:maximum 6 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [
+            rdfs:label "Dirichlet Pulse" ;
+            rdf:value 0
+        ] , [
+            rdfs:label "DSF Single" ;
+            rdf:value 1
+        ] , [
+            rdfs:label "DSF Double" ;
+            rdf:value 2
+        ] , [
+            rdfs:label "Tanh Square" ;
+            rdf:value 3
+        ] , [
+            rdfs:label "Tanh Saw" ;
+            rdf:value 4
+        ] , [
+            rdfs:label "PAF" ;
+            rdf:value 5
+        ] , [
+            rdfs:label "Modified FM" ;
+            rdf:value 6
+        ]
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "sourceParam1" ;
+        lv2:name "Source Param 1" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "sourceParam2" ;
+        lv2:name "Source Param 2" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "sourceLevel" ;
+        lv2:name "Source Level" ;
+        lv2:default 0.70 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "noiseLevel" ;
+        lv2:name "Noise Level" ;
+        lv2:default 0.10 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "dcLevel" ;
+        lv2:name "DC Level" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "attack" ;
+        lv2:name "Envelope Attack" ;
+        lv2:default 0.33 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "release" ;
+        lv2:name "Envelope Release" ;
+        lv2:default 0.28 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "interfaceType" ;
+        lv2:name "Interface Type" ;
+        lv2:default 2 ;
+        lv2:minimum 0 ;
+        lv2:maximum 11 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [
+            rdfs:label "Pluck" ;
+            rdf:value 0
+        ] , [
+            rdfs:label "Hit" ;
+            rdf:value 1
+        ] , [
+            rdfs:label "Reed" ;
+            rdf:value 2
+        ] , [
+            rdfs:label "Flute" ;
+            rdf:value 3
+        ] , [
+            rdfs:label "Brass" ;
+            rdf:value 4
+        ] , [
+            rdfs:label "Bow" ;
+            rdf:value 5
+        ] , [
+            rdfs:label "Bell" ;
+            rdf:value 6
+        ] , [
+            rdfs:label "Drum" ;
+            rdf:value 7
+        ] , [
+            rdfs:label "Crystal" ;
+            rdf:value 8
+        ] , [
+            rdfs:label "Vapor" ;
+            rdf:value 9
+        ] , [
+            rdfs:label "Quantum" ;
+            rdf:value 10
+        ] , [
+            rdfs:label "Plasma" ;
+            rdf:value 11
+        ]
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "interfaceIntensity" ;
+        lv2:name "Interface Intensity" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "tuning" ;
+        lv2:name "Delay Tuning" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "ratio" ;
+        lv2:name "Delay Ratio" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "delay1Feedback" ;
+        lv2:name "Delay 1 Feedback" ;
+        lv2:default 0.96 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "delay2Feedback" ;
+        lv2:name "Delay 2 Feedback" ;
+        lv2:default 0.96 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "filterFeedback" ;
+        lv2:name "Filter Feedback" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "filterFrequency" ;
+        lv2:name "Filter Frequency" ;
+        lv2:default 0.57 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "filterQ" ;
+        lv2:name "Filter Q" ;
+        lv2:default 0.18 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "filterShape" ;
+        lv2:name "Filter Shape" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:symbol "lfoFrequency" ;
+        lv2:name "LFO Frequency" ;
+        lv2:default 0.74 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:symbol "modulationTypeLevel" ;
+        lv2:name "Modulation Mix" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:symbol "reverbSize" ;
+        lv2:name "Reverb Size" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:symbol "reverbLevel" ;
+        lv2:name "Reverb Level" ;
+        lv2:default 0.30 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 24 ;
+        lv2:symbol "masterGain" ;
+        lv2:name "Master Gain" ;
+        lv2:default 0.80 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] .
+
+<https://danja.github.io/flues/plugins/floozy-dev#ui>
+    a ui:X11UI ;
+    ui:binary <floozy-dev_ui.so> ;
+    rdfs:label "Floozy Dev Control Panel" .

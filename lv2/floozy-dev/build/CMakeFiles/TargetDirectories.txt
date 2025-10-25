@@ -1,0 +1,8 @@
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/floozy_dev.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/floozy_dev_ui.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/edit_cache.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/rebuild_cache.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/list_install_components.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/install.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/install/local.dir
+/home/danny/github/flues/lv2/floozy-dev/build/CMakeFiles/install/strip.dir
