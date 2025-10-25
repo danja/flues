@@ -23,21 +23,21 @@ struct FloozyParams {
     float sourceAlgorithm = 3.0f;
     float sourceParam1 = 0.55f;
     float sourceParam2 = 0.50f;
-    float sourceLevel = 0.70f;
-    float sourceNoise = 0.10f;
-    float sourceDC = 0.50f;
+    float sourceLevel = 0.50f;
+    float sourceNoise = 0.20f;
+    float sourceDC = 0.0f;
 
     float envelopeAttack = 0.33f;
     float envelopeRelease = 0.28f;
 
-    float interfaceType = 2.0f;
+    float interfaceType = 1.0f;
     float interfaceIntensity = 0.50f;
 
     float tuning = 0.50f;
     float ratio = 0.50f;
 
-    float delay1Feedback = 0.96f;
-    float delay2Feedback = 0.96f;
+    float delay1Feedback = 0.50f;
+    float delay2Feedback = 0.10f;
     float filterFeedback = 0.0f;
 
     float filterFrequency = 0.57f;
@@ -74,6 +74,7 @@ public:
           dcBlockerY1_(0.0f),
           prevDelayOutputs_{0.0f, 0.0f},
           prevFilterOutput_(0.0f),
+          postReleaseDamp_(1.0f),
           paramsVersion_(0),
           ageCounter_(0),
           lastOutput_(0.0f) {}
@@ -86,6 +87,7 @@ public:
         ageCounter_ = age;
 
         resetModules();
+        interfaceModule_.setGate(true);
         envelope_.setGate(true);
         syncParams(params);
     }
@@ -96,6 +98,7 @@ public:
         }
         releasing_ = true;
         envelope_.setGate(false);
+        interfaceModule_.setGate(false);
     }
 
     void forceStop() {
@@ -104,6 +107,7 @@ public:
         midiNote_ = -1;
         envelope_.reset();
         interfaceModule_.reset();
+        interfaceModule_.setGate(false);
         delayLines_.reset();
         feedback_.reset();
         filter_.reset();
@@ -128,6 +132,7 @@ public:
         const float modulatedFrequency = frequency_ * modState.fm;
         const float sourceSignal = source_.process(modulatedFrequency);
         const float env = envelope_.process();
+        const bool envActive = envelope_.isPlaying();
         const float envelopedSignal = sourceSignal * env;
 
         const float feedbackSignal = feedback_.process(
@@ -135,7 +140,13 @@ public:
             prevDelayOutputs_.delay2,
             prevFilterOutput_);
 
-        const float cleanFeedback = dcBlock(feedbackSignal);
+        if (envActive) {
+            postReleaseDamp_ = 1.0f;
+        } else {
+            postReleaseDamp_ *= 0.995f;
+        }
+
+        const float cleanFeedback = dcBlock(feedbackSignal) * postReleaseDamp_;
         const float interfaceInput = envelopedSignal + cleanFeedback;
         const float interfaceOutput = interfaceModule_.process(interfaceInput);
         const float clampedDelayInput = std::clamp(interfaceOutput, -1.0f, 1.0f);
@@ -150,13 +161,12 @@ public:
 
         lastOutput_ = preReverb;
 
-        if (!envelope_.isPlaying() &&
+        if (!envActive &&
+            postReleaseDamp_ < 1e-4f &&
             std::fabs(preReverb) < 1e-5f &&
             std::fabs(prevDelayOutputs_.delay1) < 1e-5f &&
             std::fabs(prevDelayOutputs_.delay2) < 1e-5f) {
-            active_ = false;
-            releasing_ = false;
-            midiNote_ = -1;
+            forceStop();
         }
 
         return preReverb;
@@ -215,6 +225,7 @@ private:
         dcBlockerY1_ = 0.0f;
         prevDelayOutputs_ = {0.0f, 0.0f};
         prevFilterOutput_ = 0.0f;
+        postReleaseDamp_ = 1.0f;
         lastOutput_ = 0.0f;
         paramsVersion_ = 0;
     }
@@ -242,6 +253,7 @@ private:
     float dcBlockerY1_;
     flues::pm::DelayLinesModule::DelayOutputs prevDelayOutputs_;
     float prevFilterOutput_;
+    float postReleaseDamp_;
     uint64_t paramsVersion_;
     uint64_t ageCounter_;
     float lastOutput_;

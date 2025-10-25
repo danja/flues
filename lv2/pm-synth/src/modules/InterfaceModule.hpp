@@ -11,7 +11,8 @@ public:
     explicit InterfaceModule(float sampleRate = 44100.0f)
         : sampleRate(sampleRate),
           currentType(InterfaceType::REED),
-          strategy(InterfaceFactory::createStrategy(currentType, sampleRate)) {}
+          strategy(InterfaceFactory::createStrategy(currentType, sampleRate)),
+          gateState(false) {}
 
     void setType(int typeValue) {
         if (!InterfaceFactory::isValidType(typeValue)) {
@@ -24,6 +25,7 @@ public:
             currentType = type;
             strategy = InterfaceFactory::createStrategy(currentType, sampleRate);
             strategy->setIntensity(oldIntensity);
+            strategy->setGate(gateState);
         }
     }
 
@@ -35,8 +37,16 @@ public:
         return strategy->process(input);
     }
 
+    void setGate(bool gate) {
+        gateState = gate;
+        strategy->setGate(gateState);
+    }
+
     void reset() {
         strategy->reset();
+        if (gateState) {
+            strategy->setGate(true);
+        }
     }
 
     InterfaceType getType() const {
@@ -55,6 +65,7 @@ private:
     float sampleRate;
     InterfaceType currentType;
     std::unique_ptr<InterfaceStrategy> strategy;
+    bool gateState;
 };
 
 } // namespace flues::pm

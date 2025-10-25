@@ -43,6 +43,7 @@ public:
         source.reset();
         envelope.reset();
         interfaceModule.reset();
+        interfaceModule.setGate(true);
         delayLines.reset();
         feedback.reset();
         filter.reset();
@@ -58,6 +59,7 @@ public:
 
     void noteOff() {
         envelope.setGate(false);
+        interfaceModule.setGate(false);
     }
 
     float process() {

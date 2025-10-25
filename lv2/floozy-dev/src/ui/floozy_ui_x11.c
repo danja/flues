@@ -81,6 +81,21 @@ static const char* const kAlgorithmLabels[] = {
     "Modified FM"
 };
 
+static const char* const kInterfaceLabels[] = {
+    "Pluck",
+    "Hit",
+    "Reed",
+    "Flute",
+    "Brass",
+    "Bow",
+    "Bell",
+    "Drum",
+    "Crystal",
+    "Vapor",
+    "Quantum",
+    "Plasma"
+};
+
 typedef struct {
     GroupIndex group;
     const char* label;
@@ -97,11 +112,11 @@ static const ControlDesc kControlInfo[] = {
     { GROUP_SOURCE, "ALGORITHM", PORT_SOURCE_ALGORITHM, 0.0f, 6.0f, 3.0f, 7, kAlgorithmLabels, 7 },
     { GROUP_SOURCE, "PARAM 1", PORT_SOURCE_PARAM1, 0.0f, 1.0f, 0.55f, 0, NULL, 0 },
     { GROUP_SOURCE, "PARAM 2", PORT_SOURCE_PARAM2, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
-    { GROUP_SOURCE, "LEVEL", PORT_SOURCE_LEVEL, 0.0f, 1.0f, 0.70f, 0, NULL, 0 },
-    { GROUP_SOURCE, "NOISE", PORT_SOURCE_NOISE, 0.0f, 1.0f, 0.10f, 0, NULL, 0 },
-    { GROUP_SOURCE, "DC", PORT_SOURCE_DC, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
+    { GROUP_SOURCE, "LEVEL", PORT_SOURCE_LEVEL, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
+    { GROUP_SOURCE, "NOISE", PORT_SOURCE_NOISE, 0.0f, 1.0f, 0.20f, 0, NULL, 0 },
+    { GROUP_SOURCE, "DC", PORT_SOURCE_DC, 0.0f, 1.0f, 0.0f, 0, NULL, 0 },
 
-    { GROUP_INTERFACE, "TYPE", PORT_INTERFACE_TYPE, 0.0f, 11.0f, 2.0f, 12, NULL, 0 },
+    { GROUP_INTERFACE, "TYPE", PORT_INTERFACE_TYPE, 0.0f, 11.0f, 1.0f, 12, kInterfaceLabels, 12 },
     { GROUP_INTERFACE, "INTENSITY", PORT_INTERFACE_INTENSITY, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
 
     { GROUP_ENVELOPE, "ATTACK", PORT_ENVELOPE_ATTACK, 0.0f, 1.0f, 0.33f, 0, NULL, 0 },
@@ -109,8 +124,8 @@ static const ControlDesc kControlInfo[] = {
 
     { GROUP_DELAY, "TUNING", PORT_TUNING, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
     { GROUP_DELAY, "RATIO", PORT_RATIO, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
-    { GROUP_DELAY, "DELAY 1 FB", PORT_DELAY1_FEEDBACK, 0.0f, 1.0f, 0.96f, 0, NULL, 0 },
-    { GROUP_DELAY, "DELAY 2 FB", PORT_DELAY2_FEEDBACK, 0.0f, 1.0f, 0.96f, 0, NULL, 0 },
+    { GROUP_DELAY, "DELAY 1 FB", PORT_DELAY1_FEEDBACK, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
+    { GROUP_DELAY, "DELAY 2 FB", PORT_DELAY2_FEEDBACK, 0.0f, 1.0f, 0.10f, 0, NULL, 0 },
 
     { GROUP_FILTER, "FILTER FB", PORT_FILTER_FEEDBACK, 0.0f, 1.0f, 0.0f, 0, NULL, 0 },
     { GROUP_FILTER, "FREQ", PORT_FILTER_FREQUENCY, 0.0f, 1.0f, 0.57f, 0, NULL, 0 },
