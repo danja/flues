@@ -55,12 +55,16 @@ Digital waveguide clarinet synthesizer - the original experiment that led to the
 * **[Try it live](https://danja.github.io/flues/clarinet-synth/)**
 * [Project README](experiments/clarinet-synth/README.md)
 
-### Floozy
-Hybrid LV2 instrument that grafts Disyn's distortion algorithms onto the Stove physical-modelling engine. A Disyn source block feeds the Stove interface/delay/filter/modulation/reverb chain, giving aggressive spectra inside the resonant acoustic loop.
+### Floozy (mono) and Floozy Poly
+Hybrid LV2 instruments that graft Disyn's distortion algorithms onto the Stove physical-modelling engine. A Disyn source block feeds the Stove interface/delay/filter/modulation/reverb chain, giving aggressive spectra inside the resonant acoustic loop.
 
-* LV2 plugin source: [`lv2/floozy/`](lv2/floozy)
-* [Plugin README](lv2/floozy/README.md)
-* Build helper: `./build_pm_synth.sh --install-default` (builds/distributes pm-synth, disyn, floozy bundles)
+| Variant | Voices | Source | Notes |
+| --- | --- | --- | --- |
+| Floozy | 1 | [`lv2/floozy/`](lv2/floozy) | Original mono implementation |
+| Floozy Poly | 8 | [`lv2/floozy-poly/`](lv2/floozy-poly) | Polyphonic fork of the dev engine |
+
+* Plugin READMEs: [Floozy](lv2/floozy/README.md), [Floozy Poly](lv2/floozy-poly/README.md)
+* Build helper: `./build_pm_synth.sh --install-default` (builds/distributes pm-synth, disyn, floozy bundles). For Floozy Poly, `cmake -S lv2/floozy-poly -B lv2/floozy-poly/build && cmake --build ... --target install`.
 
 ## Reference Materials
 * [CLAUDE.md](CLAUDE.md) - Project guidelines and development practices

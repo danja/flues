@@ -14,9 +14,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#define FLOOZY_URI "https://danja.github.io/flues/plugins/floozy-dev"
+#define FLOOZY_URI "https://danja.github.io/flues/plugins/floozy-poly"
 #define FLOOZY_UI_URI FLOOZY_URI "#ui"
-#define LOG_PREFIX "[Floozy Dev UI] "
+#define LOG_PREFIX "[Floozy Poly UI] "
 
 #define DEFAULT_WINDOW_WIDTH 900
 #define DEFAULT_WINDOW_HEIGHT 640

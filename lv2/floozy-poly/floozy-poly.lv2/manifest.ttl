@@ -1,0 +1,13 @@
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+
+<https://danja.github.io/flues/plugins/floozy-poly>
+    a lv2:Plugin ;
+    lv2:binary <floozy-poly.so> ;
+    rdfs:seeAlso <floozy.ttl> .
+
+<https://danja.github.io/flues/plugins/floozy-poly#ui>
+    a ui:X11UI ;
+    ui:binary <floozy-poly_ui.so> ;
+    rdfs:label "Floozy Poly Control Panel" .

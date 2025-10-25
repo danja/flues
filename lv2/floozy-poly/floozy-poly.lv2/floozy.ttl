@@ -8,9 +8,9 @@
 @prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
 
-<https://danja.github.io/flues/plugins/floozy-dev>
+<https://danja.github.io/flues/plugins/floozy-poly>
     a lv2:InstrumentPlugin ;
-    doap:name "Floozy Dev" ;
+    doap:name "Floozy Poly" ;
     doap:description "Hybrid 8-voice physical/modulation synthesizer combining PM-Synth acoustic modules with Disyn distortion sources." ;
     doap:license <https://opensource.org/licenses/MIT> ;
     doap:maintainer [
@@ -18,7 +18,7 @@
         foaf:homepage <https://danja.github.io/flues/>
     ] ;
     lv2:requiredFeature urid:map ;
-    ui:ui <https://danja.github.io/flues/plugins/floozy-dev#ui> ;
+    ui:ui <https://danja.github.io/flues/plugins/floozy-poly#ui> ;
     lv2:port [
         a lv2:OutputPort , lv2:AudioPort ;
         lv2:index 0 ;
@@ -278,7 +278,7 @@
         lv2:maximum 1.0
     ] .
 
-<https://danja.github.io/flues/plugins/floozy-dev#ui>
+<https://danja.github.io/flues/plugins/floozy-poly#ui>
     a ui:X11UI ;
-    ui:binary <floozy-dev_ui.so> ;
-    rdfs:label "Floozy Dev Control Panel" .
+    ui:binary <floozy-poly_ui.so> ;
+    rdfs:label "Floozy Poly Control Panel" .

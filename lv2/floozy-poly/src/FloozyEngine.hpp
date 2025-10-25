@@ -17,7 +17,7 @@
 #include "../../pm-synth/src/modules/ModulationModule.hpp"
 #include "../../pm-synth/src/modules/ReverbModule.hpp"
 
-namespace flues::floozy_dev {
+namespace flues::floozy_poly {
 
 struct FloozyParams {
     float sourceAlgorithm = 3.0f;
@@ -409,4 +409,4 @@ private:
     uint64_t voiceAgeCounter_;
 };
 
-} // namespace flues::floozy_dev
+} // namespace flues::floozy_poly
