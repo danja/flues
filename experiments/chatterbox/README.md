@@ -22,7 +22,10 @@ Chatterbox simulates human speech production using a classic source-filter model
 - **Dual Excitation Sources:**
   - Voiced (larynx): Modified sawtooth wave
   - Aspirated (noise): White noise generator
-- **Pitch Control:** 80-400 Hz range with exponential mapping
+- **Pitch Control:**
+  - Computer keyboard: 3-octave piano layout (C3-E6)
+  - MIDI keyboard: Full note range with proper pitch
+  - Pitch slider: Base pitch for joystick/spacebar (80-400 Hz)
 - **Envelope Shaping:** Attack/release controls
 - **Vocal Modes:**
   - **Nasal:** Adds 250 Hz nasal formant in parallel
@@ -69,8 +72,18 @@ Open http://localhost:5173/ in your browser.
 
 ### Keyboard Shortcuts
 
-- **Spacebar:** Hold to trigger sound (like clicking joystick)
-- Mouse/touch works on canvas for position control
+**Pitched Keyboard (Piano Layout):**
+- **Q-P row:** C5-C6 (high octave)
+  - Q=C5, W=D5, E=E5, R=F5, T=G5, Y=A5, U=B5, I=C6, O=D6, P=E6
+- **A-L row:** C4-C5 (middle octave, contains Middle C)
+  - A=C4, S=D4, D=E4, F=F4, G=G4, H=A4, J=B4, K=C5, L=D5
+- **Z-M row:** C3-C4 (low octave)
+  - Z=C3, X=D3, C=E3, V=F3, B=G3, N=A3, M=B3
+- **Spacebar:** Trigger sound using pitch slider value (for joystick-like control)
+
+**MIDI Input:** External MIDI keyboard sends proper note pitches
+
+**Mouse/Touch:** Click and drag on joystick canvas to control formants (vowel position)
 
 ## Architecture
 

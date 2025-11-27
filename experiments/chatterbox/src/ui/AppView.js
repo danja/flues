@@ -61,7 +61,7 @@ export class AppView {
           <h2 class="panel__title">Source</h2>
           <div class="source-controls">
             <div class="slider-control">
-              <label for="pitch-slider">Pitch</label>
+              <label for="pitch-slider">Base Pitch (Joystick/Space)</label>
               <input type="range" id="pitch-slider" min="0" max="100" value="30" data-pitch-slider />
               <span data-pitch-value>120 Hz</span>
             </div>
@@ -86,8 +86,9 @@ export class AppView {
         <section class="panel">
           <h2 class="panel__title">Vowel Space (F1 & F2)</h2>
           <div class="instructions">
-            <p><strong>Click and drag</strong> on the canvas to speak. Hold <kbd>Space</kbd> to trigger sound.</p>
-            <p>Move around to change vowel sounds: <strong>i</strong> (top-left), <strong>e</strong>, <strong>a</strong> (bottom), <strong>o</strong>, <strong>u</strong> (top-right)</p>
+            <p><strong>Click and drag</strong> on the canvas to speak. Use computer keyboard for pitched notes:</p>
+            <p><kbd>Q</kbd>-<kbd>P</kbd> = C5-C6 (high) • <kbd>A</kbd>-<kbd>L</kbd> = C4-C5 (middle) • <kbd>Z</kbd>-<kbd>M</kbd> = C3-C4 (low) • <kbd>Space</kbd> = slider pitch</p>
+            <p>Move joystick to morph vowels: <strong>i</strong> (top-left), <strong>e</strong>, <strong>a</strong> (bottom), <strong>o</strong>, <strong>u</strong> (top-right)</p>
           </div>
           <div class="joystick-container">
             <canvas data-joystick width="500" height="350"></canvas>
@@ -477,32 +478,76 @@ export class AppView {
   }
 
   setupKeyboardShortcuts() {
-    // Spacebar to trigger sound (like holding joystick)
+    // Computer keyboard to MIDI note mapping (piano-style layout)
+    // Bottom row: Z X C V B N M , . /  = C3-B3
+    // Middle row: A S D F G H J K L ;  = C4-B4
+    // Top row:    Q W E R T Y U I O P  = C5-B5
+    const keyToMidi = {
+      // C3 octave (48-59)
+      'KeyZ': 48, 'KeyX': 50, 'KeyC': 52, 'KeyV': 53, 'KeyB': 55,
+      'KeyN': 57, 'KeyM': 59,
+      // C4 octave (60-71) - Middle C
+      'KeyA': 60, 'KeyS': 62, 'KeyD': 64, 'KeyF': 65, 'KeyG': 67,
+      'KeyH': 69, 'KeyJ': 71, 'KeyK': 72, 'KeyL': 74,
+      // C5 octave (72-83)
+      'KeyQ': 72, 'KeyW': 74, 'KeyE': 76, 'KeyR': 77, 'KeyT': 79,
+      'KeyY': 81, 'KeyU': 83, 'KeyI': 84, 'KeyO': 86, 'KeyP': 88,
+      // Spacebar triggers with pitch slider value
+      'Space': 'slider'
+    };
+
+    this.activeKeys = new Set();
+
+    // Convert MIDI note to frequency
+    const midiToFreq = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+
     window.addEventListener('keydown', async (e) => {
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        if (!this.isJoystickActive) {
-          this.isJoystickActive = true;
-          const canvas = this.container.querySelector('[data-joystick]');
-          canvas.classList.add('active');
-          await this.handleNoteOn({
-            midi: 60,
-            frequency: this.currentPitch,
-            velocity: 0.8,
-          });
-        }
+      const midiNote = keyToMidi[e.code];
+      if (!midiNote || e.repeat) return;
+
+      e.preventDefault();
+
+      // Avoid duplicate triggers
+      if (this.activeKeys.has(e.code)) return;
+      this.activeKeys.add(e.code);
+
+      let frequency, midi;
+      if (midiNote === 'slider') {
+        // Spacebar uses pitch slider (for joystick-like triggering)
+        frequency = this.currentPitch;
+        midi = 60; // Arbitrary MIDI note
+        this.isJoystickActive = true;
+        const canvas = this.container.querySelector('[data-joystick]');
+        canvas.classList.add('active');
+      } else {
+        // Piano keys use their MIDI pitch
+        midi = midiNote;
+        frequency = midiToFreq(midi);
       }
+
+      await this.handleNoteOn({
+        midi,
+        frequency,
+        velocity: 0.8,
+      });
     });
 
     window.addEventListener('keyup', (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
+      const midiNote = keyToMidi[e.code];
+      if (!midiNote) return;
+
+      e.preventDefault();
+      this.activeKeys.delete(e.code);
+
+      if (midiNote === 'slider') {
         if (this.isJoystickActive) {
           this.isJoystickActive = false;
           const canvas = this.container.querySelector('[data-joystick]');
           canvas.classList.remove('active');
           this.handleNoteOff({ midi: 60 });
         }
+      } else {
+        this.handleNoteOff({ midi: midiNote });
       }
     });
   }
