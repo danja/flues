@@ -90,12 +90,13 @@ Output
 
 ### DSP Modules
 
-- **LarynxModule:** Modified sawtooth oscillator with waveshaping
-- **AspiratorModule:** White noise generator
+- **LarynxModule:** Modified sawtooth oscillator with waveshaping, vibrato, and vocal fry
+- **AspiratorModule:** White noise generator with level control
 - **FormantModule:** Resonant bandpass filter (biquad implementation)
-- **FormantBankModule:** Cascade of 4 formants with makeup gain
+- **FormantBankModule:** Cascade of 4 formants + optional nasal formant (250 Hz)
 - **EnvelopeModule:** Attack/release envelope generator
 - **ReverbModule:** Schroeder reverb for ambience
+- **Vocal Processing:** Stress (gain + soft clipping), shout mode (formant boost)
 
 ### Files
 
@@ -169,13 +170,14 @@ npm test
 
 **Test Coverage:**
 - FormantModule: frequency/bandwidth setting, stability, DC attenuation
-- FormantBankModule: cascade processing, vowel presets
-- LarynxModule: waveform generation, pitch control
+- FormantBankModule: cascade processing, vowel presets, nasal mode
+- LarynxModule: waveform generation, pitch control, vibrato, vocal fry
 - AspiratorModule: noise generation, level control
 - JoystickControl: click simulation, drag gestures
-- Integration: complete synthesis chain
+- Vocal Modes: nasal, sing, shout, fry, stress processing
+- Integration: complete synthesis chain with multiple modes
 
-All 29 tests passing ✓
+All 41 tests passing ✓
 
 ## Development
 

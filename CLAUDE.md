@@ -93,18 +93,18 @@ A speech synthesis application using formant filtering and source-filter vocal t
 
 **Architecture:**
 - `src/audio/modules/` - Six DSP modules:
-  - `LarynxModule.js` - Modified sawtooth oscillator for voiced sounds
+  - `LarynxModule.js` - Modified sawtooth oscillator with vibrato and vocal fry
   - `AspiratorModule.js` - White noise generator for unvoiced sounds
   - `FormantModule.js` - Single resonant bandpass filter (biquad)
-  - `FormantBankModule.js` - Cascade of four formants (F1-F4)
+  - `FormantBankModule.js` - Cascade of four formants (F1-F4) + optional nasal formant
   - `EnvelopeModule.js` - Attack/release envelope
   - `ReverbModule.js` - Schroeder reverb
 - `src/audio/ChatterboxEngine.js` - Main coordinator with parameter mapping
-- `src/audio/chatterbox-worklet.js` - AudioWorklet processor
+- `src/audio/chatterbox-worklet.js` - AudioWorklet processor with vocal mode processing
 - `src/ui/JoystickControl.js` - 2D canvas controller for F1/F2 (unique to Chatterbox)
 - `src/ui/AppView.js` - UI coordinator
 - `docs/CHATTERBOX-PLAN.md` - Complete implementation plan
-- `tests/` - Unit tests for DSP modules and joystick interaction
+- `tests/` - Unit tests for DSP modules, vocal modes, and joystick interaction
 
 **Running:**
 ```bash
@@ -120,13 +120,17 @@ npm run dev
 - Source: Voiced/Aspirated checkboxes, Noise level
 - Formants: F3 and F4 frequency sliders
 - Envelope: Attack and release controls
+- Vocal Modes: Nasal, Sing (vibrato), Shout, Fry (vocal fry)
+- Stress: Amplitude control with soft clipping (Soft → Very Loud)
 
 **Key Features:**
 - Interactive IPA vowel quadrilateral with visual markers
-- Real-time formant manipulation (F1-F4)
+- Real-time formant manipulation (F1-F4) + optional nasal formant (250 Hz)
 - Dual excitation sources (larynx + aspirator)
+- Advanced vocal modes: vibrato (5.5 Hz), vocal fry (subharmonics), shout (15% formant boost)
+- Stress processing: 0.5-2.0x gain with tanh soft clipping
 - Q-based bandpass filters with cascade gain compensation
-- 29 passing tests (DSP + interaction)
+- 41 passing tests (DSP + vocal modes + interaction)
 
 ### PM Synthesizer
 
