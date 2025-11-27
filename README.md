@@ -49,6 +49,15 @@ Available in three implementations:
 - Real-time parameter control (18 parameters)
 - High-fidelity physical modeling algorithms
 
+### Chatterbox
+Speech synthesis using formant filtering and source-filter vocal tract modeling.
+
+* **[Try it live](https://danja.github.io/flues/chatterbox/)**
+* [Project README](experiments/chatterbox/README.md)
+* Interactive IPA vowel quadrilateral joystick control
+* Real-time F1-F4 formant manipulation
+* Larynx (voiced) and aspirator (unvoiced) excitation sources
+
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.
 

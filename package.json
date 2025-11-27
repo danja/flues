@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "npm run ghp && vite --open",
     "ghp": "npm run build:all && npm run copy:www",
-    "build:all": "npm run build:clarinet && npm run build:pm && npm run build:disyn",
+    "build:all": "npm run build:clarinet && npm run build:pm && npm run build:disyn && npm run build:chatterbox",
     "build:clarinet": "cd experiments/clarinet-synth && npm run build",
     "build:pm": "cd experiments/pm-synth && npm run build",
     "build:disyn": "cd experiments/disyn && npm run build",
-    "copy:www": "rm -rf www/clarinet-synth www/pm-synth www/disyn && mkdir -p www/clarinet-synth www/pm-synth www/disyn && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/ && cp -r experiments/pm-synth/dist/. www/pm-synth/ && cp -r experiments/disyn/dist/. www/disyn/"
+    "build:chatterbox": "cd experiments/chatterbox && npm run build",
+    "copy:www": "rm -rf www/clarinet-synth www/pm-synth www/disyn www/chatterbox && mkdir -p www/clarinet-synth www/pm-synth www/disyn www/chatterbox && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/ && cp -r experiments/pm-synth/dist/. www/pm-synth/ && cp -r experiments/disyn/dist/. www/disyn/ && cp -r experiments/chatterbox/dist/. www/chatterbox/"
   },
   "keywords": [],
   "author": "Danny Ayers",

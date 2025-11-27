@@ -85,6 +85,49 @@ npm run dev
 - Bore & Resonance: Damping, Brightness, Vibrato, Release
 - Keyboard: Mouse/touch on visual keys or computer keyboard (AWSEDFTGYHUHJK)
 
+### Chatterbox Synthesizer
+
+**Location:** `experiments/chatterbox/`
+
+A speech synthesis application using formant filtering and source-filter vocal tract modeling. Runs entirely in the browser with interactive IPA vowel quadrilateral control.
+
+**Architecture:**
+- `src/audio/modules/` - Six DSP modules:
+  - `LarynxModule.js` - Modified sawtooth oscillator for voiced sounds
+  - `AspiratorModule.js` - White noise generator for unvoiced sounds
+  - `FormantModule.js` - Single resonant bandpass filter (biquad)
+  - `FormantBankModule.js` - Cascade of four formants (F1-F4)
+  - `EnvelopeModule.js` - Attack/release envelope
+  - `ReverbModule.js` - Schroeder reverb
+- `src/audio/ChatterboxEngine.js` - Main coordinator with parameter mapping
+- `src/audio/chatterbox-worklet.js` - AudioWorklet processor
+- `src/ui/JoystickControl.js` - 2D canvas controller for F1/F2 (unique to Chatterbox)
+- `src/ui/AppView.js` - UI coordinator
+- `docs/CHATTERBOX-PLAN.md` - Complete implementation plan
+- `tests/` - Unit tests for DSP modules and joystick interaction
+
+**Running:**
+```bash
+cd experiments/chatterbox
+npm install
+npm run dev
+```
+
+**Controls:**
+- Vowel Canvas: Click and drag to speak, move to morph vowels (i, e, a, o, u)
+- Spacebar: Hold to trigger sound (hands-free)
+- Pitch Slider: Adjust fundamental frequency (80-400 Hz)
+- Source: Voiced/Aspirated checkboxes, Noise level
+- Formants: F3 and F4 frequency sliders
+- Envelope: Attack and release controls
+
+**Key Features:**
+- Interactive IPA vowel quadrilateral with visual markers
+- Real-time formant manipulation (F1-F4)
+- Dual excitation sources (larynx + aspirator)
+- Q-based bandpass filters with cascade gain compensation
+- 29 passing tests (DSP + interaction)
+
 ### PM Synthesizer
 
 **Location:** `experiments/pm-synth/`
