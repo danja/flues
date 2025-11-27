@@ -26,7 +26,6 @@ flues/
 │       ├── index.html           # UI layout
 │       └── package.json         # Dependencies and scripts
 ├── html/                # Original prototypes and experiments
-├── kxmx_bluemchen/      # Eurorack module related code
 ├── reference/           # Reference materials
 ├── www/                 # Built static site for GitHub Pages
 │   ├── index.html       # Landing page
