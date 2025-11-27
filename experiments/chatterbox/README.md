@@ -24,6 +24,12 @@ Chatterbox simulates human speech production using a classic source-filter model
   - Aspirated (noise): White noise generator
 - **Pitch Control:** 80-400 Hz range with exponential mapping
 - **Envelope Shaping:** Attack/release controls
+- **Vocal Modes:**
+  - **Nasal:** Adds 250 Hz nasal formant in parallel
+  - **Sing:** Vibrato (5.5 Hz, ±1.5% pitch modulation)
+  - **Shout:** Boosts formant frequencies by 15% and increases noise
+  - **Fry:** Adds subharmonic at octave below (vocal fry)
+  - **Stress:** Amplitude control (0.5-2.0x) with soft clipping at high levels
 - **Keyboard Shortcuts:** Spacebar to trigger sound
 - **MIDI Support:** External keyboard control
 - **Visual Feedback:** Canvas glows when speaking
@@ -54,6 +60,12 @@ Open http://localhost:5173/ in your browser.
    - Noise Level: Control aspiration amount
 5. **Formant Sliders:** Fine-tune F3 and F4 frequencies
 6. **Envelope:** Adjust attack and release times
+7. **Vocal Modes:**
+   - Nasal: Add nasal resonance (parallel 250 Hz formant)
+   - Sing: Add vibrato to pitch (5.5 Hz LFO)
+   - Shout: Boost formants and noise for louder voice
+   - Fry: Add vocal fry (subharmonic at octave below)
+   - Stress: Control amplitude from Soft to Very Loud with distortion
 
 ### Keyboard Shortcuts
 

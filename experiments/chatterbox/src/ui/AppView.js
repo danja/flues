@@ -40,6 +40,7 @@ export class AppView {
     this.setupJoystick();
     this.setupFormantControls();
     this.setupEnvelopeControls();
+    this.setupVocalModes();
     this.setupMidiControls();
     this.setupKeyboardShortcuts();
     this.updateStatusPill('pending');
@@ -130,24 +131,29 @@ export class AppView {
         </section>
 
         <section class="panel">
-          <h2 class="panel__title">Voice Modes (Future Features)</h2>
+          <h2 class="panel__title">Voice Modes</h2>
           <div class="checkbox-group">
             <label>
-              <input type="checkbox" disabled />
+              <input type="checkbox" data-nasal />
               Nasal
             </label>
             <label>
-              <input type="checkbox" disabled />
-              Sing
+              <input type="checkbox" data-sing />
+              Sing (Vibrato)
             </label>
             <label>
-              <input type="checkbox" disabled />
+              <input type="checkbox" data-shout />
               Shout
             </label>
             <label>
-              <input type="checkbox" disabled />
-              Fry
+              <input type="checkbox" data-fry />
+              Fry (Vocal Fry)
             </label>
+          </div>
+          <div class="slider-control">
+            <label for="stress-slider">Stress</label>
+            <input type="range" id="stress-slider" min="0" max="100" value="50" data-stress-slider />
+            <span data-stress-value>Normal</span>
           </div>
         </section>
 
@@ -308,6 +314,49 @@ export class AppView {
       const seconds = 0.01 * Math.pow(3.0 / 0.01, normalized);
       this.engine.setEnvelope({ release: normalized });
       releaseValue.textContent = formatSeconds(seconds);
+    });
+  }
+
+  setupVocalModes() {
+    // Nasal checkbox
+    const nasalCheckbox = this.container.querySelector('[data-nasal]');
+    nasalCheckbox.addEventListener('change', (e) => {
+      this.engine.setNasal(e.target.checked);
+    });
+
+    // Sing checkbox (vibrato)
+    const singCheckbox = this.container.querySelector('[data-sing]');
+    singCheckbox.addEventListener('change', (e) => {
+      this.engine.setSing(e.target.checked);
+    });
+
+    // Shout checkbox
+    const shoutCheckbox = this.container.querySelector('[data-shout]');
+    shoutCheckbox.addEventListener('change', (e) => {
+      this.engine.setShout(e.target.checked);
+    });
+
+    // Fry checkbox (vocal fry)
+    const fryCheckbox = this.container.querySelector('[data-fry]');
+    fryCheckbox.addEventListener('change', (e) => {
+      this.engine.setFry(e.target.checked);
+    });
+
+    // Stress slider
+    const stressSlider = this.container.querySelector('[data-stress-slider]');
+    const stressValue = this.container.querySelector('[data-stress-value]');
+    stressSlider.addEventListener('input', (e) => {
+      const level = e.target.value / 100;
+      this.engine.setStress(level);
+
+      // Map to descriptive labels
+      let label = 'Normal';
+      if (level < 0.3) label = 'Soft';
+      else if (level < 0.5) label = 'Relaxed';
+      else if (level > 0.7) label = 'Loud';
+      else if (level > 0.9) label = 'Very Loud';
+
+      stressValue.textContent = label;
     });
   }
 

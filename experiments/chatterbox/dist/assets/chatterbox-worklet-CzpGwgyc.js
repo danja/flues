@@ -31,6 +31,21 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
       gate: false,
     };
 
+    // Vocal modes
+    this.nasal = false;
+    this.sing = false;
+    this.shout = false;
+    this.fry = false;
+    this.stress = 0.5;
+
+    // Store original formant frequencies for shout mode
+    this.baseFormants = [
+      { frequency: 500, bandwidth: 80 },
+      { frequency: 1500, bandwidth: 120 },
+      { frequency: 2500, bandwidth: 150 },
+      { frequency: 3500, bandwidth: 200 },
+    ];
+
     this.masterGain = 0.8;
 
     this.port.onmessage = (event) => this.handleMessage(event.data);
@@ -88,9 +103,37 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
         this.aspirator.setLevel(message.value);
         break;
 
+      case 'nasal':
+        this.nasal = !!message.value;
+        this.formantBank.setNasal(this.nasal);
+        break;
+
+      case 'sing':
+        this.sing = !!message.value;
+        this.larynx.setVibrato(this.sing);
+        break;
+
+      case 'shout':
+        this.shout = !!message.value;
+        this.updateFormants();
+        break;
+
+      case 'fry':
+        this.fry = !!message.value;
+        this.larynx.setFry(this.fry);
+        break;
+
+      case 'stress':
+        this.stress = message.value ?? 0.5;
+        break;
+
       case 'formant':
         if (typeof message.index === 'number' && message.frequency && message.bandwidth) {
-          this.formantBank.setFormant(message.index, message.frequency, message.bandwidth);
+          this.baseFormants[message.index] = {
+            frequency: message.frequency,
+            bandwidth: message.bandwidth,
+          };
+          this.updateFormants();
         }
         break;
 
@@ -134,6 +177,24 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
     }
   }
 
+  updateFormants() {
+    // Apply shout mode (increase formant frequencies by 15%)
+    const shoutMultiplier = this.shout ? 1.15 : 1.0;
+
+    for (let i = 0; i < this.baseFormants.length; i++) {
+      const base = this.baseFormants[i];
+      if (base) {
+        const freq = base.frequency * shoutMultiplier;
+        this.formantBank.setFormant(i, freq, base.bandwidth);
+      }
+    }
+
+    // Shout mode also increases noise level
+    if (this.shout) {
+      this.aspirator.setLevel(Math.min(1.0, this.aspirator.level * 1.5));
+    }
+  }
+
   generateSample() {
     // Check if voice is active
     if (!this.voice.active && !this.envelope.active) {
@@ -156,7 +217,21 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
     const filtered = this.formantBank.process(excitation);
 
     // Apply envelope and velocity
-    const sample = filtered * env * this.voice.velocity * this.masterGain;
+    let sample = filtered * env * this.voice.velocity;
+
+    // Apply stress (amplitude + distortion)
+    // Stress maps 0-1 to 0.5-2.0x gain with slight saturation
+    const stressGain = 0.5 + this.stress * 1.5;
+    sample *= stressGain;
+
+    // Add soft clipping for high stress values
+    if (this.stress > 0.6) {
+      const drive = (this.stress - 0.6) * 5; // 0-2 drive
+      sample = Math.tanh(sample * (1 + drive));
+    }
+
+    // Apply master gain
+    sample *= this.masterGain;
 
     // Apply reverb
     return this.reverb.process(sample);

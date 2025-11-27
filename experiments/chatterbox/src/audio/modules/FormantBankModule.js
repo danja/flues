@@ -15,6 +15,12 @@ export class FormantBankModule {
       new FormantModule(sampleRate), // F4
     ];
 
+    // Create nasal formant (optional 5th formant)
+    this.nasalFormant = new FormantModule(sampleRate);
+    this.nasalFormant.setFrequency(250); // Typical nasal formant
+    this.nasalFormant.setBandwidth(100); // Wide bandwidth for nasal resonance
+    this.nasalEnabled = false;
+
     // Set default formant frequencies and bandwidths
     // These approximate a neutral vowel (schwa)
     this.setFormant(0, 500, 80);   // F1 - wider bandwidth
@@ -74,6 +80,14 @@ export class FormantBankModule {
   }
 
   /**
+   * Enable or disable nasal resonance
+   * @param {boolean} enabled - True to add nasal formant to cascade
+   */
+  setNasal(enabled) {
+    this.nasalEnabled = !!enabled;
+  }
+
+  /**
    * Load a vowel preset
    * @param {string} vowel - Vowel name ('a', 'e', 'i', 'o', 'u')
    */
@@ -109,6 +123,12 @@ export class FormantBankModule {
       signal = this.formants[i].process(signal);
     }
 
+    // If nasal mode is enabled, add nasal resonance in parallel
+    if (this.nasalEnabled) {
+      const nasal = this.nasalFormant.process(input) * 0.3; // Attenuate nasal component
+      signal += nasal;
+    }
+
     // Apply makeup gain to compensate for cascade attenuation
     return signal * this.makeupGain;
   }
@@ -120,5 +140,6 @@ export class FormantBankModule {
     for (let i = 0; i < this.formants.length; i++) {
       this.formants[i].reset();
     }
+    this.nasalFormant.reset();
   }
 }

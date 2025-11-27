@@ -9,6 +9,16 @@ export class LarynxModule {
     this.phase = 0;
     this.frequency = 120; // Default pitch (Hz)
     this.enabled = true;
+
+    // Vocal fry mode (subharmonics)
+    this.fryEnabled = false;
+    this.fryPhase = 0;
+
+    // Vibrato (sing mode)
+    this.vibratoEnabled = false;
+    this.vibratoPhase = 0;
+    this.vibratoRate = 5.5; // Hz
+    this.vibratoDepth = 0.015; // ±1.5%
   }
 
   /**
@@ -25,6 +35,22 @@ export class LarynxModule {
    */
   setVoiced(enabled) {
     this.enabled = enabled;
+  }
+
+  /**
+   * Enable or disable vocal fry mode
+   * @param {boolean} enabled - True to add subharmonics
+   */
+  setFry(enabled) {
+    this.fryEnabled = enabled;
+  }
+
+  /**
+   * Enable or disable vibrato (sing mode)
+   * @param {boolean} enabled - True to add vibrato
+   */
+  setVibrato(enabled) {
+    this.vibratoEnabled = enabled;
   }
 
   /**
@@ -49,7 +75,18 @@ export class LarynxModule {
       return 0;
     }
 
-    this.stepPhase(this.frequency);
+    // Apply vibrato if enabled
+    let currentFreq = this.frequency;
+    if (this.vibratoEnabled) {
+      this.vibratoPhase += this.vibratoRate / this.sampleRate;
+      if (this.vibratoPhase >= 1.0) {
+        this.vibratoPhase -= 1.0;
+      }
+      const vibrato = Math.sin(TWO_PI * this.vibratoPhase);
+      currentFreq *= 1.0 + vibrato * this.vibratoDepth;
+    }
+
+    this.stepPhase(currentFreq);
 
     // Generate modified sawtooth wave
     // Add some waveshaping for richer harmonic content
@@ -57,7 +94,17 @@ export class LarynxModule {
 
     // Apply mild cubic waveshaping to emphasize odd harmonics
     // This makes the waveform more "vocal-like"
-    const shaped = naive + 0.15 * (naive * naive * naive);
+    let shaped = naive + 0.15 * (naive * naive * naive);
+
+    // Add vocal fry (subharmonics) if enabled
+    if (this.fryEnabled) {
+      this.fryPhase += (currentFreq * 0.5) / this.sampleRate; // Octave below
+      if (this.fryPhase >= 1.0) {
+        this.fryPhase -= 1.0;
+      }
+      const fry = (this.fryPhase * 2 - 1) * 0.3; // Attenuated subharmonic
+      shaped += fry;
+    }
 
     return shaped * 0.5; // Scale down to prevent clipping
   }
@@ -67,5 +114,7 @@ export class LarynxModule {
    */
   reset() {
     this.phase = 0;
+    this.fryPhase = 0;
+    this.vibratoPhase = 0;
   }
 }

@@ -27,6 +27,13 @@ export class ChatterboxEngine {
     this.aspirated = false;
     this.noiseLevel = 0.2;
 
+    // Vocal modes
+    this.nasal = false;
+    this.sing = false;
+    this.shout = false;
+    this.fry = false;
+    this.stress = 0.5; // normalized 0-1
+
     // Formant parameters (normalized 0-1)
     this.formants = {
       f1: 0.5, // Maps to ~500-700 Hz
@@ -132,6 +139,31 @@ export class ChatterboxEngine {
   setNoiseLevel(level) {
     this.noiseLevel = Math.min(Math.max(level, 0), 1);
     this.postStateToWorklet({ type: 'noiseLevel', value: this.noiseLevel });
+  }
+
+  setNasal(enabled) {
+    this.nasal = !!enabled;
+    this.postStateToWorklet({ type: 'nasal', value: this.nasal });
+  }
+
+  setSing(enabled) {
+    this.sing = !!enabled;
+    this.postStateToWorklet({ type: 'sing', value: this.sing });
+  }
+
+  setShout(enabled) {
+    this.shout = !!enabled;
+    this.postStateToWorklet({ type: 'shout', value: this.shout });
+  }
+
+  setFry(enabled) {
+    this.fry = !!enabled;
+    this.postStateToWorklet({ type: 'fry', value: this.fry });
+  }
+
+  setStress(level) {
+    this.stress = Math.min(Math.max(level, 0), 1);
+    this.postStateToWorklet({ type: 'stress', value: this.stress });
   }
 
   setFormant(index, normalized) {
@@ -247,6 +279,11 @@ export class ChatterboxEngine {
       voiced: this.voiced,
       aspirated: this.aspirated,
       noiseLevel: this.noiseLevel,
+      nasal: this.nasal,
+      sing: this.sing,
+      shout: this.shout,
+      fry: this.fry,
+      stress: this.stress,
       formants: this.formants,
       envelope: this.envelope,
       reverb: this.reverb,
