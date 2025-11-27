@@ -136,7 +136,7 @@ Input → F1 → F2 → F3 → F4 (cascade)
 
 **Stress Levels:**
 - 0.0-0.3: Soft (0.5-0.95x gain)
-- 0.3-0.5: Relaxed (0.95-1.25x gain, no clipping)
+- 0.3-0.5: Relaxed (0.95-1.25x gain, no clipping) **← Default: 0.3**
 - 0.5-0.7: Normal (1.25-1.55x gain, mild clipping)
 - 0.7-0.9: Loud (1.55-1.85x gain, moderate clipping)
 - 0.9-1.0: Very Loud (1.85-2.0x gain, heavy clipping)
@@ -319,11 +319,12 @@ Stress: 30% (Soft)
 
 - **Sample Rate:** 48000 Hz (typical)
 - **Formant Filters:** Biquad bandpass (Q-based design)
-- **Cascade Gain:** 8.0x makeup gain
+- **Cascade Gain:** 3.0x makeup gain (reduced to prevent clipping)
 - **Vibrato Waveform:** Sine wave (smooth modulation)
 - **Fry Waveform:** Sawtooth (matches larynx)
 - **Clipping Function:** `tanh()` soft saturation
 - **Nasal Topology:** Parallel (not in cascade)
+- **Default Stress:** 0.3 (relaxed, prevents clipping at default settings)
 
 ---
 

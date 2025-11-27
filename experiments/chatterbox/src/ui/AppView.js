@@ -153,8 +153,8 @@ export class AppView {
           </div>
           <div class="slider-control">
             <label for="stress-slider">Stress</label>
-            <input type="range" id="stress-slider" min="0" max="100" value="50" data-stress-slider />
-            <span data-stress-value>Normal</span>
+            <input type="range" id="stress-slider" min="0" max="100" value="30" data-stress-slider />
+            <span data-stress-value>Relaxed</span>
           </div>
         </section>
 
@@ -194,15 +194,15 @@ export class AppView {
   }
 
   setupSourceControls() {
-    // Pitch slider
+    // Pitch slider - only affects joystick/spacebar, not keyboard/MIDI
     const pitchSlider = this.container.querySelector('[data-pitch-slider]');
     const pitchValue = this.container.querySelector('[data-pitch-value]');
     pitchSlider.addEventListener('input', (e) => {
       const normalized = e.target.value / 100;
-      this.engine.setPitch(normalized);
       const hz = 80 * Math.pow(400 / 80, normalized);
-      this.currentPitch = hz; // Store for joystick notes
+      this.currentPitch = hz; // Store for joystick/spacebar notes
       pitchValue.textContent = formatHz(hz);
+      // NOTE: Don't call engine.setPitch() - keyboard/MIDI set their own pitches
     });
 
     // Noise level slider

@@ -32,7 +32,7 @@ export class ChatterboxEngine {
     this.sing = false;
     this.shout = false;
     this.fry = false;
-    this.stress = 0.5; // normalized 0-1
+    this.stress = 0.3; // normalized 0-1 (0.3 = relaxed, lower default to avoid clipping)
 
     // Formant parameters (normalized 0-1)
     this.formants = {

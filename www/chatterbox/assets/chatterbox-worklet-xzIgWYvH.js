@@ -36,7 +36,7 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
     this.sing = false;
     this.shout = false;
     this.fry = false;
-    this.stress = 0.5;
+    this.stress = 0.3; // Lower default to avoid clipping
 
     // Store original formant frequencies for shout mode
     this.baseFormants = [

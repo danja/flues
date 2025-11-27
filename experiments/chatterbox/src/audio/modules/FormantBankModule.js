@@ -30,7 +30,7 @@ export class FormantBankModule {
 
     // Gain compensation for cascade
     // With Q-based filters, we need moderate gain compensation
-    this.makeupGain = 8.0;
+    this.makeupGain = 3.0;
   }
 
   /**

@@ -157,7 +157,7 @@ Approximate formant frequencies for vowels (male voice):
 
 - **Type:** Biquad bandpass filters
 - **Q Calculation:** Q = f₀ / BW
-- **Cascade Gain:** 8x makeup gain to compensate attenuation
+- **Cascade Gain:** 3x makeup gain to compensate attenuation (reduced to prevent clipping)
 - **Bandwidths:** 80-200 Hz (wider for lower formants)
 
 ### IPA Vowel Quadrilateral
