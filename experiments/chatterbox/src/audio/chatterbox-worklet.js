@@ -32,7 +32,6 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
     };
 
     this.masterGain = 0.8;
-    this.debugLogged = false;
 
     this.port.onmessage = (event) => this.handleMessage(event.data);
   }
@@ -121,14 +120,12 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
         this.voice.gate = true;
         this.envelope.gate(true);
         this.formantBank.reset();
-        this.port.postMessage({ type: 'log', data: `noteOn: freq=${this.voice.frequency}, voiced=${this.larynx.enabled}` });
         break;
 
       case 'noteOff':
         if (this.voice.midi === message.midi) {
           this.voice.gate = false;
           this.envelope.gate(false);
-          this.debugLogged = false;
         }
         break;
 
@@ -162,18 +159,7 @@ class ChatterboxProcessor extends AudioWorkletProcessor {
     const sample = filtered * env * this.voice.velocity * this.masterGain;
 
     // Apply reverb
-    const final = this.reverb.process(sample);
-
-    // Debug: log first sample through entire chain
-    if (this.voice.active && !this.debugLogged) {
-      this.debugLogged = true;
-      this.port.postMessage({
-        type: 'log',
-        data: `Chain: larynx=${larynxSignal.toFixed(3)}, exc=${excitation.toFixed(3)}, filtered=${filtered.toFixed(3)}, env=${env.toFixed(3)}, sample=${sample.toFixed(3)}, final=${final.toFixed(3)}`
-      });
-    }
-
-    return final;
+    return this.reverb.process(sample);
   }
 
   process(_inputs, outputs) {

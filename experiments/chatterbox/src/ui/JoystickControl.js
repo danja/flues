@@ -107,8 +107,8 @@ export class JoystickControl {
     const w = this.width;
     const h = this.height;
 
-    // Clear canvas
-    ctx.fillStyle = '#1a1a1a';
+    // Clear canvas - lighter background when active
+    ctx.fillStyle = this.isDragging ? '#1a2030' : '#1a1a1a';
     ctx.fillRect(0, 0, w, h);
 
     // Draw grid

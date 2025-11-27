@@ -30,6 +30,7 @@ export class AppView {
 
     this.joystick = null;
     this.isJoystickActive = false;
+    this.currentPitch = 120; // Hz, updated by pitch slider
   }
 
   mount() {
@@ -40,6 +41,7 @@ export class AppView {
     this.setupFormantControls();
     this.setupEnvelopeControls();
     this.setupMidiControls();
+    this.setupKeyboardShortcuts();
     this.updateStatusPill('pending');
   }
 
@@ -82,6 +84,10 @@ export class AppView {
 
         <section class="panel">
           <h2 class="panel__title">Vowel Space (F1 & F2)</h2>
+          <div class="instructions">
+            <p><strong>Click and drag</strong> on the canvas to speak. Hold <kbd>Space</kbd> to trigger sound.</p>
+            <p>Move around to change vowel sounds: <strong>i</strong> (top-left), <strong>e</strong>, <strong>a</strong> (bottom), <strong>o</strong>, <strong>u</strong> (top-right)</p>
+          </div>
           <div class="joystick-container">
             <canvas data-joystick width="500" height="350"></canvas>
           </div>
@@ -188,6 +194,7 @@ export class AppView {
       const normalized = e.target.value / 100;
       this.engine.setPitch(normalized);
       const hz = 80 * Math.pow(400 / 80, normalized);
+      this.currentPitch = hz; // Store for joystick notes
       pitchValue.textContent = formatHz(hz);
     });
 
@@ -239,9 +246,11 @@ export class AppView {
         // Trigger note on when joystick is clicked
         if (!this.isJoystickActive) {
           this.isJoystickActive = true;
+          const canvas = this.container.querySelector('[data-joystick]');
+          canvas.classList.add('active');
           await this.handleNoteOn({
             midi: 60,
-            frequency: 120,
+            frequency: this.currentPitch, // Use current pitch slider value
             velocity: 0.8,
           });
         }
@@ -250,6 +259,8 @@ export class AppView {
         // Trigger note off when joystick is released
         if (this.isJoystickActive) {
           this.isJoystickActive = false;
+          const canvas = this.container.querySelector('[data-joystick]');
+          canvas.classList.remove('active');
           this.handleNoteOff({ midi: 60 });
         }
       },
@@ -414,6 +425,37 @@ export class AppView {
 
     pill.textContent = text;
     pill.classList.toggle('status-pill--off', off);
+  }
+
+  setupKeyboardShortcuts() {
+    // Spacebar to trigger sound (like holding joystick)
+    window.addEventListener('keydown', async (e) => {
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault();
+        if (!this.isJoystickActive) {
+          this.isJoystickActive = true;
+          const canvas = this.container.querySelector('[data-joystick]');
+          canvas.classList.add('active');
+          await this.handleNoteOn({
+            midi: 60,
+            frequency: this.currentPitch,
+            velocity: 0.8,
+          });
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (this.isJoystickActive) {
+          this.isJoystickActive = false;
+          const canvas = this.container.querySelector('[data-joystick]');
+          canvas.classList.remove('active');
+          this.handleNoteOff({ midi: 60 });
+        }
+      }
+    });
   }
 
   showError(error) {
