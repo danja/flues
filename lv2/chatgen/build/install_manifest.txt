@@ -1,0 +1,4 @@
+/home/danny/.lv2/chatgen.lv2/chatgen.so
+/home/danny/.lv2/chatgen.lv2/chatgen_ui.so
+/home/danny/.lv2/chatgen.lv2/manifest.ttl
+/home/danny/.lv2/chatgen.lv2/chatgen.ttl

@@ -111,7 +111,9 @@ static void apply_parameters(ChatterboxLV2* self) {
     if (self->pitch && self->currentNote < 0) {
         self->engine->setPitch(mapPitchHz(*self->pitch));
     }
-    if (self->voiced) {
+    // Only apply voiced control when no MIDI note is active
+    // (MIDI noteOn/noteOff controls voiced mode)
+    if (self->voiced && self->currentNote < 0) {
         self->engine->setVoiced(*self->voiced > 0.5f);
     }
     if (self->aspirated) {
@@ -121,26 +123,35 @@ static void apply_parameters(ChatterboxLV2* self) {
         self->engine->setNoiseLevel(*self->noiseLevel);
     }
 
-    // Formants (F1-F4)
+    // Formants (F1-F4) - only update if control port value changed
     // F1: 200-1000 Hz (jaw opening)
     // F2: 500-3000 Hz (tongue front/back)
     // F3: 1500-4000 Hz (lip rounding)
     // F4: 2500-4500 Hz (voice quality)
-    if (self->f1) {
+    static float lastF1 = -1.0f;
+    static float lastF2 = -1.0f;
+    static float lastF3 = -1.0f;
+    static float lastF4 = -1.0f;
+
+    if (self->f1 && *self->f1 != lastF1) {
         const float freq = mapFormantHz(*self->f1, 200.0f, 1000.0f);
         self->engine->setFormant(0, freq, 80.0f);
+        lastF1 = *self->f1;
     }
-    if (self->f2) {
+    if (self->f2 && *self->f2 != lastF2) {
         const float freq = mapFormantHz(*self->f2, 500.0f, 3000.0f);
         self->engine->setFormant(1, freq, 120.0f);
+        lastF2 = *self->f2;
     }
-    if (self->f3) {
+    if (self->f3 && *self->f3 != lastF3) {
         const float freq = mapFormantHz(*self->f3, 1500.0f, 4000.0f);
         self->engine->setFormant(2, freq, 150.0f);
+        lastF3 = *self->f3;
     }
-    if (self->f4) {
+    if (self->f4 && *self->f4 != lastF4) {
         const float freq = mapFormantHz(*self->f4, 2500.0f, 4500.0f);
         self->engine->setFormant(3, freq, 200.0f);
+        lastF4 = *self->f4;
     }
 
     // Vocal modes

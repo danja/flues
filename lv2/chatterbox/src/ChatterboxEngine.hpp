@@ -175,6 +175,7 @@ public:
         voice.gate = true;
 
         larynx.setPitch(frequency);
+        larynx.setVoiced(true);  // MIDI notes enable voiced mode
         envelope.gate(true);
         formantBank.reset();
     }
@@ -183,6 +184,7 @@ public:
         if (voice.midi == midiNote) {
             voice.gate = false;
             envelope.gate(false);
+            larynx.setVoiced(false);  // Disable voiced on note-off to prevent residual tone
         }
     }
 
