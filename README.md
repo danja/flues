@@ -70,6 +70,26 @@ Available in two implementations:
 * Vocal modes: Nasal, Sing (vibrato), Shout, Fry (vocal fry)
 * Built-in Schroeder reverb with size and level controls
 
+### ChatGen
+Text-to-formant MIDI CC generator designed to control Chatterbox for speech-like synthesis.
+
+**LV2 Plugin:**
+* Source & docs: [`lv2/chatgen/`](lv2/chatgen)
+* Build: `cd lv2/chatgen && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
+* Native X11/Cairo UI with live text input and phoneme preview
+* MIDI pass-through architecture: receives MIDI notes and adds formant CC messages
+* Real-time text-to-phoneme parsing (5 vowels + 8 consonants)
+* Beat-synchronized formant changes with tempo sync from DAW transport
+
+**Features:**
+- Text input widget with instant phoneme preview (updates on every keystroke)
+- Press **Enter** to send text to DSP for phoneme sequence generation
+- Phoneme-to-formant CC mapping (CC 71→F1, CC 10→F2, CC 74→F3, CC 75→F4)
+- MIDI note pass-through preserves pitch and timing
+- Formant CCs sent on beat boundaries + periodic refresh every 200ms
+- Play/Loop controls for phoneme sequence playback
+- Designed to route: MIDI Track → ChatGen → Chatterbox
+
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.
 
