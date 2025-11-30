@@ -308,6 +308,100 @@ Hybrid LV2 instrument that merges Disyn’s distortion algorithms with the PM-Sy
 
 **Build:** from repo root `cmake -S lv2/floozy -B lv2/floozy/build && cmake --build lv2/floozy/build`. Install with `cmake --install lv2/floozy/build --prefix ~/.lv2`.
 
+### Chatterbox LV2 Plugin
+
+**Location:** `lv2/chatterbox/`
+
+A speech synthesis LV2 instrument plugin based on formant filtering and source-filter vocal tract modeling. Ported from the `experiments/chatterbox` JavaScript/AudioWorklet web application.
+
+**Key Features:**
+- Native C++ implementation of formant synthesis
+- Source-filter model: Larynx + Aspirator → F1-F4 formant cascade
+- Four formants controlling jaw (F1), tongue (F2), lips (F3), and quality (F4)
+- Vocal modes: Nasal (250Hz resonance), Sing (5.5Hz vibrato), Shout (15% boost), Fry (f₀/2 subharmonics)
+- Dynamic processing: Attack/release envelope, stress control with soft clipping
+- Built-in Schroeder reverb
+- X11/Cairo UI with 20 controls organized in 6 groups
+- Monophonic with MIDI note and velocity support
+
+**Architecture:**
+- `src/modules/` - Five DSP modules:
+  - `LarynxModule.hpp` - Modified sawtooth with vibrato and vocal fry
+  - `AspiratorModule.hpp` - White noise generator (LCG)
+  - `FormantModule.hpp` - Biquad bandpass filter (Q-based)
+  - `FormantBankModule.hpp` - Cascade of F1-F4 + optional nasal
+  - `EnvelopeModule.hpp` - Linear AR envelope with exponential time mapping
+- `src/ChatterboxEngine.hpp` - Main DSP coordinator
+- `src/chatterbox_plugin.cpp` - LV2 wrapper with sample-accurate MIDI
+- `src/ui/chatterbox_ui_x11.c` - X11/Cairo UI (20 knobs + toggles)
+- `chatterbox.lv2/*.ttl` - LV2 metadata and 22 port definitions
+
+**Signal Flow:**
+```
+MIDI → Larynx (sawtooth + vibrato + fry) + Aspirator (noise)
+       ↓
+       Formant Cascade (F1→F2→F3→F4) + Nasal (parallel)
+       ↓
+       Envelope (AR) → Stress (gain + soft clip) → Reverb → Master
+```
+
+**Building:**
+```bash
+cd lv2/chatterbox
+cmake -S . -B build
+cmake --build build
+cmake --install build --prefix ~/.lv2
+```
+
+**Usage:**
+```bash
+# Verify installation
+lv2ls | grep chatterbox
+
+# Load in host
+jalv.gtk https://danja.github.io/flues/plugins/chatterbox
+
+# Or load in Ardour, Carla, Reaper, etc.
+```
+
+**Parameters (20 controls):**
+- **Source:** Pitch (80-400Hz), Voiced, Aspirated, Noise Level
+- **Formants:** F1 (200-1000Hz), F2 (500-3000Hz), F3 (1500-4000Hz), F4 (2500-4500Hz)
+- **Vocal Modes:** Nasal, Sing, Shout, Fry (all toggles)
+- **Dynamics:** Stress, Attack (1-1000ms), Release (10-3000ms)
+- **Effects:** Reverb Size, Reverb Level
+- **Output:** Master Gain
+
+**Implementation Status:**
+- ✓ All 5 DSP modules fully implemented
+- ✓ Monophonic voice management
+- ✓ Sample-accurate MIDI processing
+- ✓ All 4 vocal modes working (nasal, sing, shout, fry)
+- ✓ Stress processing with tanh soft clipping
+- ✓ X11/Cairo UI with 6 logical groups
+- ✓ Rotary knobs and LED toggle indicators
+- ⚠ Monophonic only (no polyphony)
+- TODO: IPA vowel quadrilateral joystick UI, preset system
+
+**Translation Fidelity:**
+The C++ code is a direct, line-by-line translation of the JavaScript AudioWorklet implementation:
+- Same signal flow: excitation → formant cascade → envelope → stress → reverb
+- Identical DSP algorithms (cubic waveshaping 0.15, vibrato 5.5Hz ±1.5%, fry at f₀/2)
+- Same parameter mappings (exponential pitch/formants, exponential envelope times)
+- Matching default values (formant makeup gain 3.0×, reduced from 8.0× to fix distortion)
+- Preserved vocal mode processing (shout 15% boost, stress tanh clipping above 0.6)
+
+**UI Design:**
+The X11/Cairo UI follows the Disyn/Floozy pattern with pthread event handling and real-time rendering:
+- **Row 1:** Source (4 controls) + Formants (4 controls)
+- **Row 2:** Vocal Modes (4 toggles) + Dynamics (3 controls)
+- **Row 3:** Reverb (2 controls) + Output (1 control)
+- Rotary knobs for continuous parameters (vertical drag or scroll)
+- LED indicators for toggles (green when active, dark when off)
+- Group backgrounds with titles for visual organization
+
+See `lv2/chatterbox/README.md` for detailed usage, sound design tips, and vowel presets.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.
