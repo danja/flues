@@ -639,4 +639,11 @@ Follow disyn's clean, modern aesthetic:
 
 Chatterbox builds on the solid foundation of the disyn experiment while introducing speech synthesis concepts and new interaction paradigms (2D joystick control). By following established patterns and reusing proven components, the implementation can proceed systematically with clear milestones and testable outcomes.
 
-The key innovation is the **JoystickControl** component mapping to formant frequencies, creating an intuitive interface inspired by the IPA vowel quadrilateral. This makes speech synthesis accessible to non-experts while providing detailed control for advanced users.
+## LV2 Plugin Implementation (2025)
+
+Following successful completion of the web application, Chatterbox was ported to an LV2 plugin for use in DAWs. The plugin implementation:
+- Preserves all DSP modules with line-by-line C++ translation
+- Includes native X11/Cairo UI with IPA vowel quadrilateral joystick
+- Provides comprehensive MIDI control (note on/off, velocity, 15 CC mappings)
+- Maintains all vocal modes and effects from the web version
+- See `lv2/chatterbox/README.md` for detailed plugin documentation

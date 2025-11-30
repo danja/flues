@@ -52,11 +52,23 @@ Available in three implementations:
 ### Chatterbox
 Speech synthesis using formant filtering and source-filter vocal tract modeling.
 
+Available in two implementations:
+
+#### 1. Web App (Browser)
 * **[Try it live](https://danja.github.io/flues/chatterbox/)**
 * [Project README](experiments/chatterbox/README.md)
 * Interactive IPA vowel quadrilateral joystick control
 * Real-time F1-F4 formant manipulation
 * Larynx (voiced) and aspirator (unvoiced) excitation sources
+
+#### 2. LV2 Plugin: Chatterbox
+* Source & docs: [`lv2/chatterbox/`](lv2/chatterbox)
+* [Plugin README](lv2/chatterbox/README.md)
+* Build: `cd lv2/chatterbox && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
+* Native X11/Cairo UI with IPA vowel quadrilateral joystick
+* Comprehensive MIDI control (note on/off, velocity, 15 CC mappings)
+* Vocal modes: Nasal, Sing (vibrato), Shout, Fry (vocal fry)
+* Built-in Schroeder reverb with size and level controls
 
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.

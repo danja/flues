@@ -375,13 +375,14 @@ jalv.gtk https://danja.github.io/flues/plugins/chatterbox
 **Implementation Status:**
 - ✓ All 5 DSP modules fully implemented
 - ✓ Monophonic voice management
-- ✓ Sample-accurate MIDI processing
+- ✓ Sample-accurate MIDI processing (note on/off, velocity, 15 CC mappings)
 - ✓ All 4 vocal modes working (nasal, sing, shout, fry)
 - ✓ Stress processing with tanh soft clipping
 - ✓ X11/Cairo UI with 6 logical groups
 - ✓ Rotary knobs and LED toggle indicators
+- ✓ IPA vowel quadrilateral joystick for F1/F2 control
 - ⚠ Monophonic only (no polyphony)
-- TODO: IPA vowel quadrilateral joystick UI, preset system
+- TODO: Preset system
 
 **Translation Fidelity:**
 The C++ code is a direct, line-by-line translation of the JavaScript AudioWorklet implementation:
@@ -393,12 +394,20 @@ The C++ code is a direct, line-by-line translation of the JavaScript AudioWorkle
 
 **UI Design:**
 The X11/Cairo UI follows the Disyn/Floozy pattern with pthread event handling and real-time rendering:
-- **Row 1:** Source (4 controls) + Formants (4 controls)
-- **Row 2:** Vocal Modes (4 toggles) + Dynamics (3 controls)
-- **Row 3:** Reverb (2 controls) + Output (1 control)
+- **Row 0:** Source (Pitch, Voiced, Aspirated, Noise) + Vowel Space Joystick (F1/F2 interactive canvas)
+- **Row 1:** Formants F3/F4 + Vocal Modes (Nasal, Sing, Shout, Fry toggles) + Dynamics (Stress, Attack, Release)
+- **Row 2:** Reverb (Size, Level) + Output (Master)
 - Rotary knobs for continuous parameters (vertical drag or scroll)
 - LED indicators for toggles (green when active, dark when off)
+- IPA vowel quadrilateral joystick with visual markers (i, e, a, o, u)
 - Group backgrounds with titles for visual organization
+
+**MIDI Control:**
+Comprehensive MIDI CC mapping covering all major parameters:
+- **Standard CCs:** 1 (Stress), 7 (Master Gain), 10 (F2/Tongue)
+- **Sound Controllers:** 71 (F1/Jaw), 72 (Release), 73 (Attack), 74 (F3/Lips), 75 (F4/Quality)
+- **Vocal Mode Toggles:** 80 (Nasal), 81 (Sing), 82 (Shout), 83 (Fry) - on when ≥64
+- **Effects:** 84 (Reverb Size), 85 (Reverb Level), 91 (Reverb Level alt), 102 (Noise Level)
 
 See `lv2/chatterbox/README.md` for detailed usage, sound design tips, and vowel presets.
 

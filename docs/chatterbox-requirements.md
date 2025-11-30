@@ -46,3 +46,12 @@ The center of the screen features a canvas area that operates like a joystick. C
 ## MIDI Control
 
 The app responds to note on, note off, pitch and velocity for voicing with addition control channels used for other parameters.
+
+## LV2 Plugin Implementation
+
+Following successful completion of the web application, Chatterbox was ported to a native LV2 plugin (`lv2/chatterbox/`) featuring:
+- C++ implementation with all DSP modules preserved
+- Native X11/Cairo UI with IPA vowel quadrilateral joystick
+- Comprehensive MIDI control (note on/off, velocity, 15 CC mappings)
+- All vocal modes and effects from the web version
+- See `lv2/chatterbox/README.md` for complete documentation
