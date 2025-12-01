@@ -337,6 +337,16 @@ static void handle_midi(ChatterboxLV2* self, const uint8_t* msg, uint32_t size) 
                     self->engine->setNoiseLevel(ccValue);
                     break;
 
+                // CC 103 -> Aspirated (toggle on >= 64)
+                case 103:
+                    self->engine->setAspirated(data2 >= 64);
+                    break;
+
+                // CC 104 -> Voiced (toggle on >= 64)
+                case 104:
+                    self->engine->setVoiced(data2 >= 64);
+                    break;
+
                 default:
                     break;
             }

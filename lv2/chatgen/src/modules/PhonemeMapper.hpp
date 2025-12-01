@@ -15,6 +15,7 @@ struct FormantCCs {
     uint8_t f3;     // CC 74: F3 (Lips)   - 1500-4000 Hz
     uint8_t f4;     // CC 75: F4 (Quality) - 2500-4500 Hz
     uint8_t noise;  // CC 102: Noise Level - 0-127 (0=pure voiced, 127=pure noise)
+    uint8_t voiced; // CC 104: Voiced toggle - 0=OFF (unvoiced), 127=ON (voiced)
 };
 
 class PhonemeMapper {
@@ -27,137 +28,162 @@ public:
             // Vowels (primary) - pure voiced, no noise
             case Phoneme::I:  // /i/ as in "see"
                 // High front: F1=250Hz, F2=2300Hz
-                return {normalizedToCC(0.09f), normalizedToCC(0.71f), 63, 63, 0};
+                return {normalizedToCC(0.09f), normalizedToCC(0.71f), 63, 63, 0, 127};
 
             case Phoneme::E:  // /e/ as in "bed"
                 // Mid front: F1=500Hz, F2=1700Hz
-                return {normalizedToCC(0.41f), normalizedToCC(0.53f), 63, 63, 0};
+                return {normalizedToCC(0.41f), normalizedToCC(0.53f), 63, 63, 0, 127};
 
             case Phoneme::A:  // /a/ as in "father"
                 // Low central: F1=750Hz, F2=1200Hz
-                return {normalizedToCC(0.66f), normalizedToCC(0.24f), 63, 63, 0};
+                return {normalizedToCC(0.66f), normalizedToCC(0.24f), 63, 63, 0, 127};
 
             case Phoneme::O:  // /o/ as in "home"
                 // Mid back: F1=550Hz, F2=850Hz
-                return {normalizedToCC(0.46f), normalizedToCC(0.14f), 63, 63, 0};
+                return {normalizedToCC(0.46f), normalizedToCC(0.14f), 63, 63, 0, 127};
 
             case Phoneme::U:  // /u/ as in "boot"
                 // High back: F1=300Hz, F2=870Hz
-                return {normalizedToCC(0.13f), normalizedToCC(0.15f), 63, 63, 0};
+                return {normalizedToCC(0.13f), normalizedToCC(0.15f), 63, 63, 0, 127};
 
             // Vowels (additional) - pure voiced, no noise
             case Phoneme::AE:  // /æ/ as in "cat"
                 // Low front: F1=650Hz, F2=1700Hz
-                return {normalizedToCC(0.56f), normalizedToCC(0.53f), 63, 63, 0};
+                return {normalizedToCC(0.56f), normalizedToCC(0.53f), 63, 63, 0, 127};
 
             case Phoneme::UH:  // /ʌ/ as in "cup"
                 // Mid central: F1=600Hz, F2=1200Hz
-                return {normalizedToCC(0.50f), normalizedToCC(0.24f), 63, 63, 0};
+                return {normalizedToCC(0.50f), normalizedToCC(0.24f), 63, 63, 0, 127};
 
             case Phoneme::AW:  // /ɔ/ as in "thought"
                 // Mid-low back: F1=600Hz, F2=900Hz
-                return {normalizedToCC(0.50f), normalizedToCC(0.16f), 63, 63, 0};
+                return {normalizedToCC(0.50f), normalizedToCC(0.16f), 63, 63, 0, 127};
 
             case Phoneme::IH:  // /ɪ/ as in "sit"
                 // Near-high front: F1=400Hz, F2=2000Hz
-                return {normalizedToCC(0.28f), normalizedToCC(0.60f), 63, 63, 0};
+                return {normalizedToCC(0.28f), normalizedToCC(0.60f), 63, 63, 0, 127};
 
             case Phoneme::UU:  // /ʊ/ as in "put"
                 // Near-high back: F1=400Hz, F2=1000Hz
-                return {normalizedToCC(0.28f), normalizedToCC(0.20f), 63, 63, 0};
+                return {normalizedToCC(0.28f), normalizedToCC(0.20f), 63, 63, 0, 127};
 
             case Phoneme::ER:  // /ɜ/ as in "bird"
                 // Mid central rhotic: F1=500Hz, F2=1400Hz, low F3
-                return {normalizedToCC(0.41f), normalizedToCC(0.36f), 45, 63, 5};
+                return {normalizedToCC(0.41f), normalizedToCC(0.36f), 45, 63, 5, 127};
 
             // Plosives - burst noise
             case Phoneme::P:  // /p/ voiceless bilabial
+                // Bilabial closure: brief silence then burst (UNVOICED)
+                return {50, 50, 63, 63, 70, 0};
+
             case Phoneme::B:  // /b/ voiced bilabial
-                // Bilabial closure: brief silence then burst
-                return {50, 50, 63, 63, 70};
+                // Bilabial closure: brief silence then burst (VOICED)
+                return {50, 50, 63, 63, 70, 127};
 
             case Phoneme::T:  // /t/ voiceless alveolar
+                // Alveolar closure: brief silence then burst (UNVOICED)
+                return {50, 50, 70, 63, 70, 0};
+
             case Phoneme::D:  // /d/ voiced alveolar
-                // Alveolar closure: brief silence then burst
-                return {50, 50, 70, 63, 70};
+                // Alveolar closure: brief silence then burst (VOICED)
+                return {50, 50, 70, 63, 70, 127};
 
             case Phoneme::K:  // /k/ voiceless velar
-            case Phoneme::G:  // /g/ voiced velar
-                // Velar closure: brief silence then burst
-                return {50, 50, 55, 63, 70};
+                // Velar closure: brief silence then burst (UNVOICED)
+                return {50, 50, 55, 63, 70, 0};
 
-            // Fricatives - high noise, reduced voicing
+            case Phoneme::G:  // /g/ voiced velar
+                // Velar closure: brief silence then burst (VOICED)
+                return {50, 50, 55, 63, 70, 127};
+
+            // Fricatives - high noise
             case Phoneme::F:  // /f/ voiceless labiodental
+                // Labiodental: high frequency noise (UNVOICED)
+                return {30, 50, 90, 95, 110, 0};
+
             case Phoneme::V:  // /v/ voiced labiodental
-                // Labiodental: high frequency noise
-                return {30, 50, 90, 95, 110};
+                // Labiodental: high frequency noise (VOICED)
+                return {30, 50, 90, 95, 110, 127};
 
             case Phoneme::S:  // /s/ voiceless alveolar
+                // Alveolar: very high frequency hissing (UNVOICED)
+                return {25, 50, 100, 100, 120, 0};
+
             case Phoneme::Z:  // /z/ voiced alveolar
-                // Alveolar: very high frequency hissing
-                return {25, 50, 100, 100, 120};
+                // Alveolar: very high frequency hissing (VOICED)
+                return {25, 50, 100, 100, 120, 127};
 
             case Phoneme::TH:  // /θ/ voiceless dental ("think")
+                // Dental: soft high frequency (UNVOICED)
+                return {30, 50, 85, 90, 100, 0};
+
             case Phoneme::DH:  // /ð/ voiced dental ("this")
-                // Dental: soft high frequency
-                return {30, 50, 85, 90, 100};
+                // Dental: soft high frequency (VOICED)
+                return {30, 50, 85, 90, 100, 127};
 
             case Phoneme::SH:  // /ʃ/ voiceless postalveolar ("ship")
+                // Postalveolar: lower than /s/, broader spectrum (UNVOICED)
+                return {30, 50, 95, 90, 115, 0};
+
             case Phoneme::ZH:  // /ʒ/ voiced postalveolar ("measure")
-                // Postalveolar: lower than /s/, broader spectrum
-                return {30, 50, 95, 90, 115};
+                // Postalveolar: lower than /s/, broader spectrum (VOICED)
+                return {30, 50, 95, 90, 115, 127};
 
             case Phoneme::H:  // /h/ voiceless glottal
-                // Breathy: noise with minimal filtering
-                return {50, 50, 50, 50, 90};
+                // Breathy: noise with minimal filtering (UNVOICED)
+                return {50, 50, 50, 50, 90, 0};
 
             // Affricates - plosive + fricative noise
             case Phoneme::CH:  // /tʃ/ voiceless ("church")
+                // Affricate: plosive + fricative (UNVOICED)
+                return {45, 55, 95, 90, 95, 0};
+
             case Phoneme::J:   // /dʒ/ voiced ("judge")
-                // Affricate: plosive + fricative
-                return {45, 55, 95, 90, 95};
+                // Affricate: plosive + fricative (VOICED)
+                return {45, 55, 95, 90, 95, 127};
 
             // Nasals - mostly voiced with slight noise
             case Phoneme::M:  // /m/ bilabial nasal
-                // Nasal: low F1, muffled F2
-                return {50, 40, 70, 63, 10};
+                // Nasal: low F1, muffled F2 (VOICED)
+                return {50, 40, 70, 63, 10, 127};
 
             case Phoneme::N:  // /n/ alveolar nasal
-                // Nasal: mid formants with nasal pole
-                return {50, 50, 70, 63, 10};
+                // Nasal: mid formants with nasal pole (VOICED)
+                return {50, 50, 70, 63, 10, 127};
 
             case Phoneme::NG:  // /ŋ/ velar nasal ("sing")
-                // Velar nasal: lower F2 than /n/
-                return {50, 35, 70, 63, 10};
+                // Velar nasal: lower F2 than /n/ (VOICED)
+                return {50, 35, 70, 63, 10, 127};
 
             // Liquids & Approximants - mostly voiced
             case Phoneme::L:  // /l/ lateral
-                // Lateral: moderate formants, high F3
-                return {45, 55, 80, 63, 5};
+                // Lateral: moderate formants, high F3 (VOICED)
+                return {45, 55, 80, 63, 5, 127};
 
             case Phoneme::R:  // /r/ rhotic
-                // Rhotic: lowered F3 (retroflex quality)
-                return {42, 50, 50, 63, 5};
+                // Rhotic: lowered F3 (retroflex quality) (VOICED)
+                return {42, 50, 50, 63, 5, 127};
 
             case Phoneme::W:  // /w/ labial-velar
-                // Like /u/ with quick transition
-                return {normalizedToCC(0.13f), normalizedToCC(0.15f), 60, 63, 0};
+                // Like /u/ with quick transition (VOICED)
+                return {normalizedToCC(0.13f), normalizedToCC(0.15f), 60, 63, 0, 127};
 
             case Phoneme::Y:  // /j/ palatal
-                // Like /i/ with quick transition
-                return {normalizedToCC(0.09f), normalizedToCC(0.71f), 63, 63, 0};
+                // Like /i/ with quick transition (VOICED)
+                return {normalizedToCC(0.09f), normalizedToCC(0.71f), 63, 63, 0, 127};
 
             case Phoneme::SILENCE:
             default:
-                // Neutral position - midpoint for all formants
-                return {63, 63, 63, 63, 0};
+                // Neutral position - midpoint for all formants (UNVOICED)
+                return {63, 63, 63, 63, 0, 0};
         }
     }
 
     // Check if two formant configurations are different
     // Used to avoid sending redundant MIDI CC messages
     static bool isDifferent(const FormantCCs& a, const FormantCCs& b) {
-        return a.f1 != b.f1 || a.f2 != b.f2 || a.f3 != b.f3 || a.f4 != b.f4 || a.noise != b.noise;
+        return a.f1 != b.f1 || a.f2 != b.f2 || a.f3 != b.f3 || a.f4 != b.f4 ||
+               a.noise != b.noise || a.voiced != b.voiced;
     }
 
 private:

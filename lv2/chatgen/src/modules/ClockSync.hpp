@@ -42,19 +42,23 @@ public:
 
     // Process a block of samples and detect beat boundaries
     // Returns true if a beat boundary was crossed during this block
+    // Phonemes advance every 2 beats (half notes) for longer duration
     bool process(uint32_t nframes, uint32_t& frameOffset) {
         // Calculate beat position before and after this block
         uint32_t positionBefore = sampleCounter / samplesPerBeat;
         sampleCounter += nframes;
         uint32_t positionAfter = sampleCounter / samplesPerBeat;
 
-        // Check if we crossed a beat boundary
-        if (positionAfter > positionBefore) {
-            // Calculate exact frame where beat occurred
-            // Find the sample position of the first beat in this block
-            uint32_t nextBeatSample = (positionBefore + 1) * samplesPerBeat;
+        // Check if we crossed an even beat boundary (every 2 beats)
+        // This makes each phoneme last 1 second at 120 BPM instead of 0.5 seconds
+        uint32_t halfNoteBefore = positionBefore / 2;
+        uint32_t halfNoteAfter = positionAfter / 2;
+
+        if (halfNoteAfter > halfNoteBefore) {
+            // Calculate exact frame where the half-note boundary occurred
+            uint32_t nextHalfNoteSample = (halfNoteBefore + 1) * 2 * samplesPerBeat;
             uint32_t blockStartSample = sampleCounter - nframes;
-            frameOffset = nextBeatSample - blockStartSample;
+            frameOffset = nextHalfNoteSample - blockStartSample;
 
             lastBeatPosition = positionAfter;
             return true;

@@ -18,7 +18,7 @@ public:
     MidiGenerator()
         : midiEventUrid(0)
         , atomSequenceUrid(0)
-        , lastFormants{63, 63, 63, 63}  // Start neutral
+        , lastFormants{63, 63, 63, 63, 0, 0}  // Start neutral
         , bufferCapacity(8192)  // Default capacity
     {
         fprintf(stderr, "ChatGen: MidiGenerator initialized\n");
@@ -35,8 +35,27 @@ public:
         this->bufferCapacity = capacity;
     }
 
-    // Note: These methods are currently unused but kept for potential future use
-    // The plugin now passes through MIDI notes from the host instead of generating them
+    // Send Note On event
+    void sendNoteOn(LV2_Atom_Sequence* midiOut, uint8_t note, uint8_t velocity, uint32_t frameOffset) {
+        const uint8_t midiMsg[3] = {
+            LV2_MIDI_MSG_NOTE_ON,  // 0x90
+            note,
+            velocity
+        };
+        appendMidiMessage(midiOut, frameOffset, midiMsg, 3);
+        fprintf(stderr, "ChatGen: Note ON %u vel %u at frame %u\n", note, velocity, frameOffset);
+    }
+
+    // Send Note Off event
+    void sendNoteOff(LV2_Atom_Sequence* midiOut, uint8_t note, uint32_t frameOffset) {
+        const uint8_t midiMsg[3] = {
+            LV2_MIDI_MSG_NOTE_OFF,  // 0x80
+            note,
+            0
+        };
+        appendMidiMessage(midiOut, frameOffset, midiMsg, 3);
+        fprintf(stderr, "ChatGen: Note OFF %u at frame %u\n", note, frameOffset);
+    }
 
     // Send CC messages for a phoneme at specific frame offset
     void sendPhonemeChange(LV2_Atom_Sequence* midiOut,
@@ -45,7 +64,7 @@ public:
         // Always send CCs to maintain formant values
         // (Don't skip on repeated phonemes - Chatterbox needs continuous updates)
 
-        // Send 5 CC messages: F1, F2, F3, F4, Noise
+        // Send 7 CC messages: F1, F2, F3, F4, Noise, Aspirated, Voiced
         // CC 71: F1 (Jaw)
         appendCC(midiOut, frameOffset, 71, formants.f1);
 
@@ -61,12 +80,19 @@ public:
         // CC 102: Noise Level (critical for fricatives!)
         appendCC(midiOut, frameOffset, 102, formants.noise);
 
+        // CC 103: Aspirated (enable noise generator when noise > 0)
+        appendCC(midiOut, frameOffset, 103, formants.noise > 0 ? 127 : 0);
+
+        // CC 104: Voiced (enable/disable larynx)
+        appendCC(midiOut, frameOffset, 104, formants.voiced);
+
         // Debug - only log when formants actually change
         if (formants.f1 != lastFormants.f1 || formants.f2 != lastFormants.f2 ||
             formants.f3 != lastFormants.f3 || formants.f4 != lastFormants.f4 ||
-            formants.noise != lastFormants.noise) {
-            fprintf(stderr, "ChatGen OUT: Formant CCs F1=%u F2=%u F3=%u F4=%u Noise=%u (frame %u)\n",
-                    formants.f1, formants.f2, formants.f3, formants.f4, formants.noise, frameOffset);
+            formants.noise != lastFormants.noise || formants.voiced != lastFormants.voiced) {
+            fprintf(stderr, "ChatGen OUT: F1=%u F2=%u F3=%u F4=%u Noise=%u %s (frame %u)\n",
+                    formants.f1, formants.f2, formants.f3, formants.f4, formants.noise,
+                    formants.voiced ? "VOICED" : "unvoiced", frameOffset);
         }
 
         // Remember last formants for debugging
@@ -75,7 +101,7 @@ public:
 
     // Reset internal state
     void reset() {
-        lastFormants = {63, 63, 63, 63};
+        lastFormants = {63, 63, 63, 63, 0, 0};
     }
 
 private:
@@ -112,7 +138,6 @@ private:
             cc,                        // CC number
             value                      // CC value (0-127)
         };
-        fprintf(stderr, "ChatGen: Appending CC %u = %u at frame %u\n", cc, value, frame);
         appendMidiMessage(seq, frame, midiMsg, 3);
     }
 

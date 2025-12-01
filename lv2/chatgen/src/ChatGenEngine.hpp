@@ -21,6 +21,8 @@ public:
         , playing(false)
         , loop(true)
         , samplesSinceLastCC(999999)  // Force immediate send on first process
+        , noteIsOn(false)
+        , currentNote(60)  // Middle C
     {
         // Start with default text (matches UI default)
         setText("hello world");
@@ -80,9 +82,19 @@ public:
         // We just add formant CCs to it
         midiGen.setCapacity(capacity);
 
-        // If not playing, don't add CCs
+        // If not playing, send Note Off if note is on
         if (!playing || phonemes.empty()) {
+            if (noteIsOn) {
+                midiGen.sendNoteOff(midiOut, currentNote, 0);
+                noteIsOn = false;
+            }
             return;
+        }
+
+        // Send Note On when playback starts
+        if (!noteIsOn) {
+            midiGen.sendNoteOn(midiOut, currentNote, 96, 0);
+            noteIsOn = true;
         }
 
         // Check if we crossed a beat boundary
@@ -142,6 +154,7 @@ public:
     void reset() {
         currentPhonemeIndex = 0;
         playing = false;
+        noteIsOn = false;
         samplesSinceLastCC = 999999;  // Force immediate CC send
         clock.reset();
         midiGen.reset();
@@ -162,6 +175,10 @@ private:
 
     // CC refresh timing to maintain formant values
     uint32_t samplesSinceLastCC;
+
+    // Note generation state
+    bool noteIsOn;
+    uint8_t currentNote;
 };
 
 } // namespace chatgen
