@@ -35,7 +35,8 @@ enum {
     PORT_CONTROL = 0,
     PORT_MIDI_OUT = 1,
     PORT_PLAY = 2,
-    PORT_LOOP = 3
+    PORT_LOOP = 3,
+    PORT_TEXT_OUT = 4
 };
 
 typedef struct {
@@ -58,6 +59,7 @@ typedef struct {
     bool loop;
     bool text_changed;
     bool needs_redraw;
+    bool user_is_editing;  // True while user is typing, false after pressing Enter
 
     // Cursor blink
     bool cursor_visible;
@@ -67,6 +69,7 @@ typedef struct {
     LV2UI_Write_Function write_function;
     LV2UI_Controller controller;
     LV2_URID_Map* map;
+    LV2UI_Port_Subscribe* port_subscribe;
 
     LV2_URID atomStringUrid;
     LV2_URID atomSequenceUrid;
@@ -82,45 +85,87 @@ static uint64_t get_time_ms(void) {
     return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
 }
 
-// Update phoneme preview (simplified parser)
+// Update phoneme preview (matches DSP TextParser logic)
 static void update_phoneme_preview(ChatGenUI* ui) {
     ui->phonemes[0] = '\0';
     char* out = ui->phonemes;
-    const char* in = ui->text;
+    const char* text = ui->text;
+    const char* out_end = ui->phonemes + sizeof(ui->phonemes) - 10;
 
-    while (*in && (out - ui->phonemes) < 500) {
-        char c = *in;
-        if (c >= 'A' && c <= 'Z') c = c - 'A' + 'a';  // Lowercase
+    size_t i = 0;
+    size_t len = strlen(text);
 
-        // Map to phonemes
-        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u' ||
-            c == 'm' || c == 'n' || c == 'l' || c == 'r' || c == 's' ||
-            c == 't' || c == 'd' || c == 'k' || c == 'c') {
-            *out++ = '[';
-            *out++ = c;
-            *out++ = ']';
-            *out++ = ' ';
+    while (i < len && out < out_end) {
+        char c = text[i];
+        if (c >= 'A' && c <= 'Z') c += 32; // lowercase
+
+        // Check digraphs first (2 characters)
+        if (i + 1 < len) {
+            char c2 = text[i+1];
+            if (c2 >= 'A' && c2 <= 'Z') c2 += 32;
+
+            if (c == 'e' && c2 == 'e') { strcpy(out, "[i] "); out += 4; i += 2; continue; }
+            if (c == 'e' && c2 == 'a') { strcpy(out, "[i] "); out += 4; i += 2; continue; }
+            if (c == 'o' && c2 == 'o') { strcpy(out, "[u] "); out += 4; i += 2; continue; }
+            if (c == 'a' && c2 == 'h') { strcpy(out, "[a] "); out += 4; i += 2; continue; }
+            if (c == 'o' && c2 == 'h') { strcpy(out, "[o] "); out += 4; i += 2; continue; }
+            if (c == 'a' && c2 == 'w') { strcpy(out, "[aw] "); out += 5; i += 2; continue; }
+            if (c == 'u' && c2 == 'h') { strcpy(out, "[uh] "); out += 5; i += 2; continue; }
+            if (c == 'e' && c2 == 'r') { strcpy(out, "[er] "); out += 5; i += 2; continue; }
+            if (c == 'u' && c2 == 'r') { strcpy(out, "[er] "); out += 5; i += 2; continue; }
+            if (c == 'i' && c2 == 'r') { strcpy(out, "[er] "); out += 5; i += 2; continue; }
+            if (c == 'o' && c2 == 'u') { strcpy(out, "[uu] "); out += 5; i += 2; continue; }
+            if (c == 's' && c2 == 'h') { strcpy(out, "[sh] "); out += 5; i += 2; continue; }
+            if (c == 'c' && c2 == 'h') { strcpy(out, "[ch] "); out += 5; i += 2; continue; }
+            if (c == 't' && c2 == 'h') { strcpy(out, "[th] "); out += 5; i += 2; continue; }
+            if (c == 'd' && c2 == 'h') { strcpy(out, "[dh] "); out += 5; i += 2; continue; }
+            if (c == 'z' && c2 == 'h') { strcpy(out, "[zh] "); out += 5; i += 2; continue; }
+            if (c == 'n' && c2 == 'g') { strcpy(out, "[ng] "); out += 5; i += 2; continue; }
         }
-        in++;
+
+        // Single character mapping (matches DSP phonemes)
+        switch (c) {
+            case 'a': strcpy(out, "[ae] "); out += 5; break;
+            case 'e': strcpy(out, "[e] "); out += 4; break;
+            case 'i': strcpy(out, "[ih] "); out += 5; break;
+            case 'o': strcpy(out, "[o] "); out += 4; break;
+            case 'u': strcpy(out, "[uh] "); out += 5; break;
+            case 'p': case 'b': case 't': case 'd': case 'k': case 'g':
+            case 'f': case 'v': case 's': case 'z': case 'h': case 'j':
+            case 'm': case 'n': case 'l': case 'r': case 'w': case 'y': case 'c':
+                *out++ = '['; *out++ = c; *out++ = ']'; *out++ = ' ';
+                break;
+            default:
+                // Skip spaces, punctuation
+                break;
+        }
+        i++;
     }
     *out = '\0';
 }
 
 // Send text to DSP
 static void send_text_to_dsp(ChatGenUI* ui) {
-    // Forge atom:String message on control port
+    // Forge bare atom:String (host will wrap it in sequence automatically)
     uint8_t buf[1024];
     lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
 
-    LV2_Atom_Forge_Frame frame;
-    LV2_Atom* msg = (LV2_Atom*)lv2_atom_forge_string(
+    // Forge string atom - returns offset, not pointer
+    LV2_Atom_Forge_Ref ref = lv2_atom_forge_string(
         &ui->forge, ui->text, strlen(ui->text));
 
-    if (msg) {
+    if (ref) {
+        // The atom is at the start of the buffer
+        LV2_Atom* msg = (LV2_Atom*)buf;
+
+        // Send with atomEventTransferUrid - host adds it to the control sequence
         ui->write_function(ui->controller, PORT_CONTROL,
                           lv2_atom_total_size(msg),
                           ui->atomEventTransferUrid, msg);
-        fprintf(stderr, "ChatGen UI: Sent text to DSP: %s\n", ui->text);
+        fprintf(stderr, "ChatGen UI: Sent bare atom:String to DSP: '%s' (size=%u, type=%u)\n",
+                ui->text, lv2_atom_total_size(msg), msg->type);
+    } else {
+        fprintf(stderr, "ChatGen UI: ERROR - Failed to forge string atom\n");
     }
 }
 
@@ -297,10 +342,12 @@ static void handle_key_press(ChatGenUI* ui, XKeyEvent* event) {
     if (changed) {
         update_phoneme_preview(ui);
         ui->text_changed = true;
+        ui->user_is_editing = true;  // User is actively editing
     }
 
     if (sendToDSP) {
         send_text_to_dsp(ui);
+        ui->user_is_editing = false;  // Done editing, sent to DSP
         fprintf(stderr, "ChatGen UI: Sent text to DSP: '%s'\n", ui->text);
     }
 
@@ -422,12 +469,15 @@ static LV2UI_Handle instantiate(
     // Get parent window and features
     void* parent = NULL;
     LV2_URID_Map* map = NULL;
+    LV2UI_Port_Subscribe* port_subscribe = NULL;
 
     for (int i = 0; features[i]; i++) {
         if (!strcmp(features[i]->URI, LV2_UI__parent)) {
             parent = features[i]->data;
         } else if (!strcmp(features[i]->URI, LV2_URID__map)) {
             map = (LV2_URID_Map*)features[i]->data;
+        } else if (!strcmp(features[i]->URI, LV2_UI__portSubscribe)) {
+            port_subscribe = (LV2UI_Port_Subscribe*)features[i]->data;
         }
     }
 
@@ -463,6 +513,7 @@ static LV2UI_Handle instantiate(
     ui->loop = true;
     ui->cursor_visible = true;
     ui->needs_redraw = true;
+    ui->user_is_editing = false;  // Not editing initially, will receive text from DSP
     ui->last_blink = get_time_ms();
     update_phoneme_preview(ui);
 
@@ -521,7 +572,19 @@ static LV2UI_Handle instantiate(
     // DON'T send text on initialization - only send when user presses Enter
     // (prevents overwriting DSP text when UI is recreated on focus changes)
 
-    fprintf(stderr, "ChatGen UI: Initialized - Play: %s, Loop: %s, Text: '%s' (not sent to DSP yet)\n",
+    // Subscribe to text output port so we receive text from DSP
+    if (port_subscribe) {
+        port_subscribe->subscribe(port_subscribe->handle, PORT_TEXT_OUT,
+                                 ui->atomEventTransferUrid, NULL);
+        fprintf(stderr, "ChatGen UI: Subscribed to text output port\n");
+    } else {
+        fprintf(stderr, "ChatGen UI: WARNING - No port subscribe feature, text persistence won't work\n");
+    }
+
+    // Store port_subscribe for cleanup
+    ui->port_subscribe = port_subscribe;
+
+    fprintf(stderr, "ChatGen UI: Initialized - Play: %s, Loop: %s, Text: '%s' (waiting for DSP text...)\n",
             ui->play ? "ON" : "OFF", ui->loop ? "ON" : "OFF", ui->text);
 
     return ui;
@@ -530,6 +593,13 @@ static LV2UI_Handle instantiate(
 // LV2 UI cleanup
 static void cleanup(LV2UI_Handle handle) {
     ChatGenUI* ui = (ChatGenUI*)handle;
+
+    // Unsubscribe from text output port
+    if (ui->port_subscribe) {
+        ui->port_subscribe->unsubscribe(ui->port_subscribe->handle, PORT_TEXT_OUT,
+                                       ui->atomEventTransferUrid, NULL);
+        fprintf(stderr, "ChatGen UI: Unsubscribed from text output port\n");
+    }
 
     ui->running = false;
     pthread_join(ui->event_thread, NULL);
@@ -571,6 +641,32 @@ static void port_event(
 
         ui->needs_redraw = true;
         pthread_mutex_unlock(&ui->mutex);
+    }
+    else if (format == ui->atomEventTransferUrid && port_index == PORT_TEXT_OUT) {
+        // Handle text from DSP (sent on every audio callback for persistence)
+        const LV2_Atom_Sequence* seq = (const LV2_Atom_Sequence*)buffer;
+
+        LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
+            if (ev->body.type == ui->atomStringUrid) {
+                const LV2_Atom_String* str = (const LV2_Atom_String*)&ev->body;
+                const char* text = (const char*)(str + 1);
+
+                pthread_mutex_lock(&ui->mutex);
+
+                // Only update if user is NOT actively editing (prevent overwriting user input)
+                // and text has actually changed (avoid unnecessary redraws)
+                if (!ui->user_is_editing && strcmp(ui->text, text) != 0) {
+                    strncpy(ui->text, text, sizeof(ui->text) - 1);
+                    ui->text[sizeof(ui->text) - 1] = '\0';
+                    ui->cursor_pos = strlen(ui->text);
+                    update_phoneme_preview(ui);
+                    ui->needs_redraw = true;
+                    fprintf(stderr, "ChatGen UI: Text updated from DSP: '%s'\n", text);
+                }
+
+                pthread_mutex_unlock(&ui->mutex);
+            }
+        }
     }
 }
 

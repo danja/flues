@@ -54,4 +54,12 @@
         lv2:maximum 1.0 ;
         lv2:portProperty lv2:toggled ;
         rdfs:comment "Loop phoneme sequence" ;
+    ] , [
+        a atom:AtomPort, lv2:OutputPort ;
+        lv2:index 4 ;
+        lv2:symbol "text_out" ;
+        lv2:name "Text Output" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports atom:String ;
+        rdfs:comment "Current text echoed back to UI for persistence" ;
     ] .

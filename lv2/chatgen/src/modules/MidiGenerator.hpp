@@ -45,7 +45,7 @@ public:
         // Always send CCs to maintain formant values
         // (Don't skip on repeated phonemes - Chatterbox needs continuous updates)
 
-        // Send 4 CC messages: F1, F2, F3, F4
+        // Send 5 CC messages: F1, F2, F3, F4, Noise
         // CC 71: F1 (Jaw)
         appendCC(midiOut, frameOffset, 71, formants.f1);
 
@@ -58,11 +58,15 @@ public:
         // CC 75: F4 (Quality)
         appendCC(midiOut, frameOffset, 75, formants.f4);
 
+        // CC 102: Noise Level (critical for fricatives!)
+        appendCC(midiOut, frameOffset, 102, formants.noise);
+
         // Debug - only log when formants actually change
         if (formants.f1 != lastFormants.f1 || formants.f2 != lastFormants.f2 ||
-            formants.f3 != lastFormants.f3 || formants.f4 != lastFormants.f4) {
-            fprintf(stderr, "ChatGen OUT: Formant CCs F1=%u F2=%u F3=%u F4=%u (frame %u)\n",
-                    formants.f1, formants.f2, formants.f3, formants.f4, frameOffset);
+            formants.f3 != lastFormants.f3 || formants.f4 != lastFormants.f4 ||
+            formants.noise != lastFormants.noise) {
+            fprintf(stderr, "ChatGen OUT: Formant CCs F1=%u F2=%u F3=%u F4=%u Noise=%u (frame %u)\n",
+                    formants.f1, formants.f2, formants.f3, formants.f4, formants.noise, frameOffset);
         }
 
         // Remember last formants for debugging
@@ -94,6 +98,10 @@ private:
             // Copy MIDI data after event header
             uint8_t* const eventBody = reinterpret_cast<uint8_t*>(appendedEvent + 1);
             std::memcpy(eventBody, midiMsg, size);
+        } else {
+            // Failed to append - buffer full or other issue
+            fprintf(stderr, "ChatGen ERROR: Failed to append MIDI message (status=0x%02x, capacity=%u, seq_size=%u)\n",
+                    midiMsg[0], capacity, seq->atom.size);
         }
     }
 
@@ -104,6 +112,7 @@ private:
             cc,                        // CC number
             value                      // CC value (0-127)
         };
+        fprintf(stderr, "ChatGen: Appending CC %u = %u at frame %u\n", cc, value, frame);
         appendMidiMessage(seq, frame, midiMsg, 3);
     }
 

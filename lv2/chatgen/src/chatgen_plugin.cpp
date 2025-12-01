@@ -20,7 +20,8 @@ enum PortIndex {
     PORT_CONTROL = 0,
     PORT_MIDI_OUT = 1,
     PORT_PLAY = 2,
-    PORT_LOOP = 3
+    PORT_LOOP = 3,
+    PORT_TEXT_OUT = 4
 };
 
 // Plugin instance data
@@ -30,6 +31,7 @@ typedef struct {
     LV2_Atom_Sequence* midiOut;
     const float* playPort;
     const float* loopPort;
+    LV2_Atom_Sequence* textOut;
 
     // Features
     LV2_URID_Map* map;
@@ -40,6 +42,9 @@ typedef struct {
     LV2_URID timeSpeedUrid;
     LV2_URID atomFloatUrid;
     LV2_URID atomStringUrid;
+
+    // Atom forge
+    LV2_Atom_Forge forge;
 
     // Engine
     chatgen::ChatGenEngine* engine;
@@ -70,6 +75,7 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor,
     self->midiOut = nullptr;
     self->playPort = nullptr;
     self->loopPort = nullptr;
+    self->textOut = nullptr;
 
     // Get required features
     self->map = nullptr;
@@ -92,6 +98,9 @@ static LV2_Handle instantiate(const LV2_Descriptor* descriptor,
     self->timeSpeedUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#speed");
     self->atomFloatUrid = self->map->map(self->map->handle, LV2_ATOM__Float);
     self->atomStringUrid = self->map->map(self->map->handle, LV2_ATOM__String);
+
+    // Initialize atom forge
+    lv2_atom_forge_init(&self->forge, self->map);
 
     // Initialize host state
     self->hostBPM = 0.0f;
@@ -123,6 +132,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_LOOP:
             self->loopPort = static_cast<const float*>(data);
             break;
+        case PORT_TEXT_OUT:
+            self->textOut = static_cast<LV2_Atom_Sequence*>(data);
+            break;
     }
 }
 
@@ -136,7 +148,7 @@ static void activate(LV2_Handle instance) {
 static void run(LV2_Handle instance, uint32_t nframes) {
     ChatGenLV2* self = static_cast<ChatGenLV2*>(instance);
 
-    // Initialize output sequence
+    // Initialize output sequences
     if (!self->midiOut) return;
     const uint32_t capacity = 8192;
 
@@ -144,6 +156,13 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     self->midiOut->atom.size = sizeof(LV2_Atom_Sequence_Body);
     self->midiOut->body.unit = 0;
     self->midiOut->body.pad = 0;
+
+    if (self->textOut) {
+        self->textOut->atom.type = self->atomSequenceUrid;
+        self->textOut->atom.size = sizeof(LV2_Atom_Sequence_Body);
+        self->textOut->body.unit = 0;
+        self->textOut->body.pad = 0;
+    }
 
     // Parse control port for time position and MIDI events
     self->hostBPM = 0.0f;
@@ -247,8 +266,40 @@ static void run(LV2_Handle instance, uint32_t nframes) {
                 const LV2_Atom_String* str = reinterpret_cast<const LV2_Atom_String*>(&ev->body);
                 const char* text = reinterpret_cast<const char*>(str + 1);
                 self->engine->setText(std::string(text));
-                fprintf(stderr, "ChatGen: Received text from UI: %s\n", text);
+
+                // Debug: show phonemes
+                const std::vector<chatgen::Phoneme>& phonemes = self->engine->getPhonemes();
+                fprintf(stderr, "ChatGen DSP: Received text '%s' → %zu phonemes: ",
+                        text, phonemes.size());
+                for (size_t i = 0; i < std::min(phonemes.size(), size_t(10)); i++) {
+                    fprintf(stderr, "[%s] ", chatgen::TextParser::getPhonemeName(phonemes[i]));
+                }
+                if (phonemes.size() > 10) fprintf(stderr, "...");
+                fprintf(stderr, "\n");
             }
+            // Unknown event type - debug what we're receiving
+            else {
+                static int unknownCount = 0;
+                if (unknownCount++ < 10) {
+                    fprintf(stderr, "ChatGen DSP: Unknown event type %u (string=%u, timePos=%u, midi=%u)\n",
+                            ev->body.type, self->atomStringUrid, self->timePositionUrid, self->midiEventUrid);
+                }
+            }
+        }
+    }
+
+    // Send current text to UI on EVERY callback (like float control ports)
+    // The UI has strcmp protection to avoid unnecessary redraws
+    // This ensures newly created UIs immediately get the current text
+    if (self->textOut) {
+        const std::string& currentText = self->engine->getText();
+        if (!currentText.empty()) {
+            LV2_Atom_Forge_Frame frame;
+            lv2_atom_forge_set_buffer(&self->forge, (uint8_t*)self->textOut, capacity);
+            lv2_atom_forge_sequence_head(&self->forge, &frame, 0);
+            lv2_atom_forge_frame_time(&self->forge, 0);
+            lv2_atom_forge_string(&self->forge, currentText.c_str(), currentText.length());
+            lv2_atom_forge_pop(&self->forge, &frame);
         }
     }
 
