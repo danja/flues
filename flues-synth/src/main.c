@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <string.h>
 
 // Global state for signal handler
 static volatile bool running = true;
@@ -199,6 +200,49 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
     }
 }
 
+// Try a list of candidate ALSA device names until one opens
+static AudioBackendALSA* create_audio_with_fallback(const char* cli_device,
+                                                    float sample_rate,
+                                                    int buffer_size,
+                                                    SynthEngine* synth,
+                                                    const char** chosen_device_out) {
+    const char* candidates[] = {
+        cli_device && strlen(cli_device) > 0 ? cli_device : NULL,
+        "hw:Headphones",   // Raspberry Pi headphone jack (common)
+        "plughw:Headphones",
+        "hw:2,0",          // bcm2835 Headphones on many Pis
+        "plughw:2,0",
+        "hw:1,0",
+        "plughw:1,0",
+        "default",
+        NULL
+    };
+
+    const char* last_tried = NULL;
+    for (int i = 0; candidates[i] != NULL; i++) {
+        const char* name = candidates[i];
+        // Skip duplicates in the list
+        if (last_tried && strcmp(name, last_tried) == 0) {
+            continue;
+        }
+        last_tried = name;
+
+        AudioBackendALSA* backend = audio_backend_alsa_create(name,
+                                                              sample_rate,
+                                                              buffer_size,
+                                                              audio_callback,
+                                                              synth);
+        if (backend) {
+            if (chosen_device_out) {
+                *chosen_device_out = name;
+            }
+            return backend;
+        }
+    }
+
+    return NULL;
+}
+
 int main(int argc, char* argv[]) {
     printf("=== Flues-Synth v0.1.0 ===\n");
     printf("Unified Polyphonic Synthesizer (Phase 1: Single Voice)\n");
@@ -209,16 +253,16 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, signal_handler);
 
     // Configuration
-    const char* audio_device = "default";
+    const char* audio_device_arg = NULL;
     const float sample_rate = DEFAULT_SAMPLE_RATE;
     const int buffer_size = DEFAULT_BUFFER_SIZE;
 
     // Allow override via command line
     if (argc > 1) {
-        audio_device = argv[1];
+        audio_device_arg = argv[1];
     }
 
-    printf("Audio device: %s\n", audio_device);
+    printf("Requested audio device: %s\n", audio_device_arg ? audio_device_arg : "(auto)");
     printf("Sample rate: %.0f Hz\n", sample_rate);
     printf("Buffer size: %d frames (%.1f ms)\n\n",
            buffer_size, (buffer_size * 1000.0f) / sample_rate);
@@ -239,18 +283,20 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Create audio backend
-    AudioBackendALSA* audio = audio_backend_alsa_create(audio_device,
+    // Create audio backend (auto-fallback to common Pi headphone devices)
+    const char* chosen_device = NULL;
+    AudioBackendALSA* audio = create_audio_with_fallback(audio_device_arg,
                                                          sample_rate,
                                                          buffer_size,
-                                                         audio_callback,
-                                                         g_synth);
+                                                         g_synth,
+                                                         &chosen_device);
     if (!audio) {
-        fprintf(stderr, "Failed to create audio backend\n");
+        fprintf(stderr, "Failed to create audio backend (tried requested device and common fallbacks)\n");
         midi_backend_alsa_destroy(midi);
         synth_engine_destroy(g_synth);
         return 1;
     }
+    printf("Audio device: %s\n", chosen_device ? chosen_device : "(unknown)");
 
     // Start MIDI
     if (!midi_backend_alsa_start(midi)) {

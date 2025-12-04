@@ -271,6 +271,11 @@ dpkg -l | grep -E 'meson|ninja|alsa'
 - Target (4 voices): ~20-30% CPU
 - Latency: ~5.3ms (256 samples)
 
+## Notes for Raspberry Pi bring-up
+
+- The app now auto-falls back through common Pi headphone devices if no CLI device is given: `hw:Headphones`, `plughw:Headphones`, `hw:2,0`, `plughw:2,0`, `hw:1,0`, then `default`. You can still override: `./builddir/flues-synth hw:2,0`.
+- A smoke test verifies the default DSP path produces non-zero output: `meson test -C builddir engine-smoke`.
+- Quick rebuild on Pi: `meson setup builddir --reconfigure && meson compile -C builddir && meson test -C builddir engine-smoke`.
 ## Architecture
 
 ```

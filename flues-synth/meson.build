@@ -23,15 +23,9 @@ math_dep = meson.get_compiler('c').find_library('m', required: true)
 # Include directories
 inc = include_directories('include')
 
-# Source files - Phase 1
-sources = [
-    # Main application
-    'src/main.c',
+# Core DSP sources (shared by app and tests)
+core_sources = [
     'src/synth_engine.c',
-
-    # Audio & MIDI backends
-    'src/audio/audio_backend_alsa.c',
-    'src/audio/midi_backend_alsa.c',
 
     # DSP Modules
     'src/audio/modules/disyn_wrapper.cpp',  # C++ wrapper
@@ -61,9 +55,29 @@ sources = [
     'src/audio/modules/strategies/plasma_strategy.c',
 ]
 
-# Build executable
+core_lib = static_library('flues_core',
+                          core_sources,
+                          include_directories: inc,
+                          dependencies: [math_dep])
+
+# Main application sources (audio + MIDI + main)
+app_sources = [
+    'src/main.c',
+    'src/audio/audio_backend_alsa.c',
+    'src/audio/midi_backend_alsa.c',
+]
+
 executable('flues-synth',
-           sources,
+           app_sources,
            include_directories: inc,
            dependencies: [alsa_dep, threads_dep, math_dep],
+           link_with: core_lib,
            install: true)
+
+# Smoke test to ensure default signal path produces audio energy
+smoke = executable('engine-smoke',
+                   ['tests/engine_smoke.c'],
+                   include_directories: inc,
+                   dependencies: [math_dep],
+                   link_with: core_lib)
+test('engine-smoke', smoke)
