@@ -375,7 +375,7 @@ jalv.gtk https://danja.github.io/flues/plugins/chatterbox
 **Implementation Status:**
 - ✓ All 5 DSP modules fully implemented
 - ✓ Monophonic voice management
-- ✓ Sample-accurate MIDI processing (note on/off, velocity, 15 CC mappings)
+- ✓ Sample-accurate MIDI processing (note on/off, velocity, 17 CC mappings including CC 103/104)
 - ✓ All 4 vocal modes working (nasal, sing, shout, fry)
 - ✓ Stress processing with tanh soft clipping
 - ✓ X11/Cairo UI with 6 logical groups
@@ -407,9 +407,150 @@ Comprehensive MIDI CC mapping covering all major parameters:
 - **Standard CCs:** 1 (Stress), 7 (Master Gain), 10 (F2/Tongue)
 - **Sound Controllers:** 71 (F1/Jaw), 72 (Release), 73 (Attack), 74 (F3/Lips), 75 (F4/Quality)
 - **Vocal Mode Toggles:** 80 (Nasal), 81 (Sing), 82 (Shout), 83 (Fry) - on when ≥64
-- **Effects:** 84 (Reverb Size), 85 (Reverb Level), 91 (Reverb Level alt), 102 (Noise Level)
+- **Effects:** 84 (Reverb Size), 85 (Reverb Level), 91 (Reverb Level alt)
+- **Source Control:** 102 (Noise Level), 103 (Aspirated toggle), 104 (Voiced toggle)
+
+Note: CC 103 and CC 104 enable MIDI control of the Aspirated and Voiced toggles, critical for text-to-speech via ChatGen.
 
 See `lv2/chatterbox/README.md` for detailed usage, sound design tips, and vowel presets.
+
+### ChatGen LV2 Plugin
+
+**Location:** `lv2/chatgen/`
+
+A text-to-speech MIDI generator that converts English text into MIDI events (Note On/Off + 7 CCs) for controlling Chatterbox's formant speech synthesizer. ChatGen parses text into phonemes and generates sample-accurate MIDI synchronized to a musical beat grid.
+
+**Key Features:**
+- Native C++ implementation with X11/Cairo UI
+- Full phoneme parsing: 40+ phonemes (vowels, fricatives, plosives, nasals, liquids, affricates)
+- MIDI Note generation: Note On (C4) when Play starts, Note Off when stops
+- 7 MIDI CCs: Formants (F1-F4), Noise Level, Aspirated toggle, Voiced toggle
+- Text input field with real-time phoneme preview
+- Text persistence across UI focus changes and DAW restarts
+- Half-note timing: Each phoneme lasts 2 beats (1 second at 120 BPM)
+- DAW tempo sync via LV2 Time extension
+- Designed for serial routing: `[ChatGen] → [Chatterbox] → Audio Out` on same track
+
+**Architecture:**
+- `src/modules/` - Four DSP modules:
+  - `TextParser.hpp` - Text → phoneme sequence (40+ phonemes with digraph detection)
+  - `PhonemeMapper.hpp` - Phoneme → MIDI CC values (formants + noise + voiced flags)
+  - `ClockSync.hpp` - BPM-based half-note timing engine
+  - `MidiGenerator.hpp` - Note On/Off + CC sequence writer
+- `src/ChatGenEngine.hpp` - Module coordinator
+- `src/chatgen_plugin.cpp` - LV2 wrapper with atom communication
+- `src/ui/chatgen_ui_x11.c` - X11/Cairo UI with text input and phoneme preview
+- `chatgen.lv2/*.ttl` - LV2 metadata and 5 port definitions
+
+**Signal Flow:**
+```
+Text Input (UI) → TextParser → Phoneme Sequence
+                       ↓
+                PhonemeMapper → Formant CCs + Voiced/Noise flags
+                       ↓
+                  ClockSync → Half-note beat detection (every 2 beats)
+                       ↓
+               MidiGenerator → Note On/Off + 7 MIDI CCs → Output
+```
+
+**Building:**
+```bash
+cd lv2/chatgen
+cmake -S . -B build
+cmake --build build
+cmake --install build --prefix ~/.lv2
+```
+
+**Usage:**
+```bash
+# Verify installation
+lv2ls | grep chatgen
+
+# Load in host (standalone testing)
+jalv.gtk https://danja.github.io/flues/plugins/chatgen
+
+# Typical setup in DAW: Same track with [ChatGen] → [Chatterbox] → Audio Out
+```
+
+**Phoneme Types (40+ total):**
+- **Vowels (11)**: /i/, /ɪ/, /e/, /æ/, /ɑ/, /ɔ/, /o/, /u/, /ʊ/, /ʌ/, /ɜ/ - all voiced, no noise
+- **Plosives (6)**: /p/, /b/, /t/, /d/, /k/, /g/ - burst noise (70), voiced vs unvoiced
+- **Fricatives (9)**: /f/, /v/, /s/, /z/, /θ/, /ð/, /ʃ/, /ʒ/, /h/ - high noise (90-120), voiced vs unvoiced
+- **Affricates (2)**: /tʃ/, /dʒ/ - medium noise (95), voiced vs unvoiced
+- **Nasals (3)**: /m/, /n/, /ŋ/ - voiced with slight noise (10)
+- **Liquids (4)**: /l/, /r/, /w/, /j/ - voiced with minimal noise (0-5)
+
+**MIDI Output (Channel 1):**
+- **Note On**: MIDI note 60 (C4), velocity 96 - sent when Play starts
+- **Note Off**: MIDI note 60 (C4) - sent when Play stops
+- **CC 71**: F1 (Jaw) - 0-127 → 200-1000 Hz exponential
+- **CC 10**: F2 (Tongue) - 0-127 → 500-3000 Hz exponential
+- **CC 74**: F3 (Lips) - 0-127 → 1500-4000 Hz exponential
+- **CC 75**: F4 (Quality) - 0-127 → 2500-4500 Hz exponential
+- **CC 102**: Noise Level - 0-127 linear (fricatives 90-120, plosives 70, vowels 0)
+- **CC 103**: Aspirated - 0 (off) or 127 (on) - enables noise generator when noise > 0
+- **CC 104**: Voiced - 0 (off) or 127 (on) - enables larynx for vowels and voiced consonants
+
+**Text Parsing Examples:**
+```
+Input: "cat dog fish"
+Phonemes: [k] [ae] [t] [d] [o] [g] [f] [ih] [sh]
+Voiced: OFF ON OFF ON ON ON OFF ON OFF
+Noise: 70 0 70 70 0 70 110 0 115
+Duration: 9 phonemes × 2 beats = 18 beats = 9 seconds at 120 BPM
+
+Input: "hello world"
+Phonemes: [h] [e] [l] [o] [w] [er] [l] [d]
+Voiced: OFF ON ON ON ON ON ON ON
+Noise: 90 0 5 0 0 5 5 70
+```
+
+**Digraph Support:**
+- "sh" → /ʃ/, "ch" → /tʃ/, "th" → /θ/, "ng" → /ŋ/
+- "ee" → /i/, "oo" → /u/, "er" → /ɜ/, "aw" → /ɔ/
+- Checked before single-character mapping
+
+**Implementation Status:**
+- ✓ All 4 DSP modules fully implemented
+- ✓ 40+ phoneme support with voiced/unvoiced distinction
+- ✓ Note On/Off generation with C4 fixed pitch
+- ✓ 7 MIDI CC output (formants + noise + source control)
+- ✓ X11/Cairo UI with text input and phoneme preview
+- ✓ Text persistence via atom communication (UI ↔ DSP)
+- ✓ Half-note timing (2 beats per phoneme)
+- ✓ DAW tempo sync via LV2 Time extension
+- ✓ Transport play/stop sync
+- TODO: Variable phoneme duration, pitch control, polyphonic mode
+
+**UI Design:**
+The X11/Cairo UI provides text input and visual feedback:
+- **Text Input Field**: Type English text, press Enter to send to DSP
+- **Phoneme Preview**: Shows parsed phonemes in real-time (e.g., `[k] [ae] [t]`)
+- **Play Button**: Green when active, starts phoneme playback
+- **Loop Button**: Blue when active, repeats phoneme sequence
+- Simple layout focused on text entry and playback control
+
+**Integration with Chatterbox:**
+ChatGen is specifically designed to control Chatterbox via MIDI CCs. The key innovation is **Voiced/Unvoiced control**:
+- **Voiced phonemes** (vowels, /m/, /n/, /l/, /r/, etc.): CC 104 = 127, CC 103 = 0
+  - Chatterbox larynx ON, aspirator OFF → pure tonal sound
+- **Unvoiced fricatives** (/f/, /s/, /sh/, /th/, /h/): CC 104 = 0, CC 103 = 127
+  - Chatterbox larynx OFF, aspirator ON → pure breathy noise
+- **Voiced fricatives** (/v/, /z/, /zh/, /dh/): CC 104 = 127, CC 103 = 127
+  - Both sources enabled → mixed tonal + noisy sound
+
+This enables proper speech articulation with distinct vowels and consonants.
+
+**Text Persistence Pattern:**
+Text survives UI focus changes via bidirectional atom communication:
+- **UI → DSP**: Bare atom:String sent with atomEventTransferUrid (host wraps in sequence)
+- **DSP → UI**: Text broadcast on every audio callback in sequence
+- **UI protection**: `user_is_editing` flag prevents overwrites while typing
+- **Port subscription**: UI subscribes to TEXT_OUT port for updates
+
+This ensures typed text persists even when the UI window loses focus or is closed and reopened.
+
+See `lv2/chatgen/README.md` for detailed usage, phoneme tables, sound design tips, and troubleshooting.
 
 ### PM Synth LV2 UI Refactor (2025-02)
 

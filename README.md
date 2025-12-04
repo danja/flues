@@ -66,29 +66,43 @@ Available in two implementations:
 * [Plugin README](lv2/chatterbox/README.md)
 * Build: `cd lv2/chatterbox && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
 * Native X11/Cairo UI with IPA vowel quadrilateral joystick
-* Comprehensive MIDI control (note on/off, velocity, 15 CC mappings)
+* Comprehensive MIDI control (note on/off, velocity, 17 CC mappings including CC 103/104 for speech synthesis)
 * Vocal modes: Nasal, Sing (vibrato), Shout, Fry (vocal fry)
+* Source control: Voiced (larynx) and Aspirated (noise) with MIDI CC support (CC 103/104)
 * Built-in Schroeder reverb with size and level controls
 
 ### ChatGen
-Text-to-formant MIDI CC generator designed to control Chatterbox for speech-like synthesis.
+Text-to-speech MIDI generator that converts English text into MIDI events (Note On/Off + CCs) for controlling Chatterbox's formant speech synthesizer.
 
 **LV2 Plugin:**
 * Source & docs: [`lv2/chatgen/`](lv2/chatgen)
+* [Plugin README](lv2/chatgen/README.md)
 * Build: `cd lv2/chatgen && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
-* Native X11/Cairo UI with live text input and phoneme preview
-* MIDI pass-through architecture: receives MIDI notes and adds formant CC messages
-* Real-time text-to-phoneme parsing (5 vowels + 8 consonants)
-* Beat-synchronized formant changes with tempo sync from DAW transport
+* Status: **Phase 2 Complete** - Full DSP engine with X11/Cairo UI
+* Native X11/Cairo UI with text input and real-time phoneme preview
+* Full phoneme support: 40+ phonemes (vowels, fricatives, plosives, nasals, liquids, affricates)
+* Complete speech control: 7 MIDI CCs + Note On/Off generation
+* Text persistence across UI focus changes and DAW restarts
 
 **Features:**
-- Text input widget with instant phoneme preview (updates on every keystroke)
-- Press **Enter** to send text to DSP for phoneme sequence generation
-- Phoneme-to-formant CC mapping (CC 71→F1, CC 10→F2, CC 74→F3, CC 75→F4)
-- MIDI note pass-through preserves pitch and timing
-- Formant CCs sent on beat boundaries + periodic refresh every 200ms
-- Play/Loop controls for phoneme sequence playback
-- Designed to route: MIDI Track → ChatGen → Chatterbox
+- **Text input widget** with instant phoneme preview (e.g., "cat" → `[k] [ae] [t]`)
+- **Full phoneme parsing**: 40+ IPA phonemes with digraph support (sh, ch, th, ee, oo, er, etc.)
+- **MIDI Note generation**: Sends Note On (C4) when Play starts, Note Off when stops
+- **7 MIDI CCs for complete speech control**:
+  - CC 71, 10, 74, 75 (formants F1-F4)
+  - CC 102 (Noise Level - 0-127 for fricative/plosive articulation)
+  - CC 103 (Aspirated - noise generator on/off)
+  - CC 104 (Voiced - larynx on/off for voiced vs unvoiced consonants)
+- **Voiced/Unvoiced articulation**: Proper larynx control (vowels voiced, fricatives like f/s/sh unvoiced)
+- **Half-note timing**: Each phoneme lasts 2 beats (1 second at 120 BPM, adjustable via DAW tempo)
+- **Play/Loop controls** for sequence playback with DAW transport sync
+- **Simple routing**: Place both plugins on same track: `[ChatGen] → [Chatterbox] → Audio Out`
+
+**Usage Example:**
+1. Type "cat dog fish" in ChatGen text input, press Enter
+2. Click Play button (or start DAW transport)
+3. Hear phonemes: `[k] [ae] [t] [d] [o] [g] [f] [ih] [sh]` with proper voiced/unvoiced transitions
+4. Fricatives (f, sh) sound breathy, vowels (ae, o, ih) sound tonal
 
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.

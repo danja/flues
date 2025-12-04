@@ -1,0 +1,6 @@
+option('max_voices', type: 'integer', value: 4, min: 1, max: 16,
+       description: 'Maximum polyphony (voices)')
+option('enable_simd', type: 'boolean', value: false,
+       description: 'Enable ARM NEON SIMD optimizations')
+option('buffer_size', type: 'integer', value: 256, min: 64, max: 2048,
+       description: 'ALSA buffer size in frames')
