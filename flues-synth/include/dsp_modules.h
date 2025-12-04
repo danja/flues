@@ -174,7 +174,7 @@ DelayLinesModule* delay_lines_create(float sample_rate);
 void delay_lines_destroy(DelayLinesModule* delays);
 void delay_lines_process(DelayLinesModule* delays, float input, float* out1, float* out2);
 void delay_lines_set_frequency(DelayLinesModule* delays, float frequency);
-void delay_lines_set_tuning(DelayLinesModule* delays, float tuning);
+void delay_lines_set_tuning(DelayLinesModule* delays, float semitone_offset);
 void delay_lines_set_ratio(DelayLinesModule* delays, float ratio);
 
 // Alias for note_on compatibility

@@ -81,14 +81,15 @@ void delay_lines_set_frequency(DelayLinesModule* delays, float frequency) {
     }
 }
 
-void delay_lines_set_tuning(DelayLinesModule* delays, float tuning) {
-    // Map 0-1 to -12 to +12 semitones
-    float semitones = (tuning - 0.5f) * 24.0f;
-    float ratio = powf(2.0f, semitones / 12.0f);
+void delay_lines_set_tuning(DelayLinesModule* delays, float semitone_offset) {
+    // semitone_offset is already in semitones (-12..+12)
+    float ratio = powf(2.0f, semitone_offset / 12.0f);
     delays->tuning_offset = delays->base_delay_samples * (1.0f - ratio);
 }
 
 void delay_lines_set_ratio(DelayLinesModule* delays, float ratio) {
-    // Map 0-1 to 0.5 to 2.0
-    delays->ratio = 0.5f + ratio * 1.5f;
+    // ratio is absolute (e.g. 1.0 = same delay, 2.0 = one octave down)
+    if (ratio < 0.25f) ratio = 0.25f;
+    if (ratio > 4.0f) ratio = 4.0f;
+    delays->ratio = ratio;
 }

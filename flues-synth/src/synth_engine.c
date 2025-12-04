@@ -206,8 +206,8 @@ SynthEngine* synth_engine_create(float sample_rate) {
     interface_set_type(engine->voice.interface, INTERFACE_REED);
     interface_set_intensity(engine->voice.interface, 0.5f);
 
-    delay_lines_set_tuning(engine->voice.delay_lines, 0.5f);  // center = 0 semitones
-    delay_lines_set_ratio(engine->voice.delay_lines, 1.0f);
+    delay_lines_set_tuning(engine->voice.delay_lines, 0.0f);   // 0 semitone offset
+    delay_lines_set_ratio(engine->voice.delay_lines, 1.0f);    // same delay length
 
     feedback_set_delay1_level(engine->voice.feedback, 0.2f);
     feedback_set_delay2_level(engine->voice.feedback, 0.2f);

@@ -145,11 +145,11 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
                     break;
 
                 case 26:  // Tuning
-                    synth_engine_set_tuning(synth, (value - 0.5f) * 24.0f);  // -12 to +12
+                    synth_engine_set_tuning(synth, (value - 0.5f) * 24.0f);  // -12 to +12 semitones
                     break;
 
                 case 27:  // Ratio
-                    synth_engine_set_ratio(synth, exp_map(value, 0.5f, 2.0f));
+                    synth_engine_set_ratio(synth, exp_map(value, 0.5f, 2.0f));  // absolute ratio
                     break;
 
                 // Feedback
