@@ -250,8 +250,8 @@ void synth_engine_note_on(SynthEngine* engine, int midi_note, float frequency) {
     voice->vibrato_phase = 0.0f;
 
     // Reset modules
-    envelope_set_gate(voice->envelope, true);
     envelope_reset(voice->envelope);
+    envelope_set_gate(voice->envelope, true);
     delay_lines_note_on(voice->delay_lines, frequency);
     interface_set_gate(voice->interface, 1.0f);
 
