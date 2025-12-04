@@ -138,15 +138,15 @@ static float voice_process_sample(Voice* voice, SynthEngine* engine) {
     // 7. Chatterbox Formant Bank
     float formant_out = formant_bank_process(voice->formant_bank, excitation);
 
-    // 8. Feedback Mix (DC blocker applied to feedback path only)
-    float fb_delay1 = dc_blocker_process(&voice->dc_blocker, voice->prev_delay1_out);
-    float fb_delay2 = dc_blocker_process(&voice->dc_blocker, voice->prev_delay2_out);
-    float fb_filter = dc_blocker_process(&voice->dc_blocker, voice->prev_filter_out);
-
-    float feedback_mix = feedback_process(voice->feedback, fb_delay1, fb_delay2, fb_filter);
+    // 8. Feedback Mix (apply DC blocker once on combined feedback)
+    float feedback_mix = feedback_process(voice->feedback,
+                                          voice->prev_delay1_out,
+                                          voice->prev_delay2_out,
+                                          voice->prev_filter_out);
+    float feedback_clean = dc_blocker_process(&voice->dc_blocker, feedback_mix);
 
     // 9. Add feedback to signal
-    float interface_input = formant_out + feedback_mix;
+    float interface_input = formant_out + feedback_clean;
 
     // 10. Interface Module (Physical Modeling)
     float interface_out = interface_process(voice->interface, interface_input);
@@ -178,7 +178,7 @@ SynthEngine* synth_engine_create(float sample_rate) {
     if (!engine) return NULL;
 
     engine->sample_rate = sample_rate;
-    engine->master_gain = 0.5f;
+    engine->master_gain = 0.35f;
     engine->disyn_level = 0.5f;
     engine->sing_enabled = false;
     engine->fry_enabled = false;
@@ -191,7 +191,7 @@ SynthEngine* synth_engine_create(float sample_rate) {
     disyn_set_param1(engine->voice.disyn, 0.5f);
     disyn_set_param2(engine->voice.disyn, 0.5f);
 
-    sources_set_noise_level(engine->voice.sources, 0.1f);
+    sources_set_noise_level(engine->voice.sources, 0.02f);
     sources_set_dc_level(engine->voice.sources, 0.0f);
 
     envelope_set_attack(engine->voice.envelope, 0.1f);  // ~10ms
@@ -206,12 +206,12 @@ SynthEngine* synth_engine_create(float sample_rate) {
     interface_set_type(engine->voice.interface, INTERFACE_REED);
     interface_set_intensity(engine->voice.interface, 0.5f);
 
-    delay_lines_set_tuning(engine->voice.delay_lines, 0.0f);
+    delay_lines_set_tuning(engine->voice.delay_lines, 0.5f);  // center = 0 semitones
     delay_lines_set_ratio(engine->voice.delay_lines, 1.0f);
 
-    feedback_set_delay1_level(engine->voice.feedback, 0.3f);
-    feedback_set_delay2_level(engine->voice.feedback, 0.3f);
-    feedback_set_filter_level(engine->voice.feedback, 0.2f);
+    feedback_set_delay1_level(engine->voice.feedback, 0.2f);
+    feedback_set_delay2_level(engine->voice.feedback, 0.2f);
+    feedback_set_filter_level(engine->voice.feedback, 0.1f);
 
     filter_set_frequency(engine->voice.filter, 2000.0f);
     filter_set_q(engine->voice.filter, 1.0f);

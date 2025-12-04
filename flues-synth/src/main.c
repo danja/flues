@@ -52,6 +52,7 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
         case MIDI_CONTROL_CHANGE: {
             uint8_t cc = event->cc_number;
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
+            printf("CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
 
             // Map CCs to parameters
             switch (cc) {

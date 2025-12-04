@@ -276,6 +276,12 @@ dpkg -l | grep -E 'meson|ninja|alsa'
 - The app now auto-falls back through common Pi headphone devices if no CLI device is given: `hw:Headphones`, `plughw:Headphones`, `hw:2,0`, `plughw:2,0`, `hw:1,0`, then `default`. You can still override: `./builddir/flues-synth hw:2,0`.
 - A smoke test verifies the default DSP path produces non-zero output: `meson test -C builddir engine-smoke`.
 - Quick rebuild on Pi: `meson setup builddir --reconfigure && meson compile -C builddir && meson test -C builddir engine-smoke`.
+
+ meson compile -C flues-synth/builddir
+  meson test -C flues-synth/builddir engine-smoke
+  ./flues-synth/builddir/flues-synth hw:2,0
+
+  
 ## Architecture
 
 ```

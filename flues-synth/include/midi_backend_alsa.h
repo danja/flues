@@ -15,6 +15,7 @@ typedef enum {
 // MIDI event structure
 typedef struct {
     MidiEventType type;
+    uint8_t channel;
     uint8_t note;
     uint8_t velocity;
     uint8_t cc_number;

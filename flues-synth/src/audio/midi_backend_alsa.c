@@ -105,17 +105,20 @@ static void* midi_thread_func(void* arg) {
 
         MidiEvent event;
         bool send_event = false;
+        event.channel = 0;
 
         switch (ev->type) {
             case SND_SEQ_EVENT_NOTEON:
                 if (ev->data.note.velocity > 0) {
                     event.type = MIDI_NOTE_ON;
+                    event.channel = ev->data.note.channel;
                     event.note = ev->data.note.note;
                     event.velocity = ev->data.note.velocity;
                     send_event = true;
                 } else {
                     // Note on with velocity 0 = note off
                     event.type = MIDI_NOTE_OFF;
+                    event.channel = ev->data.note.channel;
                     event.note = ev->data.note.note;
                     event.velocity = 0;
                     send_event = true;
@@ -124,6 +127,7 @@ static void* midi_thread_func(void* arg) {
 
             case SND_SEQ_EVENT_NOTEOFF:
                 event.type = MIDI_NOTE_OFF;
+                event.channel = ev->data.note.channel;
                 event.note = ev->data.note.note;
                 event.velocity = ev->data.note.velocity;
                 send_event = true;
@@ -131,6 +135,7 @@ static void* midi_thread_func(void* arg) {
 
             case SND_SEQ_EVENT_CONTROLLER:
                 event.type = MIDI_CONTROL_CHANGE;
+                event.channel = ev->data.control.channel;
                 event.cc_number = ev->data.control.param;
                 event.cc_value = ev->data.control.value;
 
