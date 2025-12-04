@@ -18,6 +18,74 @@ static volatile bool running = true;
 
 // Synth engine (global for audio callback)
 static SynthEngine* g_synth = NULL;
+static bool g_use_mk449_remap = true;  // remap CCs for the Evolution MK-449 defaults
+
+// Translate MK-449 default CCs to the synth’s parameter map
+static uint8_t mk449_remap_cc(uint8_t cc_in) {
+    switch (cc_in) {
+        case 91: return 28;  // Effect 1 depth → Delay1 feedback
+        case 92: return 29;  // Effect 2 depth → Delay2 feedback
+        case 93: return 30;  // Effect 3 depth → Filter feedback
+        case 84: return 27;  // Portamento control → Delay ratio
+        case 12: return 20;  // Data entry → Noise level
+        case 13: return 19;  // Data entry fine → Disyn level
+        case 5:  return 1;   // Portamento time → Intensity (mod wheel stand-in)
+        default: return cc_in;
+    }
+}
+
+// Note numbers 36-41 toggle sections of the DSP chain for debugging hiss
+// 36: Noise, 37: Disyn, 38: Feedback, 39: Formants, 40: Filter, 41: Hard mute
+static bool handle_control_note(const MidiEvent* event, SynthEngine* synth) {
+    const uint8_t note = event->note;
+    if (note < 36 || note > 41) {
+        return false;
+    }
+
+    // Only act on Note On with velocity > 0; each press toggles the state
+    if (event->type == MIDI_NOTE_ON && event->velocity > 0) {
+        switch (note) {
+            case 36: {
+                bool new_state = !synth_engine_is_noise_enabled(synth);
+                synth_engine_enable_noise(synth, new_state);
+                printf("Ctl Note 36: Noise %s\n", new_state ? "ENABLED" : "DISABLED");
+                break;
+            }
+            case 37: {
+                bool new_state = !synth_engine_is_disyn_enabled(synth);
+                synth_engine_enable_disyn(synth, new_state);
+                printf("Ctl Note 37: Disyn %s\n", new_state ? "ENABLED" : "DISABLED");
+                break;
+            }
+            case 38: {
+                bool new_state = !synth_engine_is_feedback_enabled(synth);
+                synth_engine_enable_feedback(synth, new_state);
+                printf("Ctl Note 38: Feedback %s\n", new_state ? "ENABLED" : "DISABLED");
+                break;
+            }
+            case 39: {
+                bool new_state = !synth_engine_is_formants_enabled(synth);
+                synth_engine_enable_formants(synth, new_state);
+                printf("Ctl Note 39: Formants %s\n", new_state ? "ENABLED" : "DISABLED");
+                break;
+            }
+            case 40: {
+                bool new_state = !synth_engine_is_filter_enabled(synth);
+                synth_engine_enable_filter(synth, new_state);
+                printf("Ctl Note 40: Filter %s\n", new_state ? "ENABLED" : "DISABLED");
+                break;
+            }
+            case 41: {
+                bool new_state = !synth_engine_is_hard_muted(synth);
+                synth_engine_hard_mute(synth, new_state);
+                printf("Ctl Note 41: HARD MUTE %s\n", new_state ? "ON" : "OFF");
+                break;
+            }
+        }
+    }
+
+    return true;  // consume control note (don’t trigger voice)
+}
 
 // Signal handler for clean shutdown
 static void signal_handler(int sig) {
@@ -37,6 +105,10 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
 
     switch (event->type) {
         case MIDI_NOTE_ON: {
+            if (handle_control_note(event, synth)) {
+                break;
+            }
+
             float freq = midi_note_to_frequency(event->note);
             synth_engine_note_on(synth, event->note, freq);
             printf("Note ON: %d (%.1f Hz), velocity %d\n",
@@ -45,12 +117,21 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
         }
 
         case MIDI_NOTE_OFF:
+            if (handle_control_note(event, synth)) {
+                break;
+            }
+
             synth_engine_note_off(synth, event->note);
             printf("Note OFF: %d\n", event->note);
             break;
 
         case MIDI_CONTROL_CHANGE: {
             uint8_t cc = event->cc_number;
+
+            if (g_use_mk449_remap) {
+                cc = mk449_remap_cc(cc);
+            }
+
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
             printf("CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
 
@@ -248,6 +329,14 @@ int main(int argc, char* argv[]) {
     printf("=== Flues-Synth v0.1.0 ===\n");
     printf("Unified Polyphonic Synthesizer (Phase 1: Single Voice)\n");
     printf("Target: Raspberry Pi 4 (ARM Cortex-A72)\n\n");
+
+    const char* mk_env = getenv("FLUES_MK449_MAP");
+    if (mk_env && mk_env[0] == '0') {
+        g_use_mk449_remap = false;
+    }
+    if (g_use_mk449_remap) {
+        printf("MK-449 CC remap: enabled (91→28, 92→29, 93→30, 84→27, 5→1)\n");
+    }
 
     // Setup signal handlers
     signal(SIGINT, signal_handler);

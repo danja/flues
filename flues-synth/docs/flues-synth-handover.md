@@ -40,15 +40,19 @@ FLUES_MIDI_DEBUG=1 ./builddir/flues-synth hw:2,0
 ## Recent fixes / status
 - **Audio stability:** Fixed delay tuning/ratio mapping (was double-mapped and could explode). Defaults reduced to avoid runaway feedback.
 - **Feedback DC blocking:** DC blocker now applied once on the combined feedback mix.
+- **Feedback taming:** Combined delay/filter feedback now soft-clipped before feeding the interface to quell runaway spikes.
+- **Global pad:** Final signal is scaled by 0.5 before master gain to reduce accumulated level (helps broadband noise).
 - **MIDI logging:** Channel-aware CC logging; `FLUES_MIDI_DEBUG=1` adds per-event diagnostics.
 - **Smoke test:** `engine-smoke` renders a buffer after note-on and fails if RMS < 1e-4.
 - **Defaults tuned for Pi headphones:** `./builddir/flues-synth hw:2,0` produces a clean tone + formants; noise defaults low.
+- **Control notes:** Note-ons on 36-41 toggle parts of the chain for debugging hiss (Note On with vel>0 flips state): 36 noise, 37 Disyn, 38 feedback, 39 formants (bypass), 40 filter (bypass), 41 hard mute. Disabling feedback clears delay buffers/DC blocker; disabling filter resets its state; hard mute clears feedback/filter state too.
 
 ## Known gaps / next steps
 - Polyphony and reverb not implemented yet (Phase 1 single voice).
 - Fry mode stub (TODO: add f0/2 in Disyn).
 - No GTK/UI; headless only.
 - If CCs from the MK-449C don’t match expectations, capture with `aseqdump -p <port>` and we can add a remap layer.
+- MK-449 mapping: defaults now remap 91→Delay1 FB (28), 92→Delay2 FB (29), 93→Filter FB (30), 84→Delay Ratio (27), 12→Noise Level (20), 13→Disyn Level (19), 5→Intensity (1). Disable with `FLUES_MK449_MAP=0`.
 
 ## Troubleshooting quicklist
 - No audio: force device `./builddir/flues-synth hw:2,0`; verify `aplay -Dhw:2 /usr/share/sounds/alsa/Front_Center.wav`.

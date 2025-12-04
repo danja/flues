@@ -78,4 +78,18 @@ void synth_engine_set_master_gain(SynthEngine* engine, float gain);  // 0-1
 // Get number of active voices (for UI display)
 int synth_engine_get_active_voice_count(SynthEngine* engine);
 
+// Debug/diagnostic toggles (bypass parts of the chain)
+void synth_engine_enable_disyn(SynthEngine* engine, bool enabled);
+void synth_engine_enable_noise(SynthEngine* engine, bool enabled);
+void synth_engine_enable_feedback(SynthEngine* engine, bool enabled);
+void synth_engine_enable_formants(SynthEngine* engine, bool enabled);
+void synth_engine_enable_filter(SynthEngine* engine, bool enabled);
+void synth_engine_hard_mute(SynthEngine* engine, bool enabled);
+bool synth_engine_is_noise_enabled(SynthEngine* engine);
+bool synth_engine_is_disyn_enabled(SynthEngine* engine);
+bool synth_engine_is_feedback_enabled(SynthEngine* engine);
+bool synth_engine_is_formants_enabled(SynthEngine* engine);
+bool synth_engine_is_filter_enabled(SynthEngine* engine);
+bool synth_engine_is_hard_muted(SynthEngine* engine);
+
 #endif // FLUES_SYNTH_SYNTH_ENGINE_H

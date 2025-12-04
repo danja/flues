@@ -93,3 +93,11 @@ void delay_lines_set_ratio(DelayLinesModule* delays, float ratio) {
     if (ratio > 4.0f) ratio = 4.0f;
     delays->ratio = ratio;
 }
+
+void delay_lines_clear(DelayLinesModule* delays) {
+    if (!delays) return;
+    memset(delays->buffer1, 0, sizeof(float) * delays->buffer_size);
+    memset(delays->buffer2, 0, sizeof(float) * delays->buffer_size);
+    delays->write_pos1 = 0.0f;
+    delays->write_pos2 = 0.0f;
+}

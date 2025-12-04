@@ -58,6 +58,14 @@ struct SynthEngine {
     // Vocal modes
     bool sing_enabled;   // Vibrato on Disyn frequency
     bool fry_enabled;    // f0/2 subharmonic (TODO: needs Disyn modification)
+
+    // Debug toggles for isolating noise sources
+    bool enable_disyn;
+    bool enable_noise;
+    bool enable_feedback;
+    bool enable_formants;
+    bool enable_filter;
+    bool hard_mute;
 };
 
 // Initialize voice
@@ -100,6 +108,10 @@ static float voice_process_sample(Voice* voice, SynthEngine* engine) {
         return 0.0f;
     }
 
+    if (engine->hard_mute) {
+        return 0.0f;
+    }
+
     // 1. Modulation LFO (updates internal state)
     modulation_process(voice->modulation);
     float am_scale = modulation_get_am_scale(voice->modulation);
@@ -116,11 +128,11 @@ static float voice_process_sample(Voice* voice, SynthEngine* engine) {
     }
 
     // 3. Disyn Oscillator
-    float disyn_out = disyn_process(voice->disyn, frequency);
+    float disyn_out = engine->enable_disyn ? disyn_process(voice->disyn, frequency) : 0.0f;
     disyn_out *= engine->disyn_level;
 
     // 4. Sources (Noise + DC)
-    float sources_out = sources_process(voice->sources);
+    float sources_out = engine->enable_noise ? sources_process(voice->sources) : 0.0f;
 
     // 5. Mix: Disyn + Noise + DC
     float excitation = disyn_out + sources_out;
@@ -136,27 +148,39 @@ static float voice_process_sample(Voice* voice, SynthEngine* engine) {
     }
 
     // 7. Chatterbox Formant Bank
-    float formant_out = formant_bank_process(voice->formant_bank, excitation);
+    float formant_out = engine->enable_formants
+                            ? formant_bank_process(voice->formant_bank, excitation)
+                            : excitation;
 
     // 8. Feedback Mix (apply DC blocker once on combined feedback)
-    float feedback_mix = feedback_process(voice->feedback,
-                                          voice->prev_delay1_out,
-                                          voice->prev_delay2_out,
-                                          voice->prev_filter_out);
+    float feedback_mix = engine->enable_feedback
+                             ? feedback_process(voice->feedback,
+                                                voice->prev_delay1_out,
+                                                voice->prev_delay2_out,
+                                                voice->prev_filter_out)
+                             : 0.0f;
+    feedback_mix = sanitize_sample(feedback_mix);
     float feedback_clean = dc_blocker_process(&voice->dc_blocker, feedback_mix);
+    if (!isfinite(feedback_clean)) {
+        feedback_clean = 0.0f;
+    }
 
     // 9. Add feedback to signal
     float interface_input = formant_out + feedback_clean;
 
     // 10. Interface Module (Physical Modeling)
     float interface_out = interface_process(voice->interface, interface_input);
+    interface_out = sanitize_sample(interface_out);
 
     // 11. Dual Delay Lines
     float delay1_out, delay2_out;
     delay_lines_process(voice->delay_lines, interface_out, &delay1_out, &delay2_out);
 
     // 12. Filter
-    float filter_out = filter_process(voice->filter, delay2_out);
+    float filter_out = engine->enable_filter
+                           ? filter_process(voice->filter, delay2_out)
+                           : delay2_out;
+    filter_out = sanitize_sample(filter_out);
 
     // 13. Store previous outputs for next sample's feedback
     voice->prev_delay1_out = delay1_out;
@@ -165,6 +189,8 @@ static float voice_process_sample(Voice* voice, SynthEngine* engine) {
 
     // 14. Apply AM modulation
     float output = filter_out * am_scale;
+    output *= 0.5f;  // Global pad to reduce accumulated level
+    output = soft_clip_drive(output, 1.0f);  // final guard against runaway noise
 
     // 15. Master gain
     output *= engine->master_gain;
@@ -182,6 +208,12 @@ SynthEngine* synth_engine_create(float sample_rate) {
     engine->disyn_level = 0.5f;
     engine->sing_enabled = false;
     engine->fry_enabled = false;
+    engine->enable_disyn = true;
+    engine->enable_noise = true;
+    engine->enable_feedback = true;
+    engine->enable_formants = true;
+    engine->enable_filter = true;
+    engine->hard_mute = false;
 
     // Initialize single voice
     voice_init(&engine->voice, sample_rate);
@@ -420,4 +452,73 @@ void synth_engine_set_reverb_level(SynthEngine* engine, float value) {
 // Output
 void synth_engine_set_master_gain(SynthEngine* engine, float gain) {
     engine->master_gain = gain;
+}
+
+// Debug/diagnostic toggles
+void synth_engine_enable_disyn(SynthEngine* engine, bool enabled) {
+    engine->enable_disyn = enabled;
+}
+
+void synth_engine_enable_noise(SynthEngine* engine, bool enabled) {
+    engine->enable_noise = enabled;
+}
+
+void synth_engine_enable_feedback(SynthEngine* engine, bool enabled) {
+    engine->enable_feedback = enabled;
+    if (!enabled) {
+        engine->voice.prev_delay1_out = 0.0f;
+        engine->voice.prev_delay2_out = 0.0f;
+        engine->voice.prev_filter_out = 0.0f;
+        delay_lines_clear(engine->voice.delay_lines);
+        dc_blocker_init(&engine->voice.dc_blocker, DC_BLOCKER_R);
+    }
+}
+
+void synth_engine_enable_formants(SynthEngine* engine, bool enabled) {
+    engine->enable_formants = enabled;
+}
+
+void synth_engine_enable_filter(SynthEngine* engine, bool enabled) {
+    engine->enable_filter = enabled;
+    if (!enabled) {
+        filter_reset(engine->voice.filter);
+        engine->voice.prev_filter_out = 0.0f;
+    }
+}
+
+void synth_engine_hard_mute(SynthEngine* engine, bool enabled) {
+    engine->hard_mute = enabled;
+    if (enabled) {
+        // Also clear feedback path to avoid surprises when re-enabling
+        engine->voice.prev_delay1_out = 0.0f;
+        engine->voice.prev_delay2_out = 0.0f;
+        engine->voice.prev_filter_out = 0.0f;
+        delay_lines_clear(engine->voice.delay_lines);
+        dc_blocker_init(&engine->voice.dc_blocker, DC_BLOCKER_R);
+        filter_reset(engine->voice.filter);
+    }
+}
+
+bool synth_engine_is_noise_enabled(SynthEngine* engine) {
+    return engine->enable_noise;
+}
+
+bool synth_engine_is_disyn_enabled(SynthEngine* engine) {
+    return engine->enable_disyn;
+}
+
+bool synth_engine_is_feedback_enabled(SynthEngine* engine) {
+    return engine->enable_feedback;
+}
+
+bool synth_engine_is_formants_enabled(SynthEngine* engine) {
+    return engine->enable_formants;
+}
+
+bool synth_engine_is_filter_enabled(SynthEngine* engine) {
+    return engine->enable_filter;
+}
+
+bool synth_engine_is_hard_muted(SynthEngine* engine) {
+    return engine->hard_mute;
 }

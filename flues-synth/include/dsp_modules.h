@@ -176,6 +176,7 @@ void delay_lines_process(DelayLinesModule* delays, float input, float* out1, flo
 void delay_lines_set_frequency(DelayLinesModule* delays, float frequency);
 void delay_lines_set_tuning(DelayLinesModule* delays, float semitone_offset);
 void delay_lines_set_ratio(DelayLinesModule* delays, float ratio);
+void delay_lines_clear(DelayLinesModule* delays);
 
 // Alias for note_on compatibility
 static inline void delay_lines_note_on(DelayLinesModule* delays, float frequency) {
@@ -230,6 +231,7 @@ float filter_process(FilterModule* filter, float input);
 void filter_set_frequency(FilterModule* filter, float frequency);
 void filter_set_q(FilterModule* filter, float q);
 void filter_set_shape(FilterModule* filter, float shape);
+void filter_reset(FilterModule* filter);
 
 // ============================================================================
 // Modulation Module (LFO from PM-Synth)

@@ -1,1 +1,1 @@
-/usr/bin/c++ -fPIC -shared  -o floozy-poly.so CMakeFiles/floozy_poly.dir/src/floozy_plugin.cpp.o 
+/usr/bin/c++ -fPIC -Wl,--dependency-file=CMakeFiles/floozy_poly.dir/link.d -shared  -o floozy-poly.so CMakeFiles/floozy_poly.dir/src/floozy_plugin.cpp.o

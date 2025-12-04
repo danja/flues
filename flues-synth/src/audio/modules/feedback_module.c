@@ -3,7 +3,15 @@
 // Translated from experiments/pm-synth/src/audio/modules/FeedbackModule.js
 
 #include "dsp_modules.h"
+#include "dsp_utils.h"
 #include <stdlib.h>
+
+// Softly limit feedback to prevent runaway energy while keeping normal range linear
+static inline float feedback_saturate(float x) {
+    // Leave generous headroom before the soft clip engages
+    const float trimmed = clamp(x, -2.0f, 2.0f);
+    return fast_tanh(trimmed);  // drive=1 keeps small signals essentially linear
+}
 
 FeedbackModule* feedback_create(void) {
     FeedbackModule* fb = (FeedbackModule*)calloc(1, sizeof(FeedbackModule));
@@ -22,9 +30,12 @@ void feedback_destroy(FeedbackModule* fb) {
 }
 
 float feedback_process(FeedbackModule* fb, float delay1, float delay2, float filter) {
-    return delay1 * fb->delay1_amount +
-           delay2 * fb->delay2_amount +
-           filter * fb->filter_amount;
+    const float mix = delay1 * fb->delay1_amount +
+                      delay2 * fb->delay2_amount +
+                      filter * fb->filter_amount;
+
+    const float safe_mix = sanitize_sample(mix);
+    return feedback_saturate(safe_mix);
 }
 
 void feedback_set_delay1(FeedbackModule* fb, float amount) {

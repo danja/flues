@@ -70,3 +70,10 @@ void filter_set_q(FilterModule* filter, float q) {
 void filter_set_shape(FilterModule* filter, float shape) {
     filter->shape = shape;
 }
+
+void filter_reset(FilterModule* filter) {
+    if (!filter) return;
+    filter->low = 0.0f;
+    filter->band = 0.0f;
+    filter->high = 0.0f;
+}

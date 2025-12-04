@@ -1,4 +1,5 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/floozy_poly.dir/link.d"
   "CMakeFiles/floozy_poly.dir/src/floozy_plugin.cpp.o"
   "CMakeFiles/floozy_poly.dir/src/floozy_plugin.cpp.o.d"
   "floozy-poly.pdb"

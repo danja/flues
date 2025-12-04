@@ -38,6 +38,14 @@ static inline float soft_clip_drive(float x, float drive) {
     return fast_tanh(x * drive);
 }
 
+// Sanitize potentially bad samples (NaN/Inf) and hard-limit extreme magnitudes
+static inline float sanitize_sample(float x) {
+    if (!isfinite(x)) return 0.0f;
+    if (x > 8.0f) return 8.0f;
+    if (x < -8.0f) return -8.0f;
+    return x;
+}
+
 // Linear interpolation
 static inline float lerp(float a, float b, float t) {
     return a + t * (b - a);
