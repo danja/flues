@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 struct MidiBackendALSA {
     snd_seq_t* seq_handle;
@@ -19,6 +20,7 @@ struct MidiBackendALSA {
 
     pthread_t midi_thread;
     bool running;
+    bool debug;
 };
 
 // Find best external MIDI input port
@@ -148,6 +150,40 @@ static void* midi_thread_func(void* arg) {
         }
 
         if (send_event && backend->callback) {
+            if (backend->debug) {
+                switch (event.type) {
+                    case MIDI_NOTE_ON:
+                        printf("MIDI DBG: ch%d note on  %3u vel %3u (src %d:%d)\n",
+                               event.channel + 1,
+                               event.note,
+                               event.velocity,
+                               ev->source.client,
+                               ev->source.port);
+                        break;
+                    case MIDI_NOTE_OFF:
+                        printf("MIDI DBG: ch%d note off %3u vel %3u (src %d:%d)\n",
+                               event.channel + 1,
+                               event.note,
+                               event.velocity,
+                               ev->source.client,
+                               ev->source.port);
+                        break;
+                    case MIDI_CONTROL_CHANGE:
+                        printf("MIDI DBG: ch%d CC %3u -> %3u (src %d:%d)\n",
+                               event.channel + 1,
+                               event.cc_number,
+                               event.cc_value,
+                               ev->source.client,
+                               ev->source.port);
+                        break;
+                    case MIDI_ALL_NOTES_OFF:
+                        printf("MIDI DBG: ch%d ALL NOTES OFF (src %d:%d)\n",
+                               event.channel + 1,
+                               ev->source.client,
+                               ev->source.port);
+                        break;
+                }
+            }
             backend->callback(&event, backend->callback_user_data);
         }
 
@@ -168,6 +204,7 @@ MidiBackendALSA* midi_backend_alsa_create(MidiEventCallback callback, void* user
     backend->callback_user_data = user_data;
     backend->running = false;
     backend->connected_port = -1;
+    backend->debug = getenv("FLUES_MIDI_DEBUG") != NULL;
 
     // Open ALSA sequencer
     if (snd_seq_open(&backend->seq_handle, "default", SND_SEQ_OPEN_INPUT, 0) < 0) {
@@ -219,6 +256,9 @@ MidiBackendALSA* midi_backend_alsa_create(MidiEventCallback callback, void* user
 
     printf("MIDI: Initialized (client ID: %d, port: %d)\n",
            snd_seq_client_id(backend->seq_handle), backend->input_port);
+    if (backend->debug) {
+        printf("MIDI: Debug logging enabled (set FLUES_MIDI_DEBUG=0 to disable)\n");
+    }
 
     return backend;
 }

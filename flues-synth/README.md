@@ -277,11 +277,13 @@ dpkg -l | grep -E 'meson|ninja|alsa'
 - A smoke test verifies the default DSP path produces non-zero output: `meson test -C builddir engine-smoke`.
 - Quick rebuild on Pi: `meson setup builddir --reconfigure && meson compile -C builddir && meson test -C builddir engine-smoke`.
 
- meson compile -C flues-synth/builddir
-  meson test -C flues-synth/builddir engine-smoke
-  ./flues-synth/builddir/flues-synth hw:2,0
+```  
+meson compile -C flues-synth/builddir
+meson test -C flues-synth/builddir engine-smoke
+FLUES_MIDI_DEBUG=1 ./flues-synth/builddir/flues-synth hw:2,0
+```
 
-  
+
 ## Architecture
 
 ```
