@@ -81,3 +81,11 @@ smoke = executable('engine-smoke',
                    dependencies: [math_dep],
                    link_with: core_lib)
 test('engine-smoke', smoke)
+
+# Disyn level analysis test to measure waveform amplitude
+disyn_levels = executable('disyn-levels',
+                          ['tests/disyn_levels.c'],
+                          include_directories: inc,
+                          dependencies: [math_dep],
+                          link_with: core_lib)
+test('disyn-levels', disyn_levels)

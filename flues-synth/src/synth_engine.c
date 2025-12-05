@@ -205,7 +205,7 @@ SynthEngine* synth_engine_create(float sample_rate) {
 
     engine->sample_rate = sample_rate;
     engine->master_gain = 0.35f;
-    engine->disyn_level = 0.5f;
+    engine->disyn_level = 0.2f;  // Reduced from 0.5f to prevent clipping after formant cascade
     engine->sing_enabled = false;
     engine->fry_enabled = false;
     engine->enable_disyn = true;

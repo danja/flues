@@ -17,7 +17,7 @@ FormantBankModule* formant_bank_create(float sample_rate) {
     if (!bank) return NULL;
 
     bank->sample_rate = sample_rate;
-    bank->makeup_gain = 3.0f;  // Compensate for cascade attenuation
+    bank->makeup_gain = 2.0f;  // Reduced from 3.0f to prevent Disyn-induced clipping
     bank->nasal_enabled = false;
     bank->shout_enabled = false;
 
