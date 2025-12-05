@@ -19,12 +19,15 @@ static float bell_process(InterfaceStrategy* self, float input) {
         impl->bell_phase -= M_PI * 2.0f;
     }
 
-    const float harmonic_spread = 6.0f + self->intensity * 14.0f;
-    const float even = sinf(input * harmonic_spread + impl->bell_phase) * (0.4f + self->intensity * 0.4f);
-    const float odd = sinf(input * (harmonic_spread * 0.5f + 2.0f)) * (0.2f + self->intensity * 0.3f);
-    const float bright = fast_tanh((even + odd) * (1.1f + self->intensity * 0.6f));
+    // Reduced harmonic spread to prevent excessive output (was 6-20, now 3-10)
+    const float harmonic_spread = 3.0f + self->intensity * 7.0f;
+    // Reduced amplitudes (even was 0.4-0.8, odd was 0.2-0.5)
+    const float even = sinf(input * harmonic_spread + impl->bell_phase) * (0.25f + self->intensity * 0.3f);
+    const float odd = sinf(input * (harmonic_spread * 0.5f + 2.0f)) * (0.15f + self->intensity * 0.2f);
+    // Reduced drive (was 1.1-1.7, now 0.8-1.2)
+    const float bright = fast_tanh((even + odd) * (0.8f + self->intensity * 0.4f));
 
-    return fmaxf(-1.0f, fminf(1.0f, bright));
+    return fmaxf(-1.0f, fminf(1.0f, bright * 0.6f));  // Scale to match other interfaces
 }
 
 static void bell_reset(InterfaceStrategy* self) {

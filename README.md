@@ -121,6 +121,37 @@ Hybrid LV2 instruments that graft Disyn's distortion algorithms onto the Stove p
 * Plugin READMEs: [Floozy](lv2/floozy/README.md), [Floozy Poly](lv2/floozy-poly/README.md)
 * Build helper: `./build_pm_synth.sh --install-default` (builds/distributes pm-synth, disyn, floozy bundles). For Floozy Poly, `cmake -S lv2/floozy-poly -B lv2/floozy-poly/build && cmake --build ... --target install`.
 
+### Flues Synth
+**Headless Hybrid Speech/Physical Modeling Synthesizer for Raspberry Pi**
+
+A standalone C/C++ ALSA MIDI synthesizer combining Disyn, Chatterbox, and PM-Synth architectures for headless Raspberry Pi deployment.
+
+* **[Project README](flues-synth/README.md)**
+* **[Signal Flow Diagram](flues-synth/docs/flues-synth-signal-flow.svg)**
+* Source: [`flues-synth/`](flues-synth)
+* Build: `cd flues-synth && meson setup builddir && meson compile -C builddir`
+* Run: `./builddir/flues-synth hw:2,0`
+* Status: **Phase 1 Complete** - Single voice with full MIDI control
+
+**Key Features:**
+- **Hybrid synthesis**: Disyn (7 algorithms) → Formants (F1-F4) → Interface (12 types) → Delays → Filter → Modulation
+- **Dual DC blocking**: R=0.999 (-60dB @ DC) prevents feedback latching
+- **Calibrated levels**: 0.28 peak output, safe with headroom
+- **MIDI control**: 29 CCs + 6 control notes (36-41) for debug toggles
+- **ALSA audio/MIDI**: Direct hardware access, 48kHz, 512 samples (~10ms latency)
+- **Test suite**: engine-smoke, envelope-test, disyn-levels verify operation
+- **Real-time feedback**: CC names printed on first occurrence
+
+**Control Notes (36-41):**
+- 36: Toggle Noise | 37: Toggle Disyn | 38: Toggle Feedback
+- 39: Toggle Formants | 40: Toggle Filter | 41: Hard Mute (emergency)
+
+**Use Cases:**
+- Headless Pi synthesizer with MIDI controller
+- Experimental sound design with hybrid synthesis
+- Speech synthesis via formants + Disyn excitation
+- Physical modeling with distortion-driven sources
+
 ## Reference Materials
 * [CLAUDE.md](CLAUDE.md) - Project guidelines and development practices
 * [AGENTS Project Notes](AGENTS.md)

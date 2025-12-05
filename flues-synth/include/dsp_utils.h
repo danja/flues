@@ -86,11 +86,11 @@ static inline void random_init(Random* rng, uint32_t seed) {
 
 static inline float random_uniform(Random* rng) {
     rng->state = rng->state * 1103515245 + 12345;
-    return (float)(rng->state >> 16) / 32768.0f;
+    return (float)(rng->state >> 16) / 65536.0f;  // Fixed: was 32768, caused +1.0 DC offset
 }
 
 static inline float random_uniform_signed(Random* rng) {
-    return random_uniform(rng) * 2.0f - 1.0f;
+    return random_uniform(rng) * 2.0f - 1.0f;  // Now correctly maps to [-1, +1)
 }
 
 // Global white noise generator (for simple use cases)

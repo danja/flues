@@ -34,7 +34,12 @@ static float vapor_process(InterfaceStrategy* self, float input) {
     const float chaos_amount = self->intensity * 0.6f;
     const float input_amount = 1.0f - chaos_amount * 0.5f;
 
-    const float mixed = input * input_amount + (c1 + c2 + c3) * chaos_amount;
+    // Apply DC correction to chaotic sum - logistic map mean is slightly > 0.5
+    // causing DC offset when mapped to [-1, 1]
+    const float chaos_sum = c1 + c2 + c3;
+    const float chaos_corrected = chaos_sum - 0.25f;  // Compensate for DC bias (increased from 0.15)
+
+    const float mixed = input * input_amount + chaos_corrected * chaos_amount;
 
     // Couple with feedback from previous samples
     const float feedback = (impl->prev1 * 0.3f + impl->prev2 * 0.2f) * chaos_amount;
@@ -48,7 +53,8 @@ static float vapor_process(InterfaceStrategy* self, float input) {
     impl->prev2 = impl->prev1;
     impl->prev1 = output;
 
-    return fmaxf(-1.0f, fminf(1.0f, output));
+    // Scale output to match other interfaces (was producing slight DC offset)
+    return fmaxf(-1.0f, fminf(1.0f, output * 0.9f));
 }
 
 static void vapor_reset(InterfaceStrategy* self) {

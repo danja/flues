@@ -10,11 +10,14 @@
 // HitStrategy is stateless, so no impl_data needed
 
 static float hit_process(InterfaceStrategy* self, float input) {
-    const float drive = 2.0f + self->intensity * 8.0f;
+    // Reduced drive to prevent excessive output (was 2-10, now 0.5-2.5)
+    const float drive = 0.5f + self->intensity * 2.0f;
     const float folded = sine_fold(input, drive);
-    const float hardness = 0.35f + self->intensity * 0.55f;
+    // Increased hardness range to reduce amplification (was 0.35-0.9, now 0.6-1.2)
+    const float hardness = 0.6f + self->intensity * 0.6f;
     const float shaped = copysignf(powf(fabsf(folded), hardness), folded);
-    return fmaxf(-1.0f, fminf(1.0f, shaped));
+    // Increased scaling to prevent excessive output (was 0.6, now 0.25)
+    return fmaxf(-1.0f, fminf(1.0f, shaped * 0.25f));
 }
 
 static void hit_reset(InterfaceStrategy* self) {

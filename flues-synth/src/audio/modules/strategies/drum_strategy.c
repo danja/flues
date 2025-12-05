@@ -14,18 +14,20 @@ typedef struct {
 static float drum_process(InterfaceStrategy* self, float input) {
     DrumImpl* impl = (DrumImpl*)self->impl_data;
 
-    const float drive = 1.2f + self->intensity * 2.2f;
+    // Reduced drive to prevent excessive output
+    const float drive = 0.6f + self->intensity * 1.2f;
     const float noise = white_noise() * (0.02f + self->intensity * 0.06f);
 
-    // Accumulate energy with decay
+    // Reduced energy accumulation coefficient to prevent buildup
     impl->drum_energy = impl->drum_energy * (0.7f - self->intensity * 0.2f) +
-                        fabsf(input) * (0.6f + self->intensity * 0.7f);
+                        fabsf(input) * (0.3f + self->intensity * 0.4f);
 
     const float hit = tanhf(input * drive) + noise;
-    const float output = hit * (0.4f + self->intensity * 0.4f) +
-                        copysignf(fminf(0.8f, impl->drum_energy * 0.6f), hit);
+    // Reduced energy contribution and scaled down final output
+    const float output = hit * (0.3f + self->intensity * 0.3f) +
+                        copysignf(fminf(0.4f, impl->drum_energy * 0.3f), hit);
 
-    return fmaxf(-1.0f, fminf(1.0f, output));
+    return fmaxf(-1.0f, fminf(1.0f, output * 0.35f));  // Scale to match other interfaces
 }
 
 static void drum_reset(InterfaceStrategy* self) {

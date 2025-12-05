@@ -565,7 +565,145 @@ See `lv2/chatgen/README.md` for detailed usage, phoneme tables, sound design tip
 
 **Result:** The UI paints immediately in Reaper/Ardour, no stale buffers, knob interaction works, and the window dimensions match the control grid. Reinstall `pm_synth_ui.so` after building to pick up the change.
 
-## E. C Code (Legacy/Future)
+## E. Flues Synth (Headless Raspberry Pi)
+
+### Flues Synth
+
+**Location:** `flues-synth/`
+
+A standalone headless C/C++ ALSA MIDI synthesizer for Raspberry Pi that combines Disyn, Chatterbox, and PM-Synth architectures. Designed for deployment on Raspberry Pi 4 with MIDI controller.
+
+**Key Features:**
+- Native C/C++ implementation with ALSA audio/MIDI
+- Hybrid synthesis: Disyn (7 algorithms) → Formants (F1-F4) → Interface (12 types) → Delays → Filter → Modulation
+- Dual DC blocking (R=0.999) prevents feedback latching
+- Calibrated signal levels (0.28 peak output, safe margin)
+- 29 MIDI CCs + 6 control notes (36-41) for debug toggles
+- 48kHz sample rate, 512 sample buffer (~10ms latency)
+- Test suite: engine-smoke, envelope-test, disyn-levels
+- Real-time CC name printing on first occurrence
+
+**Architecture:**
+- `include/` - Public API headers (synth_engine.h, dsp_modules.h, config.h, audio/midi backends)
+- `src/main.c` - Entry point, MIDI CC mapping, control note handling
+- `src/synth_engine.c` - Voice management, signal flow coordinator
+- `src/audio/audio_backend_alsa.c` - ALSA PCM output with device auto-detection
+- `src/audio/midi_backend_alsa.c` - ALSA sequencer input with auto-connect
+- `src/audio/modules/` - Nine DSP modules (Disyn, Sources, Envelope, Formants, Interface, Delays, Feedback, Filter, Modulation)
+- `src/audio/modules/strategies/` - 12 interface implementations (Reed, Pluck, Hit, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma)
+- `tests/` - Three test suites (engine-smoke, envelope-test, disyn-levels)
+- `docs/` - Documentation including SVG signal flow diagram
+
+**Building:**
+```bash
+cd flues-synth
+meson setup builddir
+meson compile -C builddir
+meson test -C builddir
+```
+
+**Running:**
+```bash
+# Auto-detect audio device
+./builddir/flues-synth
+
+# Specify device
+./builddir/flues-synth hw:2,0
+
+# Enable MIDI debug
+FLUES_MIDI_DEBUG=1 ./builddir/flues-synth hw:2,0
+```
+
+**Signal Flow:**
+```
+MIDI Input → Disyn (×0.8) → [DC Block 1] → Sources Mix
+           ↓
+         Envelope (AR) → Formants (×2.0 makeup)
+           ↓
+         + Feedback ← [DC Block 2] ← Feedback Mix ← Delay1/2 + Filter
+           ↓
+         Interface (nonlinear) → Dual Delays → SVF Filter
+           ↓
+         × AM Mod → Global (×0.7 pad → tanh → ×0.5 master) → Output
+```
+
+**Control Notes (36-41):**
+- **Note 36**: Toggle Noise source
+- **Note 37**: Toggle Disyn oscillator
+- **Note 38**: Toggle Feedback loop
+- **Note 39**: Toggle Formant cascade
+- **Note 40**: Toggle SVF filter
+- **Note 41**: Hard mute (clears delays, DC blockers, filters)
+
+**MIDI CC Mapping (29 parameters):**
+- **Source**: CC 1 (Intensity), 16-19 (Disyn alg/params/level), 20-21 (Noise/DC level)
+- **Formants**: CC 71 (F1/Jaw), 10 (F2/Tongue), 74 (F3/Lips), 75 (F4/Quality)
+- **Vocal Modes**: CC 80-83 (Nasal, Sing, Shout, Fry - toggle ≥64)
+- **Envelope**: CC 73 (Attack), 72 (Release)
+- **Interface**: CC 24 (Type), 26 (Tuning), 27 (Delay Ratio)
+- **Feedback**: CC 28-30 (Delay1/Delay2/Filter returns)
+- **Filter**: CC 32-34 (Frequency, Q, Shape LP→BP→HP)
+- **Modulation**: CC 36-37 (LFO Freq, AM↔FM Depth)
+- **Output**: CC 7 (Master Gain)
+
+**DC Blocking Strategy:**
+- **DC Blocker 1** (after Disyn): R=0.999, catches DC at source, -60dB @ DC, -3dB @ 7.6 Hz
+- **DC Blocker 2** (feedback loop): R=0.999, prevents accumulation in delay/filter loop
+- **Why dual**: Original triple-stage blocking (with output blocker) killed envelope attack
+- **Removed**: Output DC blocker was too aggressive, treated slow attack ramp as DC offset
+
+**Level Management:**
+- **Disyn level**: 0.8 (user adjustable via CC 19, was 0.2 before fix)
+- **Formant makeup**: 2.0× (compensates for Q-induced attenuation, was 3.0×)
+- **Global pad**: 0.7× (was 0.5×)
+- **Master gain**: 0.5× (was 0.35×)
+- **Final peak**: ~0.28 (safe, no clipping)
+- **Soft clipping**: tanh guard at output prevents runaway noise
+
+**Testing:**
+```bash
+# Run all tests
+meson test -C builddir
+
+# Individual tests
+./builddir/engine-smoke    # Verifies non-zero RMS output
+./builddir/envelope-test   # Tests attack/sustain/release
+./builddir/disyn-levels    # Measures all 7 algorithms
+```
+
+**Implementation Status:**
+- ✅ Single-voice operation with full signal chain
+- ✅ All 9 DSP modules fully implemented
+- ✅ All 12 interface strategies (Reed fully implemented, 11 stubs functional)
+- ✅ ALSA audio/MIDI backends with auto-connect
+- ✅ 29 MIDI CC controls with name printing
+- ✅ 6 control notes for debug toggles
+- ✅ Dual DC blocking protection
+- ✅ Test suite (all 3 tests passing)
+- ☐ 4-voice polyphony (Phase 2)
+- ☐ GTK4 UI (Phase 3, optional)
+
+**Recent Changes (2025-12-05):**
+- Removed aggressive output DC blocker (was killing envelope attack)
+- Optimized to dual DC blocking (source + feedback loop)
+- Increased default noise level (0.02 → 0.15) for formant excitation
+- Reduced formant makeup gain (3.0× → 2.0×) to prevent Disyn clipping
+- Boosted master gain (0.35 → 0.5) and global pad (0.5 → 0.7)
+- Increased Disyn level (0.2 → 0.8) for better audibility
+- Added CC name printing on first occurrence
+- All tests now passing (engine-smoke, envelope-test, disyn-levels)
+
+**Translation Fidelity:**
+The C code is a direct translation of the JavaScript/LV2 implementations:
+- Same signal flow and DSP algorithms
+- Identical parameter mappings (exponential/linear curves)
+- Matching default parameter values
+- Preserved DC blocking strategy (after optimization)
+- Same formant cascade with Q-based biquad filters
+
+See `flues-synth/README.md` for detailed usage, `flues-synth/docs/flues-synth-signal-flow.svg` for visual architecture, and `flues-synth/docs/*.md` for implementation notes.
+
+## F. C Code (Legacy/Future)
 
 **Location:** `c-code/`
 

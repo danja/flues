@@ -136,7 +136,8 @@ private:
         const float w = phase * TWO_PI;
         const float t = secondaryPhase * TWO_PI;
 
-        return computeDSFComponent(w, t, decay);
+        // Scale by 0.5 to match other algorithm levels (was producing 2× excessive RMS)
+        return computeDSFComponent(w, t, decay) * 0.5f;
     }
 
     // Algorithm 3: Double-Sided DSF
@@ -156,7 +157,8 @@ private:
         const float positive = computeDSFComponent(w, tPos, decay);
         const float negative = computeDSFComponent(w, tNeg, decay);
 
-        return 0.5f * (positive + negative);
+        // Scale by 0.25 to match other algorithm levels (was 0.5, producing 2× excessive RMS)
+        return 0.25f * (positive + negative);
     }
 
     // Helper: DSF computation (Moorer discrete summation formula)

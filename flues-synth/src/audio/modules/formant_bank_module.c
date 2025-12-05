@@ -103,7 +103,9 @@ float formant_bank_process(FormantBankModule* bank, float input) {
     // Parallel nasal formant (if enabled)
     if (bank->nasal_enabled) {
         float nasal_out = formant_process(bank->nasal, input);
-        signal += nasal_out * 0.3f;  // Mix at lower level
+        // Reduced from 0.3 to 0.08 - nasal was dominating cascade output
+        // Nasal processes raw input while cascade attenuates heavily
+        signal += nasal_out * 0.08f;
     }
 
     // Apply makeup gain

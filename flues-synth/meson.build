@@ -98,6 +98,14 @@ envelope_test = executable('envelope-test',
                            link_with: core_lib)
 test('envelope-test', envelope_test)
 
+# Noise isolation test - systematic parameter sweep to identify noise sources
+noise_isolation = executable('noise-isolation',
+                             ['tests/noise_isolation.c'],
+                             include_directories: inc,
+                             dependencies: [math_dep],
+                             link_with: core_lib)
+test('noise-isolation', noise_isolation)
+
 # Envelope debug test
 envelope_debug = executable('envelope-debug',
                             ['tests/envelope_debug.c'],

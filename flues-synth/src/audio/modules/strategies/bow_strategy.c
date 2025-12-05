@@ -16,13 +16,15 @@ static float bow_process(InterfaceStrategy* self, float input) {
 
     const float bow_velocity = self->intensity * 0.9f + 0.2f;
     const float slip = input - impl->bow_state;
-    const float friction = fast_tanh(slip * (6.0f + self->intensity * 12.0f));
+    // Reduced slip drive to prevent excessive output (was 6-18, now 3-9)
+    const float friction = fast_tanh(slip * (3.0f + self->intensity * 6.0f));
     const float grit = white_noise() * self->intensity * 0.012f;
-    const float output = friction * (0.55f + self->intensity * 0.35f) + slip * 0.25f + grit;
+    // Reduced friction and slip contributions
+    const float output = friction * (0.35f + self->intensity * 0.25f) + slip * 0.1f + grit;
     const float stick = 0.8f - self->intensity * 0.25f;
     impl->bow_state = impl->bow_state * stick + (input + friction * bow_velocity * 0.05f) * (1.0f - stick);
 
-    return fmaxf(-1.0f, fminf(1.0f, output));
+    return fmaxf(-1.0f, fminf(1.0f, output * 0.5f));  // Scale to match other interfaces
 }
 
 static void bow_reset(InterfaceStrategy* self) {
