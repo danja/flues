@@ -224,9 +224,9 @@ SynthEngine *synth_engine_create(float sample_rate)
         return NULL;
 
     engine->sample_rate = sample_rate;
-    engine->master_gain = 0.5f; // Increased from 0.35 to boost output level (safe after soft clipping)
+    engine->master_gain = 0.8f; // Increased from 0.35 to boost output level (safe after soft clipping)
     // danny tweak
-    engine->disyn_level = 0.8f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
+    engine->disyn_level = 0.5f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
     engine->sing_enabled = false;
     engine->fry_enabled = false;
     engine->enable_disyn = true;
