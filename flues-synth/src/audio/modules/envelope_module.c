@@ -34,6 +34,9 @@ void envelope_set_attack(EnvelopeModule* envelope, float normalized) {
     // Exponential mapping: 1ms to 1000ms
     float attack_seconds = exp_map(normalized, MIN_ATTACK, MAX_ATTACK);
     envelope->attack_samples = attack_seconds * envelope->sample_rate;
+    // Debug: print attack time
+    // printf("DEBUG: envelope_set_attack(%.2f) -> %.3f ms (%d samples)\n",
+    //        normalized, attack_seconds * 1000.0f, (int)envelope->attack_samples);
 }
 
 void envelope_set_release(EnvelopeModule* envelope, float normalized) {

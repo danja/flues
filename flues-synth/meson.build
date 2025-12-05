@@ -89,3 +89,18 @@ disyn_levels = executable('disyn-levels',
                           dependencies: [math_dep],
                           link_with: core_lib)
 test('disyn-levels', disyn_levels)
+
+# Envelope and note timing test
+envelope_test = executable('envelope-test',
+                           ['tests/envelope_test.c'],
+                           include_directories: inc,
+                           dependencies: [math_dep],
+                           link_with: core_lib)
+test('envelope-test', envelope_test)
+
+# Envelope debug test
+envelope_debug = executable('envelope-debug',
+                            ['tests/envelope_debug.c'],
+                            include_directories: inc,
+                            dependencies: [math_dep],
+                            link_with: core_lib)

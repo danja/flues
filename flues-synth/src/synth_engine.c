@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>  // For debug prints
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -37,10 +38,9 @@ typedef struct {
     float prev_delay2_out;
     float prev_filter_out;
 
-    // Multi-stage DC blockers to prevent feedback latching
+    // Dual DC blockers to prevent feedback latching
     DCBlocker dc_blocker_disyn;    // After Disyn oscillator (catches DC at source)
     DCBlocker dc_blocker_feedback; // On feedback path (prevents loop accumulation)
-    DCBlocker dc_blocker_output;   // On final output (safety net)
 
     // Vibrato for Sing mode
     float vibrato_phase;
@@ -84,10 +84,9 @@ static void voice_init(Voice* voice, float sample_rate) {
     voice->filter = filter_create(sample_rate);
     voice->modulation = modulation_create(sample_rate);
 
-    // Initialize multi-stage DC blockers
+    // Initialize dual DC blockers
     dc_blocker_init(&voice->dc_blocker_disyn, DC_BLOCKER_R);
     dc_blocker_init(&voice->dc_blocker_feedback, DC_BLOCKER_R);
-    dc_blocker_init(&voice->dc_blocker_output, DC_BLOCKER_R);
 
     voice->active = false;
     voice->midi_note = -1;
@@ -198,10 +197,7 @@ static float voice_process_sample(Voice* voice, SynthEngine* engine) {
     output *= 0.5f;  // Global pad to reduce accumulated level
     output = soft_clip_drive(output, 1.0f);  // final guard against runaway noise
 
-    // 15. Final DC Blocker (safety net to prevent any DC from reaching output)
-    output = dc_blocker_process(&voice->dc_blocker_output, output);
-
-    // 16. Master gain
+    // 15. Master gain (final DC blocker removed - was too aggressive and killed envelope attack)
     output *= engine->master_gain;
 
     return output;
@@ -232,7 +228,7 @@ SynthEngine* synth_engine_create(float sample_rate) {
     disyn_set_param1(engine->voice.disyn, 0.5f);
     disyn_set_param2(engine->voice.disyn, 0.5f);
 
-    sources_set_noise_level(engine->voice.sources, 0.02f);
+    sources_set_noise_level(engine->voice.sources, 0.15f);  // Increased from 0.02 to provide formant excitation
     sources_set_dc_level(engine->voice.sources, 0.0f);
 
     envelope_set_attack(engine->voice.envelope, 0.1f);  // ~10ms
@@ -302,7 +298,6 @@ void synth_engine_note_on(SynthEngine* engine, int midi_note, float frequency) {
     voice->prev_filter_out = 0.0f;
     dc_blocker_init(&voice->dc_blocker_disyn, DC_BLOCKER_R);
     dc_blocker_init(&voice->dc_blocker_feedback, DC_BLOCKER_R);
-    dc_blocker_init(&voice->dc_blocker_output, DC_BLOCKER_R);
 }
 
 // Note off
@@ -481,10 +476,9 @@ void synth_engine_enable_feedback(SynthEngine* engine, bool enabled) {
         engine->voice.prev_delay2_out = 0.0f;
         engine->voice.prev_filter_out = 0.0f;
         delay_lines_clear(engine->voice.delay_lines);
-        // Clear all DC blockers to reset any accumulated DC offset
+        // Clear DC blockers to reset any accumulated DC offset
         dc_blocker_init(&engine->voice.dc_blocker_disyn, DC_BLOCKER_R);
         dc_blocker_init(&engine->voice.dc_blocker_feedback, DC_BLOCKER_R);
-        dc_blocker_init(&engine->voice.dc_blocker_output, DC_BLOCKER_R);
     }
 }
 
@@ -508,10 +502,9 @@ void synth_engine_hard_mute(SynthEngine* engine, bool enabled) {
         engine->voice.prev_delay2_out = 0.0f;
         engine->voice.prev_filter_out = 0.0f;
         delay_lines_clear(engine->voice.delay_lines);
-        // Clear all DC blockers to reset any accumulated DC offset
+        // Clear DC blockers to reset any accumulated DC offset
         dc_blocker_init(&engine->voice.dc_blocker_disyn, DC_BLOCKER_R);
         dc_blocker_init(&engine->voice.dc_blocker_feedback, DC_BLOCKER_R);
-        dc_blocker_init(&engine->voice.dc_blocker_output, DC_BLOCKER_R);
         filter_reset(engine->voice.filter);
     }
 }
