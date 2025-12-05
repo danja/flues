@@ -215,7 +215,8 @@ private:
         const float decay = std::exp(-bandwidth / sampleRate);
         modPhase = decay * modPhase + (1.0f - decay) * mod;
 
-        return carrier * (0.6f + 0.4f * modPhase);
+        // Scale by 0.5 to match other algorithm levels (was producing 0.112 RMS)
+        return carrier * (0.6f + 0.4f * modPhase) * 0.5f;
     }
 
     // Algorithm 7: Modified FM
@@ -231,7 +232,8 @@ private:
         const float modulator = std::cos(modPhase * TWO_PI);
         const float envelope = std::exp(-index);
 
-        return carrier * std::exp(index * (modulator - 1.0f)) * envelope;
+        // Scale by 0.6 to match other algorithm levels (was producing 0.109 RMS)
+        return carrier * std::exp(index * (modulator - 1.0f)) * envelope * 0.6f;
     }
 
     // Helper: exponential mapping from normalized 0-1 to min-max range
