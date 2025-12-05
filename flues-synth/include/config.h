@@ -16,8 +16,8 @@
 // Delay line size
 #define MAX_DELAY_LENGTH 8192
 
-// DC blocker coefficient
-#define DC_BLOCKER_R 0.995f
+// DC blocker coefficient (increased for tighter DC rejection to prevent feedback latching)
+#define DC_BLOCKER_R 0.999f
 
 // Post-release damping factor
 #define POST_RELEASE_DAMP_FACTOR 0.995f
