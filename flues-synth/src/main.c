@@ -133,7 +133,51 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             }
 
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
-            printf("CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
+
+            // Track first occurrence of each CC to print its name
+            static bool cc_seen[128] = {0};
+
+            // Print CC with name on first occurrence
+            const char* cc_name = NULL;
+            switch (cc) {
+                case 1:  cc_name = "Intensity"; break;
+                case 7:  cc_name = "Master Gain"; break;
+                case 10: cc_name = "F2 (Tongue)"; break;
+                case 16: cc_name = "Disyn Algorithm"; break;
+                case 17: cc_name = "Disyn Param1"; break;
+                case 18: cc_name = "Disyn Param2"; break;
+                case 19: cc_name = "Disyn Level"; break;
+                case 20: cc_name = "Noise Level"; break;
+                case 21: cc_name = "DC Level"; break;
+                case 24: cc_name = "Interface Type"; break;
+                case 26: cc_name = "Tuning"; break;
+                case 27: cc_name = "Delay Ratio"; break;
+                case 28: cc_name = "Delay1 Feedback"; break;
+                case 29: cc_name = "Delay2 Feedback"; break;
+                case 30: cc_name = "Filter Feedback"; break;
+                case 32: cc_name = "Filter Frequency"; break;
+                case 33: cc_name = "Filter Q"; break;
+                case 34: cc_name = "Filter Shape"; break;
+                case 36: cc_name = "LFO Frequency"; break;
+                case 37: cc_name = "AM↔FM Depth"; break;
+                case 71: cc_name = "F1 (Jaw)"; break;
+                case 72: cc_name = "Release"; break;
+                case 73: cc_name = "Attack"; break;
+                case 74: cc_name = "F3 (Lips)"; break;
+                case 75: cc_name = "F4 (Quality)"; break;
+                case 80: cc_name = "Nasal"; break;
+                case 81: cc_name = "Sing"; break;
+                case 82: cc_name = "Shout"; break;
+                case 83: cc_name = "Fry"; break;
+                default: break;
+            }
+
+            if (cc_name && !cc_seen[cc]) {
+                printf("CC ch%d: %3u -> %3u  [%s]\n", event->channel + 1, cc, event->cc_value, cc_name);
+                cc_seen[cc] = true;
+            } else {
+                printf("CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
+            }
 
             // Map CCs to parameters
             switch (cc) {
@@ -144,7 +188,6 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
 
                 case 7:  // Volume (Master Gain)
                     synth_engine_set_master_gain(synth, value);
-                    printf("CC 7: Master Gain = %.2f\n", value);
                     break;
 
                 case 10:  // Pan (repurposed for F2/Tongue)

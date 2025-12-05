@@ -7,8 +7,8 @@
 #endif
 
 // Audio configuration
-#define DEFAULT_SAMPLE_RATE 48000.0f
-#define DEFAULT_BUFFER_SIZE 512
+#define DEFAULT_SAMPLE_RATE 44100.0f
+#define DEFAULT_BUFFER_SIZE 768
 
 // MIDI configuration
 #define MIDI_QUEUE_SIZE 256
