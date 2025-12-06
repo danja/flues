@@ -20,8 +20,8 @@ typedef struct
     // Voice state
     bool active;
     int midi_note;
-    uint32_t note_on_age;  // Timestamp for oldest-note stealing
-    uint8_t velocity;      // MIDI velocity (0-127) for dynamics
+    uint32_t note_on_age; // Timestamp for oldest-note stealing
+    uint8_t velocity;     // MIDI velocity (0-127) for dynamics
     float frequency;
     float base_frequency;
 
@@ -56,7 +56,7 @@ struct SynthEngine
 
     // Voice pool (Phase 2: Polyphonic - 4 voices)
     Voice voices[MAX_VOICES];
-    uint32_t global_note_counter;  // For age-based voice stealing
+    uint32_t global_note_counter; // For age-based voice stealing
 
     // Global parameters
     float master_gain;
@@ -156,8 +156,8 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
 
     // 6. Envelope with velocity scaling
     float env = envelope_process(voice->envelope);
-    float velocity_scale = voice->velocity / 127.0f;  // Convert MIDI velocity (0-127) to scale (0.0-1.0)
-    excitation *= env * velocity_scale;  // Apply both envelope and velocity
+    float velocity_scale = voice->velocity / 127.0f; // Convert MIDI velocity (0-127) to scale (0.0-1.0)
+    excitation *= env * velocity_scale;              // Apply both envelope and velocity
 
     // Check if envelope is done
     if (!envelope_is_active(voice->envelope))
@@ -229,9 +229,9 @@ SynthEngine *synth_engine_create(float sample_rate)
 
     engine->sample_rate = sample_rate;
     engine->global_note_counter = 0; // Initialize voice age counter
-    engine->master_gain = 0.8f; // Increased from 0.35 to boost output level (safe after soft clipping)
+    engine->master_gain = 0.8f;      // Increased from 0.35 to boost output level (safe after soft clipping)
     // danny tweak
-    engine->disyn_level = 0.5f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
+    engine->disyn_level = 0.8f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
     engine->sing_enabled = false;
     engine->fry_enabled = false;
     engine->enable_disyn = true;
@@ -339,23 +339,29 @@ void synth_engine_process(SynthEngine *engine, float *output, int num_samples)
 // ============================================================================
 
 // Find first inactive voice
-static Voice* find_free_voice(SynthEngine* engine) {
-    for (int i = 0; i < MAX_VOICES; i++) {
-        if (!engine->voices[i].active) {
+static Voice *find_free_voice(SynthEngine *engine)
+{
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        if (!engine->voices[i].active)
+        {
             return &engine->voices[i];
         }
     }
-    return NULL;  // All voices busy
+    return NULL; // All voices busy
 }
 
 // Find oldest active voice for stealing
-static Voice* find_oldest_voice(SynthEngine* engine) {
-    Voice* oldest = NULL;
+static Voice *find_oldest_voice(SynthEngine *engine)
+{
+    Voice *oldest = NULL;
     uint32_t oldest_age = UINT32_MAX;
 
-    for (int i = 0; i < MAX_VOICES; i++) {
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
         if (engine->voices[i].active &&
-            engine->voices[i].note_on_age < oldest_age) {
+            engine->voices[i].note_on_age < oldest_age)
+        {
             oldest_age = engine->voices[i].note_on_age;
             oldest = &engine->voices[i];
         }
@@ -372,19 +378,22 @@ void synth_engine_note_on(SynthEngine *engine, int midi_note, float frequency, u
 {
     // Find free voice or steal oldest
     Voice *voice = find_free_voice(engine);
-    if (!voice) {
+    if (!voice)
+    {
         voice = find_oldest_voice(engine);
-        if (voice) {
+        if (voice)
+        {
             // Voice stealing - optional debug message
             // printf("Voice steal: note %d → %d\n", voice->midi_note, midi_note);
         }
     }
-    if (!voice) return;  // Should never happen with MAX_VOICES > 0
+    if (!voice)
+        return; // Should never happen with MAX_VOICES > 0
 
     voice->active = true;
     voice->midi_note = midi_note;
     voice->note_on_age = engine->global_note_counter++;
-    voice->velocity = velocity;  // Use actual MIDI velocity (0-127)
+    voice->velocity = velocity; // Use actual MIDI velocity (0-127)
     voice->frequency = frequency;
     voice->base_frequency = frequency;
     voice->vibrato_enabled = engine->sing_enabled;
@@ -546,7 +555,7 @@ void synth_engine_set_nasal(SynthEngine *engine, bool enabled)
 
 void synth_engine_set_sing(SynthEngine *engine, bool enabled)
 {
-    engine->sing_enabled = enabled;  // Global parameter
+    engine->sing_enabled = enabled; // Global parameter
 }
 
 void synth_engine_set_shout(SynthEngine *engine, bool enabled)
