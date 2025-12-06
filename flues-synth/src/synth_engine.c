@@ -124,15 +124,12 @@ static void voice_destroy(Voice *voice)
     modulation_destroy(voice->modulation);
 }
 
-// Immediately stop a voice (used for watchdog / fixed-duration safety)
+// Trigger a release on a voice (used for watchdog / fixed-duration safety)
 static void force_voice_off(Voice *voice)
 {
-    envelope_reset(voice->envelope);
+    // Let the envelope release naturally
+    envelope_set_gate(voice->envelope, false);
     interface_set_gate(voice->interface, 0.0f);
-    voice->prev_delay1_out = 0.0f;
-    voice->prev_delay2_out = 0.0f;
-    voice->prev_filter_out = 0.0f;
-    voice->active = false;
     voice->gate_forced_off = true;
 }
 
