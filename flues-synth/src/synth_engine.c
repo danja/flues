@@ -197,6 +197,7 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
     if (!envelope_is_active(voice->envelope))
     {
         voice->active = false;
+        voice->gate_forced_off = false; // ready for reuse
         return 0.0f;
     }
 
@@ -490,7 +491,10 @@ void synth_engine_note_off(SynthEngine *engine, int midi_note)
         Voice *voice = &engine->voices[i];
         if (voice->active && voice->midi_note == midi_note)
         {
-            force_voice_off(voice);
+            // Normal note-off: let the envelope release naturally
+            envelope_set_gate(voice->envelope, false);
+            interface_set_gate(voice->interface, 0.0f);
+            voice->gate_forced_off = false;
         }
     }
 }
@@ -503,7 +507,9 @@ void synth_engine_all_notes_off(SynthEngine *engine)
         Voice *voice = &engine->voices[i];
         if (voice->active)
         {
-            force_voice_off(voice);
+            envelope_set_gate(voice->envelope, false);
+            interface_set_gate(voice->interface, 0.0f);
+            voice->gate_forced_off = false;
         }
     }
 }
