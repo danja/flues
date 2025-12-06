@@ -82,9 +82,12 @@ static bool handle_control_note(const MidiEvent* event, SynthEngine* synth) {
                 break;
             }
         }
+        return true;  // consume control note-on (don't trigger voice)
     }
 
-    return true;  // consume control note (don’t trigger voice)
+    // For note-off or velocity-0 note-on, return false to allow normal processing
+    // This prevents control notes from sticking if they were accidentally triggered
+    return false;
 }
 
 // Signal handler for clean shutdown

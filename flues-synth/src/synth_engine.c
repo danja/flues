@@ -326,10 +326,26 @@ void synth_engine_note_off(SynthEngine *engine, int midi_note)
 {
     Voice *voice = &engine->voice;
 
-    if (voice->midi_note == midi_note && voice->active)
+    // For monophonic synth: only release if the currently playing note is released
+    // This prevents stuck notes from voice stealing during legato playing
+    // (e.g., press C, press D while holding C, release C -> D continues)
+    if (voice->active && voice->midi_note == midi_note)
     {
         envelope_set_gate(voice->envelope, false);
         interface_set_gate(voice->interface, 0.0f);
+    }
+    else if (voice->active && voice->midi_note != midi_note)
+    {
+        // Debug: Note-off ignored due to voice stealing (legato playing)
+        // This is expected behavior for simple monophonic synths
+        static bool warned = false;
+        if (!warned)
+        {
+            printf("Note-off for note %d ignored (voice playing note %d)\n",
+                   midi_note, voice->midi_note);
+            printf("(This happens with overlapping notes - only last note's release works)\n");
+            warned = true;
+        }
     }
 }
 
