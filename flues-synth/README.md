@@ -165,6 +165,99 @@ After the first move of each CC, subsequent values show only numbers for cleaner
 ### Stop the Synthesizer
 Press `Ctrl+C` for clean shutdown.
 
+## Audio Device Setup
+
+### Using a USB DAC
+
+To use an external USB DAC instead of the built-in audio output:
+
+**1. Detect Available Audio Devices**
+
+List all playback hardware devices:
+```bash
+aplay -l
+```
+
+Example output:
+```
+card 0: Headphones [bcm2835 Headphones], device 0: bcm2835 Headphones [bcm2835 Headphones]
+card 2: DAC [USB Audio DAC], device 0: USB Audio [USB Audio]
+```
+
+In this example, the USB DAC is `hw:2,0` (card 2, device 0).
+
+**2. List Device Names (Including Plugin Devices)**
+
+```bash
+aplay -L
+```
+
+Shows additional options:
+- `hw:X,Y` - Direct hardware access
+- `plughw:X,Y` - Hardware with automatic format conversion
+- `default:CARD=XXX` - Named card reference
+
+**3. Test the USB DAC**
+
+Generate a test tone to verify the device works:
+```bash
+# Mono test on hw:2,0
+speaker-test -D hw:2,0 -c 1 -t sine
+
+# Stereo test
+speaker-test -D hw:2,0 -c 2 -t sine
+```
+
+Press Ctrl+C to stop the test.
+
+**4. Run Flues-Synth with USB DAC**
+
+Pass the device as a command-line argument:
+```bash
+./builddir/flues-synth hw:2,0
+```
+
+**5. Set USB DAC as Default (Optional)**
+
+To make the USB DAC the system default, create or edit `~/.asoundrc`:
+```bash
+nano ~/.asoundrc
+```
+
+Add:
+```
+pcm.!default {
+    type hw
+    card 2
+    device 0
+}
+```
+
+Then run flues-synth without arguments:
+```bash
+./builddir/flues-synth
+```
+
+**6. Check Active Audio**
+
+See which devices are currently in use:
+```bash
+cat /proc/asound/pcm
+```
+
+### Audio Device Auto-Detection
+
+If no device is specified, flues-synth tries these in order:
+1. Command-line argument (e.g., `hw:2,0`)
+2. `hw:Headphones` (Raspberry Pi headphone jack)
+3. `plughw:Headphones`
+4. `hw:2,0` (common USB DAC location)
+5. `plughw:2,0`
+6. `hw:1,0`
+7. `default`
+
+Override with: `./builddir/flues-synth <device-name>`
+
 ## MIDI Control
 
 ### Control Notes (36-41) - Debug Toggles
