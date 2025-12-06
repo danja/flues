@@ -15,7 +15,7 @@ int main(void) {
     // Trigger a middle C note
     const int note = 60;
     const float freq = 261.6256f;
-    synth_engine_note_on(synth, note, freq);
+    synth_engine_note_on(synth, note, freq, 127);  // Full velocity
 
     const int frames = DEFAULT_BUFFER_SIZE * 4;  // a few periods to build up
     float* buffer = (float*)calloc(frames, sizeof(float));

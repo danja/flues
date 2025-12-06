@@ -25,7 +25,7 @@ int main(void) {
     printf("\n");
 
     printf("Step 2: Triggering Note On (C4 = 261.6256 Hz)\n");
-    synth_engine_note_on(synth, 60, 261.6256f);
+    synth_engine_note_on(synth, 60, 261.6256f, 127);  // Full velocity
     printf("  Note triggered\n\n");
 
     printf("Step 3: Processing first 10 samples\n");

@@ -62,7 +62,7 @@ static void print_stats(const char* test_name, SignalStats* stats) {
 
 static void render_test(SynthEngine* synth, float* buffer, int note, float frequency) {
     // Trigger note
-    synth_engine_note_on(synth, note, frequency);
+    synth_engine_note_on(synth, note, frequency, 127);  // Full velocity
 
     // Render buffer
     synth_engine_process(synth, buffer, TEST_SAMPLES);

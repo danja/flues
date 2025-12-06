@@ -113,7 +113,7 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             }
 
             float freq = midi_note_to_frequency(event->note);
-            synth_engine_note_on(synth, event->note, freq);
+            synth_engine_note_on(synth, event->note, freq, event->velocity);
             printf("Note ON: %d (%.1f Hz), velocity %d\n",
                    event->note, freq, event->velocity);
             break;

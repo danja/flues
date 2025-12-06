@@ -20,7 +20,7 @@ int main(void) {
 
     // Test 1: Verify note on triggers envelope attack
     printf("TEST 1: Note On Envelope Attack\n");
-    synth_engine_note_on(synth, 60, 261.6256f);  // C4
+    synth_engine_note_on(synth, 60, 261.6256f, 127);  // C4, full velocity
 
     // Render first few buffer periods and check for ramp-up
     const int test_samples = DEFAULT_BUFFER_SIZE * 2;  // 1024 samples at 48kHz (~21ms)
@@ -143,7 +143,7 @@ int main(void) {
     printf("TEST 4: Rapid Note Retriggering\n");
 
     for (int i = 0; i < 5; i++) {
-        synth_engine_note_on(synth, 60, 261.6256f);
+        synth_engine_note_on(synth, 60, 261.6256f, 127);
 
         float retrig_buf[100];
         synth_engine_process(synth, retrig_buf, 100);

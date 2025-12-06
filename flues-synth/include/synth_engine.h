@@ -16,7 +16,7 @@ void synth_engine_destroy(SynthEngine* engine);
 void synth_engine_process(SynthEngine* engine, float* output, int num_samples);
 
 // Note control
-void synth_engine_note_on(SynthEngine* engine, int midi_note, float frequency);
+void synth_engine_note_on(SynthEngine* engine, int midi_note, float frequency, unsigned char velocity);
 void synth_engine_note_off(SynthEngine* engine, int midi_note);
 void synth_engine_all_notes_off(SynthEngine* engine);
 
