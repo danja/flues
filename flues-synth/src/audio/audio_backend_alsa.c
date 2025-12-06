@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 struct AudioBackendALSA {
     snd_pcm_t* pcm_handle;
@@ -16,8 +17,10 @@ struct AudioBackendALSA {
     float sample_rate;
     int buffer_size;     // Frames per period
     int periods;         // Number of periods
+    snd_pcm_format_t format;  // Actual format being used
 
-    float* audio_buffer;  // Processing buffer
+    float* audio_buffer;  // Processing buffer (always float internally)
+    void* output_buffer;  // Format conversion buffer (int16 or float)
 
     AudioProcessCallback callback;
     void* callback_user_data;
@@ -31,13 +34,29 @@ static void* audio_thread_func(void* arg) {
     AudioBackendALSA* backend = (AudioBackendALSA*)arg;
 
     while (backend->running) {
-        // Generate audio via callback
+        // Generate audio via callback (always produces float)
         backend->callback(backend->audio_buffer, backend->buffer_size,
                          backend->callback_user_data);
 
+        // Convert format if needed
+        void* write_buffer = backend->audio_buffer;
+        if (backend->format == SND_PCM_FORMAT_S16_LE) {
+            // Convert float [-1.0, 1.0] to int16 [-32768, 32767]
+            int16_t* out = (int16_t*)backend->output_buffer;
+            for (int i = 0; i < backend->buffer_size; i++) {
+                float sample = backend->audio_buffer[i];
+                // Clamp to [-1.0, 1.0]
+                if (sample > 1.0f) sample = 1.0f;
+                if (sample < -1.0f) sample = -1.0f;
+                // Convert to int16
+                out[i] = (int16_t)(sample * 32767.0f);
+            }
+            write_buffer = backend->output_buffer;
+        }
+
         // Write to ALSA
         int frames_written = snd_pcm_writei(backend->pcm_handle,
-                                           backend->audio_buffer,
+                                           write_buffer,
                                            backend->buffer_size);
 
         if (frames_written < 0) {
@@ -95,8 +114,24 @@ AudioBackendALSA* audio_backend_alsa_create(const char* device_name,
     snd_pcm_hw_params_set_access(backend->pcm_handle, backend->hw_params,
                                   SND_PCM_ACCESS_RW_INTERLEAVED);
 
-    snd_pcm_hw_params_set_format(backend->pcm_handle, backend->hw_params,
-                                  SND_PCM_FORMAT_FLOAT_LE);  // 32-bit float
+    // Try to set float format, fall back to S16_LE if not supported
+    err = snd_pcm_hw_params_set_format(backend->pcm_handle, backend->hw_params,
+                                        SND_PCM_FORMAT_FLOAT_LE);
+    if (err < 0) {
+        fprintf(stderr, "ALSA: Float format not supported, falling back to S16_LE\n");
+        err = snd_pcm_hw_params_set_format(backend->pcm_handle, backend->hw_params,
+                                            SND_PCM_FORMAT_S16_LE);
+        if (err < 0) {
+            fprintf(stderr, "ALSA: Cannot set format: %s\n", snd_strerror(err));
+            snd_pcm_close(backend->pcm_handle);
+            snd_pcm_hw_params_free(backend->hw_params);
+            free(backend);
+            return NULL;
+        }
+        backend->format = SND_PCM_FORMAT_S16_LE;
+    } else {
+        backend->format = SND_PCM_FORMAT_FLOAT_LE;
+    }
 
     snd_pcm_hw_params_set_channels(backend->pcm_handle, backend->hw_params, 1);  // Mono
 
@@ -122,7 +157,7 @@ AudioBackendALSA* audio_backend_alsa_create(const char* device_name,
         return NULL;
     }
 
-    // Allocate audio buffer
+    // Allocate audio buffer (always float for internal processing)
     backend->audio_buffer = (float*)malloc(backend->buffer_size * sizeof(float));
     if (!backend->audio_buffer) {
         fprintf(stderr, "ALSA: Failed to allocate audio buffer\n");
@@ -132,8 +167,24 @@ AudioBackendALSA* audio_backend_alsa_create(const char* device_name,
         return NULL;
     }
 
-    printf("ALSA: Initialized %s at %.0f Hz, buffer size %d frames (%.1f ms)\n",
-           device_name, backend->sample_rate, backend->buffer_size,
+    // Allocate output buffer for format conversion if needed
+    if (backend->format == SND_PCM_FORMAT_S16_LE) {
+        backend->output_buffer = malloc(backend->buffer_size * sizeof(int16_t));
+        if (!backend->output_buffer) {
+            fprintf(stderr, "ALSA: Failed to allocate output buffer\n");
+            free(backend->audio_buffer);
+            snd_pcm_close(backend->pcm_handle);
+            snd_pcm_hw_params_free(backend->hw_params);
+            free(backend);
+            return NULL;
+        }
+    } else {
+        backend->output_buffer = NULL;  // No conversion needed for float
+    }
+
+    const char* format_name = (backend->format == SND_PCM_FORMAT_FLOAT_LE) ? "FLOAT_LE" : "S16_LE";
+    printf("ALSA: Initialized %s at %.0f Hz, %s, buffer size %d frames (%.1f ms)\n",
+           device_name, backend->sample_rate, format_name, backend->buffer_size,
            (backend->buffer_size * 1000.0f) / backend->sample_rate);
 
     return backend;
@@ -155,6 +206,7 @@ void audio_backend_alsa_destroy(AudioBackendALSA* backend) {
     }
 
     free(backend->audio_buffer);
+    free(backend->output_buffer);  // Free conversion buffer if allocated
     free(backend);
 }
 
