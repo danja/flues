@@ -62,6 +62,7 @@ struct SynthEngine
     Voice voices[MAX_VOICES];
     uint32_t global_note_counter; // For age-based voice stealing
     uint64_t sample_counter;      // Global sample position (for timeouts)
+    uint64_t last_midi_event_sample; // Last MIDI event (note on/off) sample index
 
     // Global parameters
     float master_gain;
@@ -175,15 +176,11 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         }
     }
 
-    // 3. Apply forced releases if enabled (missing note-off protection)
-    if (!voice->gate_forced_off)
+    // 3. Apply fixed-duration forced release (optional)
+    if (!voice->gate_forced_off && engine->fixed_duration_enabled)
     {
         uint64_t elapsed = engine->sample_counter - voice->note_on_sample;
-        if (engine->fixed_duration_enabled && elapsed >= engine->fixed_duration_samples)
-        {
-            force_voice_off(voice, engine);
-        }
-        else if (engine->watchdog_enabled && elapsed >= engine->watchdog_samples)
+        if (elapsed >= engine->fixed_duration_samples)
         {
             force_voice_off(voice, engine);
         }
@@ -283,6 +280,7 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->sample_rate = sample_rate;
     engine->global_note_counter = 0; // Initialize voice age counter
     engine->sample_counter = 0;
+    engine->last_midi_event_sample = 0;
     engine->master_gain = 0.8f;      // Increased from 0.35 to boost output level (safe after soft clipping)
     // danny tweak
     engine->disyn_level = 0.8f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
@@ -308,7 +306,7 @@ SynthEngine *synth_engine_create(float sample_rate)
         {
             engine->watchdog_enabled = true;
             engine->watchdog_samples = (uint64_t)((ms / 1000.0f) * sample_rate);
-            printf("MIDI: Auto-release watchdog enabled (%.1f ms)\n", ms);
+            printf("MIDI: Inactivity watchdog enabled (%.1f ms)\n", ms);
         }
     }
 
@@ -415,6 +413,14 @@ void synth_engine_process(SynthEngine *engine, float *output, int num_samples)
         {
             output[i] = 0.0f;
         }
+
+        // Inactivity watchdog: if enabled and we haven't seen MIDI for the window, clear any held voices
+        if (engine->watchdog_enabled &&
+            engine->sample_counter - engine->last_midi_event_sample >= engine->watchdog_samples &&
+            active_count > 0)
+        {
+            synth_engine_all_notes_off(engine);
+        }
     }
 }
 
@@ -480,10 +486,12 @@ void synth_engine_note_on(SynthEngine *engine, int midi_note, float frequency, u
     voice->velocity = velocity; // Use actual MIDI velocity (0-127)
     voice->frequency = frequency;
     voice->base_frequency = frequency;
-    voice->vibrato_enabled = engine->sing_enabled;
-    voice->vibrato_phase = 0.0f;
-    voice->note_on_sample = engine->sample_counter;
-    voice->gate_forced_off = false;
+        voice->vibrato_enabled = engine->sing_enabled;
+        voice->vibrato_phase = 0.0f;
+        voice->note_on_sample = engine->sample_counter;
+        voice->gate_forced_off = false;
+        engine->last_midi_event_sample = engine->sample_counter;
+        engine->last_midi_event_sample = engine->sample_counter;
 
     // Reset modules
     envelope_reset(voice->envelope);
@@ -518,14 +526,9 @@ void synth_engine_note_off(SynthEngine *engine, int midi_note)
                 voice->envelope->release_samples = voice->release_restore_samples;
                 voice->release_override_active = false;
             }
-            // Restore release time if it was shortened by a previous watchdog
-            if (voice->release_override_active)
-            {
-                voice->envelope->release_samples = voice->release_restore_samples;
-                voice->release_override_active = false;
-            }
         }
     }
+    engine->last_midi_event_sample = engine->sample_counter;
 }
 
 // All notes off
@@ -541,6 +544,7 @@ void synth_engine_all_notes_off(SynthEngine *engine)
             voice->gate_forced_off = false;
         }
     }
+    engine->last_midi_event_sample = engine->sample_counter;
 }
 
 // Reset all parameters to defaults
