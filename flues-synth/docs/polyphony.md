@@ -32,6 +32,7 @@
 - Control notes 36–42 (debug toggles) **disabled by default** to avoid consuming low notes from DAW; enable via `FLUES_CONTROL_NOTES=1`.
 - MIDI debug logging added via `FLUES_MIDI_DEBUG=1` (note/CC/All Notes Off with ALSA source port) to verify Reaper → Pi delivery.
 - Tests: full `meson test -C builddir` passing locally (engine-smoke, envelope-test, polyphony-smoke, disyn-levels, noise-isolation).
+- Runtime failsafes for missing note-offs: `FLUES_NOTE_TIMEOUT_MS=<ms>` auto-releases held notes after the window; `FLUES_FIXED_NOTE_MS=<ms>` forces a fixed note length regardless of note-off. Both print their status at boot.
 - Issue still open: on Pi, notes often hold excessively long (inconsistent), even with release cap. Need to confirm whether missing note-offs/All Notes Off are being received. Next steps:
   - Run synth with `FLUES_MIDI_DEBUG=1` to capture incoming note on/off from Reaper path.
   - If note-offs are present but release still long, consider further reducing MAX_RELEASE or making CC72 mapping sub-linear.

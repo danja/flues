@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <stdio.h> // For debug prints
+#include <stdio.h>  // For debug prints
+#include <stdint.h> // For sample counters
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -23,6 +24,8 @@ typedef struct
     uint8_t velocity;     // MIDI velocity (0-127) for dynamics
     float frequency;
     float base_frequency;
+    uint64_t note_on_sample; // Sample index when note-on arrived
+    bool gate_forced_off;    // True once a forced release was applied
 
     // DSP Modules
     DisynModule *disyn;
@@ -56,10 +59,17 @@ struct SynthEngine
     // Voice pool (Phase 2: Polyphonic - 4 voices)
     Voice voices[MAX_VOICES];
     uint32_t global_note_counter; // For age-based voice stealing
+    uint64_t sample_counter;      // Global sample position (for timeouts)
 
     // Global parameters
     float master_gain;
     float disyn_level; // Disyn tone level
+
+    // Fallback handling when note-off is missing
+    bool watchdog_enabled;
+    uint64_t watchdog_samples; // Max hold before auto-release (0 = disabled)
+    bool fixed_duration_enabled;
+    uint64_t fixed_duration_samples; // Force release after this many samples
 
     // Vocal modes
     bool sing_enabled; // Vibrato on Disyn frequency
@@ -96,6 +106,8 @@ static void voice_init(Voice *voice, float sample_rate)
     voice->active = false;
     voice->midi_note = -1;
     voice->vibrato_phase = 0.0f;
+    voice->note_on_sample = 0;
+    voice->gate_forced_off = false;
 }
 
 // Destroy voice
@@ -142,18 +154,36 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         }
     }
 
-    // 3. Disyn Oscillator + DC Blocker (catch DC at source)
+    // 3. Apply forced releases if enabled (missing note-off protection)
+    if (!voice->gate_forced_off)
+    {
+        uint64_t elapsed = engine->sample_counter - voice->note_on_sample;
+        if (engine->fixed_duration_enabled && elapsed >= engine->fixed_duration_samples)
+        {
+            envelope_set_gate(voice->envelope, false);
+            interface_set_gate(voice->interface, 0.0f);
+            voice->gate_forced_off = true;
+        }
+        else if (engine->watchdog_enabled && elapsed >= engine->watchdog_samples)
+        {
+            envelope_set_gate(voice->envelope, false);
+            interface_set_gate(voice->interface, 0.0f);
+            voice->gate_forced_off = true;
+        }
+    }
+
+    // 4. Disyn Oscillator + DC Blocker (catch DC at source)
     float disyn_out = engine->enable_disyn ? disyn_process(voice->disyn, frequency) : 0.0f;
     disyn_out = dc_blocker_process(&voice->dc_blocker_disyn, disyn_out);
     disyn_out *= engine->disyn_level;
 
-    // 4. Sources (Noise + DC)
+    // 5. Sources (Noise + DC)
     float sources_out = engine->enable_noise ? sources_process(voice->sources) : 0.0f;
 
-    // 5. Mix: Disyn + Noise + DC
+    // 6. Mix: Disyn + Noise + DC
     float excitation = disyn_out + sources_out;
 
-    // 6. Envelope with velocity scaling
+    // 7. Envelope with velocity scaling
     float env = envelope_process(voice->envelope);
     float velocity_scale = voice->velocity / 127.0f; // Convert MIDI velocity (0-127) to scale (0.0-1.0)
     excitation *= env * velocity_scale;              // Apply both envelope and velocity
@@ -165,12 +195,12 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         return 0.0f;
     }
 
-    // 7. Chatterbox Formant Bank
+    // 8. Chatterbox Formant Bank
     float formant_out = engine->enable_formants
                             ? formant_bank_process(voice->formant_bank, excitation)
                             : excitation;
 
-    // 8. Feedback Mix + DC Blocker (prevent loop accumulation)
+    // 9. Feedback Mix + DC Blocker (prevent loop accumulation)
     float feedback_mix = engine->enable_feedback
                              ? feedback_process(voice->feedback,
                                                 voice->prev_delay1_out,
@@ -184,36 +214,36 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         feedback_clean = 0.0f;
     }
 
-    // 9. Add feedback to signal
+    // 10. Add feedback to signal
     float interface_input = formant_out + feedback_clean;
 
-    // 10. Interface Module (Physical Modeling)
+    // 11. Interface Module (Physical Modeling)
     float interface_out = interface_process(voice->interface, interface_input);
     interface_out = sanitize_sample(interface_out);
 
-    // 11. Dual Delay Lines
+    // 12. Dual Delay Lines
     float delay1_out, delay2_out;
     delay_lines_process(voice->delay_lines, interface_out, &delay1_out, &delay2_out);
 
-    // 12. Filter
+    // 13. Filter
     float filter_out = engine->enable_filter
                            ? filter_process(voice->filter, delay2_out)
                            : delay2_out;
     filter_out = sanitize_sample(filter_out);
 
-    // 13. Store previous outputs for next sample's feedback
+    // 14. Store previous outputs for next sample's feedback
     voice->prev_delay1_out = delay1_out;
     voice->prev_delay2_out = delay2_out;
     voice->prev_filter_out = filter_out;
 
-    // 14. Apply AM modulation
+    // 15. Apply AM modulation
     float output = filter_out * am_scale;
 
     // danny keyword for finding again
     output *= 0.7f;                         // Global pad to reduce accumulated level
     output = soft_clip_drive(output, 1.0f); // final guard against runaway noise
 
-    // 15. Master gain (final DC blocker removed - was too aggressive and killed envelope attack)
+    // 16. Master gain (final DC blocker removed - was too aggressive and killed envelope attack)
     output *= engine->master_gain;
 
     return output;
@@ -228,6 +258,7 @@ SynthEngine *synth_engine_create(float sample_rate)
 
     engine->sample_rate = sample_rate;
     engine->global_note_counter = 0; // Initialize voice age counter
+    engine->sample_counter = 0;
     engine->master_gain = 0.8f;      // Increased from 0.35 to boost output level (safe after soft clipping)
     // danny tweak
     engine->disyn_level = 0.8f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
@@ -239,6 +270,36 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->enable_formants = true;
     engine->enable_filter = true;
     engine->hard_mute = false;
+    engine->watchdog_enabled = false;
+    engine->fixed_duration_enabled = false;
+    engine->watchdog_samples = 0;
+    engine->fixed_duration_samples = 0;
+
+    // Optional: force releases when note-off is missing (e.g., flaky MIDI interface)
+    const char *watchdog_env = getenv("FLUES_NOTE_TIMEOUT_MS");
+    if (watchdog_env)
+    {
+        float ms = strtof(watchdog_env, NULL);
+        if (ms > 0.0f)
+        {
+            engine->watchdog_enabled = true;
+            engine->watchdog_samples = (uint64_t)((ms / 1000.0f) * sample_rate);
+            printf("MIDI: Auto-release watchdog enabled (%.1f ms)\n", ms);
+        }
+    }
+
+    // Optional: fixed-duration notes (forces release after N ms regardless of note-off)
+    const char *fixed_env = getenv("FLUES_FIXED_NOTE_MS");
+    if (fixed_env)
+    {
+        float ms = strtof(fixed_env, NULL);
+        if (ms > 0.0f)
+        {
+            engine->fixed_duration_enabled = true;
+            engine->fixed_duration_samples = (uint64_t)((ms / 1000.0f) * sample_rate);
+            printf("MIDI: Fixed note duration enabled (%.1f ms)\n", ms);
+        }
+    }
 
     // Initialize all voices in the voice pool
     for (int i = 0; i < MAX_VOICES; i++)
@@ -303,7 +364,7 @@ void synth_engine_destroy(SynthEngine *engine)
 // Process audio buffer (polyphonic with energy-preserving mix)
 void synth_engine_process(SynthEngine *engine, float *output, int num_samples)
 {
-    for (int i = 0; i < num_samples; i++)
+    for (int i = 0; i < num_samples; i++, engine->sample_counter++)
     {
         float mix = 0.0f;
         int active_count = 0;
@@ -397,6 +458,8 @@ void synth_engine_note_on(SynthEngine *engine, int midi_note, float frequency, u
     voice->base_frequency = frequency;
     voice->vibrato_enabled = engine->sing_enabled;
     voice->vibrato_phase = 0.0f;
+    voice->note_on_sample = engine->sample_counter;
+    voice->gate_forced_off = false;
 
     // Reset modules
     envelope_reset(voice->envelope);
@@ -425,6 +488,7 @@ void synth_engine_note_off(SynthEngine *engine, int midi_note)
             // Trigger release (voice stays active until envelope finishes)
             envelope_set_gate(voice->envelope, false);
             interface_set_gate(voice->interface, 0.0f);
+            voice->gate_forced_off = true;
 
             // Note: voice->active will be cleared by voice_process_sample()
             // when envelope_is_active() returns false
@@ -442,6 +506,7 @@ void synth_engine_all_notes_off(SynthEngine *engine)
         {
             envelope_set_gate(voice->envelope, false);
             interface_set_gate(voice->interface, 0.0f);
+            voice->gate_forced_off = true;
         }
     }
 }
