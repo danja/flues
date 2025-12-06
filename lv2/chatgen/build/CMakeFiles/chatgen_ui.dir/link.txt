@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC -shared  -o chatgen_ui.so CMakeFiles/chatgen_ui.dir/src/ui/chatgen_ui_x11.c.o  -lX11 -lcairo -lm -lpthread 

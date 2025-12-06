@@ -1,3 +1,17 @@
+# Build outputs (Meson/CMake)
+flues-synth/builddir/
+gtk-synth/builddir/
+lv2/*/build/
+lv2/*/builddir/
+lv2/*/CMakeFiles/
+lv2/*/CMakeCache.txt
+lv2/*/cmake_install.cmake
+lv2/*/Makefile
+lv2/*/Makefile2
+lv2/*/install_manifest.txt
+
+lv2/floozy-poly/build
+
 # Node
 node_modules/
 package-lock.json

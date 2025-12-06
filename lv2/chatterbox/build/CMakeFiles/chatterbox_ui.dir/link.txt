@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC -shared  -o chatterbox_ui.so CMakeFiles/chatterbox_ui.dir/src/ui/chatterbox_ui_x11.c.o  -lX11 -lcairo -lm -lpthread 

@@ -1,4 +1,0 @@
-/home/danny/.lv2/chatterbox.lv2/chatterbox.so
-/home/danny/.lv2/chatterbox.lv2/chatterbox_ui.so
-/home/danny/.lv2/chatterbox.lv2/manifest.ttl
-/home/danny/.lv2/chatterbox.lv2/chatterbox.ttl

@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC -shared  -o pm_synth_ui.so CMakeFiles/pm_synth_ui.dir/src/ui/pm_synth_ui_x11.c.o  -lX11 -lcairo -lm -lpthread 
