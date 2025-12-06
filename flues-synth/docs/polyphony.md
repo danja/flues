@@ -24,3 +24,14 @@
 ## Verification Checklist
 - `meson test -C builddir` (existing suites: engine-smoke, envelope-test, disyn-levels).
 - Manual MIDI check: play 2–4 note chords, confirm even gain due to sqrt mix; trigger a 5th note to confirm oldest voice is stolen without zipper noise; compare soft vs hard velocity for loudness change; send CCs during a chord to verify parameter broadcast.
+
+## 2025-12-06 Status (Pi + Reaper troubleshooting)
+- Reverb cancelled/stubbed; envelope max release capped to 1.0s to shorten tails when hosts send max release.
+- Feedback clamp added: delay1/2 ≤ 0.75, filter feedback ≤ 0.5 to reduce latch-up from high resonance CCs.
+- Control notes 36–42 (debug toggles) **disabled by default** to avoid consuming low notes from DAW; enable via `FLUES_CONTROL_NOTES=1`.
+- MIDI debug logging added via `FLUES_MIDI_DEBUG=1` (note/CC/All Notes Off with ALSA source port) to verify Reaper → Pi delivery.
+- Tests: full `meson test -C builddir` passing locally (engine-smoke, envelope-test, polyphony-smoke, disyn-levels, noise-isolation).
+- Issue still open: on Pi, notes often hold excessively long (inconsistent), even with release cap. Need to confirm whether missing note-offs/All Notes Off are being received. Next steps:
+  - Run synth with `FLUES_MIDI_DEBUG=1` to capture incoming note on/off from Reaper path.
+  - If note-offs are present but release still long, consider further reducing MAX_RELEASE or making CC72 mapping sub-linear.
+  - Add optional voice-steal/active-voice logging to catch stuck envelopes.
