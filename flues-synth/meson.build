@@ -112,3 +112,11 @@ envelope_debug = executable('envelope-debug',
                             include_directories: inc,
                             dependencies: [math_dep],
                             link_with: core_lib)
+
+# Polyphony smoke test (voice allocation/steal + velocity scaling)
+polyphony_smoke = executable('polyphony-smoke',
+                             ['tests/polyphony_smoke.c'],
+                             include_directories: inc,
+                             dependencies: [math_dep],
+                             link_with: core_lib)
+test('polyphony-smoke', polyphony_smoke)

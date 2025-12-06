@@ -1,5 +1,4 @@
-// Synth Engine - Main DSP Coordinator
-// Phase 1: Single voice implementation
+// Synth Engine - Main DSP Coordinator (Polyphonic, 4 voices by default)
 
 #include "synth_engine.h"
 #include "dsp_modules.h"
@@ -756,15 +755,19 @@ void synth_engine_set_am_fm_depth(SynthEngine *engine, float depth)
     }
 }
 
-// Reverb (skipped in Phase 1)
+// Reverb (not implemented)
 void synth_engine_set_reverb_size(SynthEngine *engine, float value)
 {
-    // No-op
+    (void)engine;
+    (void)value;
+    // Reverb cancelled; stub kept for API compatibility
 }
 
 void synth_engine_set_reverb_level(SynthEngine *engine, float value)
 {
-    // No-op
+    (void)engine;
+    (void)value;
+    // Reverb cancelled; stub kept for API compatibility
 }
 
 // Output

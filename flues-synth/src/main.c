@@ -1,5 +1,5 @@
 // Flues-Synth - Unified Polyphonic Synthesizer
-// Phase 1: Single voice, headless operation with MIDI CC control
+// 4-voice polyphonic, headless operation with MIDI CC control
 
 #include "synth_engine.h"
 #include "audio_backend_alsa.h"
@@ -377,7 +377,7 @@ static AudioBackendALSA* create_audio_with_fallback(const char* cli_device,
 
 int main(int argc, char* argv[]) {
     printf("=== Flues-Synth v0.1.0 ===\n");
-    printf("Unified Polyphonic Synthesizer (Phase 1: Single Voice)\n");
+    printf("Unified Polyphonic Synthesizer (4-voice default)\n");
     printf("Target: Raspberry Pi 4 (ARM Cortex-A72)\n\n");
 
     const char* mk_env = getenv("FLUES_MK449_MAP");
