@@ -124,6 +124,18 @@ static void voice_destroy(Voice *voice)
     modulation_destroy(voice->modulation);
 }
 
+// Immediately stop a voice (used for watchdog / fixed-duration safety)
+static void force_voice_off(Voice *voice)
+{
+    envelope_reset(voice->envelope);
+    interface_set_gate(voice->interface, 0.0f);
+    voice->prev_delay1_out = 0.0f;
+    voice->prev_delay2_out = 0.0f;
+    voice->prev_filter_out = 0.0f;
+    voice->active = false;
+    voice->gate_forced_off = true;
+}
+
 // Process one sample for voice
 static float voice_process_sample(Voice *voice, SynthEngine *engine)
 {
@@ -160,15 +172,11 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         uint64_t elapsed = engine->sample_counter - voice->note_on_sample;
         if (engine->fixed_duration_enabled && elapsed >= engine->fixed_duration_samples)
         {
-            envelope_set_gate(voice->envelope, false);
-            interface_set_gate(voice->interface, 0.0f);
-            voice->gate_forced_off = true;
+            force_voice_off(voice);
         }
         else if (engine->watchdog_enabled && elapsed >= engine->watchdog_samples)
         {
-            envelope_set_gate(voice->envelope, false);
-            interface_set_gate(voice->interface, 0.0f);
-            voice->gate_forced_off = true;
+            force_voice_off(voice);
         }
     }
 
@@ -485,13 +493,7 @@ void synth_engine_note_off(SynthEngine *engine, int midi_note)
         Voice *voice = &engine->voices[i];
         if (voice->active && voice->midi_note == midi_note)
         {
-            // Trigger release (voice stays active until envelope finishes)
-            envelope_set_gate(voice->envelope, false);
-            interface_set_gate(voice->interface, 0.0f);
-            voice->gate_forced_off = true;
-
-            // Note: voice->active will be cleared by voice_process_sample()
-            // when envelope_is_active() returns false
+            force_voice_off(voice);
         }
     }
 }
@@ -504,9 +506,7 @@ void synth_engine_all_notes_off(SynthEngine *engine)
         Voice *voice = &engine->voices[i];
         if (voice->active)
         {
-            envelope_set_gate(voice->envelope, false);
-            interface_set_gate(voice->interface, 0.0f);
-            voice->gate_forced_off = true;
+            force_voice_off(voice);
         }
     }
 }
