@@ -447,6 +447,73 @@ void synth_engine_all_notes_off(SynthEngine *engine)
     }
 }
 
+// Reset all parameters to defaults
+void synth_engine_reset(SynthEngine *engine)
+{
+    // 1. Stop all playing notes
+    synth_engine_all_notes_off(engine);
+
+    // 2. Reset global parameters
+    engine->master_gain = 0.8f;
+    engine->disyn_level = 0.8f;
+    engine->sing_enabled = false;
+    engine->fry_enabled = false;
+    engine->enable_disyn = true;
+    engine->enable_noise = true;
+    engine->enable_feedback = true;
+    engine->enable_formants = true;
+    engine->enable_filter = true;
+    engine->hard_mute = false;
+
+    // 3. Reset all voice parameters using parameter setters
+    // (These now automatically broadcast to all voices thanks to polyphony)
+
+    // Disyn source
+    synth_engine_set_disyn_algorithm(engine, 0);   // Dirichlet Pulse
+    synth_engine_set_disyn_param1(engine, 0.5f);
+    synth_engine_set_disyn_param2(engine, 0.5f);
+    synth_engine_set_noise_level(engine, 0.15f);
+    synth_engine_set_dc_level(engine, 0.0f);
+
+    // Formants (neutral vowel)
+    synth_engine_set_f1(engine, 500.0f);
+    synth_engine_set_f2(engine, 1500.0f);
+    synth_engine_set_f3(engine, 2500.0f);
+    synth_engine_set_f4(engine, 3500.0f);
+
+    // Vocal modes
+    synth_engine_set_nasal(engine, false);
+    synth_engine_set_sing(engine, false);
+    synth_engine_set_shout(engine, false);
+    synth_engine_set_fry(engine, false);
+
+    // Envelope
+    synth_engine_set_attack(engine, 0.1f);   // ~10ms
+    synth_engine_set_release(engine, 0.3f);  // ~100ms
+
+    // Interface & Delay
+    synth_engine_set_interface_type(engine, 2);  // INTERFACE_REED
+    synth_engine_set_intensity(engine, 0.5f);
+    synth_engine_set_tuning(engine, 0.0f);       // 0 semitone offset
+    synth_engine_set_ratio(engine, 1.0f);        // Same delay length
+
+    // Feedback
+    synth_engine_set_delay1_feedback(engine, 0.2f);
+    synth_engine_set_delay2_feedback(engine, 0.2f);
+    synth_engine_set_filter_feedback(engine, 0.1f);
+
+    // Filter
+    synth_engine_set_filter_frequency(engine, 2000.0f);
+    synth_engine_set_filter_q(engine, 1.0f);
+    synth_engine_set_filter_shape(engine, 0.0f);  // Lowpass
+
+    // Modulation
+    synth_engine_set_lfo_frequency(engine, 2.0f);
+    synth_engine_set_am_fm_depth(engine, 0.0f);   // No modulation
+
+    printf("Ctl Note 42: RESET - All parameters returned to defaults\n");
+}
+
 // Get active voice count
 int synth_engine_get_active_voice_count(SynthEngine *engine)
 {

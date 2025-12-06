@@ -34,11 +34,11 @@ static uint8_t mk449_remap_cc(uint8_t cc_in) {
     }
 }
 
-// Note numbers 36-41 toggle sections of the DSP chain for debugging hiss
-// 36: Noise, 37: Disyn, 38: Feedback, 39: Formants, 40: Filter, 41: Hard mute
+// Note numbers 36-42 toggle sections of the DSP chain for debugging hiss
+// 36: Noise, 37: Disyn, 38: Feedback, 39: Formants, 40: Filter, 41: Hard mute, 42: Reset
 static bool handle_control_note(const MidiEvent* event, SynthEngine* synth) {
     const uint8_t note = event->note;
-    if (note < 36 || note > 41) {
+    if (note < 36 || note > 42) {
         return false;
     }
 
@@ -81,6 +81,10 @@ static bool handle_control_note(const MidiEvent* event, SynthEngine* synth) {
                 printf("Ctl Note 41: HARD MUTE %s\n", new_state ? "ON" : "OFF");
                 break;
             }
+            case 42:
+                synth_engine_reset(synth);
+                // Note: reset function prints its own message
+                break;
         }
         return true;  // consume control note-on (don't trigger voice)
     }

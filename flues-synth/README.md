@@ -260,7 +260,7 @@ Override with: `./builddir/flues-synth <device-name>`
 
 ## MIDI Control
 
-### Control Notes (36-41) - Debug Toggles
+### Control Notes (36-42) - Debug Toggles
 
 Special MIDI notes toggle DSP sections for diagnostics and isolation:
 
@@ -272,9 +272,10 @@ Special MIDI notes toggle DSP sections for diagnostics and isolation:
 | 39 | Toggle Formants | Enable/disable formant cascade |
 | 40 | Toggle Filter | Enable/disable SVF filter |
 | 41 | Hard Mute | Emergency mute (clears delays, DC blockers, filters) |
+| 42 | Reset | Reset all parameters to defaults and clear all notes |
 | 48+ | Musical Notes | Standard MIDI note range (C3 = 48) |
 
-**Usage:** Press any of notes 36-41 to toggle. Console shows:
+**Usage:** Press any of notes 36-42 to toggle or reset. Console shows:
 ```
 Ctl Note 36: Noise ENABLED
 Ctl Note 37: Disyn DISABLED

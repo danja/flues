@@ -19,6 +19,7 @@ void synth_engine_process(SynthEngine* engine, float* output, int num_samples);
 void synth_engine_note_on(SynthEngine* engine, int midi_note, float frequency, unsigned char velocity);
 void synth_engine_note_off(SynthEngine* engine, int midi_note);
 void synth_engine_all_notes_off(SynthEngine* engine);
+void synth_engine_reset(SynthEngine* engine);  // Reset all parameters to defaults
 
 // =============================================================================
 // PARAMETER SETTERS (Phase 1 - Essential Parameters)
