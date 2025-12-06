@@ -26,8 +26,6 @@ typedef struct
     float base_frequency;
     uint64_t note_on_sample; // Sample index when note-on arrived
     bool gate_forced_off;    // True once a forced release was applied
-    float release_restore_samples;
-    bool release_override_active;
 
     // DSP Modules
     DisynModule *disyn;
@@ -111,8 +109,6 @@ static void voice_init(Voice *voice, float sample_rate)
     voice->vibrato_phase = 0.0f;
     voice->note_on_sample = 0;
     voice->gate_forced_off = false;
-    voice->release_restore_samples = 0.0f;
-    voice->release_override_active = false;
 }
 
 // Destroy voice
@@ -129,18 +125,9 @@ static void voice_destroy(Voice *voice)
     modulation_destroy(voice->modulation);
 }
 
-// Trigger a short release on a voice (used for watchdog / fixed-duration safety)
+// Trigger a release on a voice (used for watchdog / fixed-duration safety)
 static void force_voice_off(Voice *voice, SynthEngine *engine)
 {
-    // Shorten release to clear faster, but avoid an instant click
-    float forced_release = 0.03f * engine->sample_rate; // 30 ms
-    if (!voice->release_override_active)
-    {
-        voice->release_restore_samples = voice->envelope->release_samples;
-    }
-    voice->release_override_active = true;
-    voice->envelope->release_samples = fminf(voice->envelope->release_samples, forced_release);
-
     envelope_set_gate(voice->envelope, false);
     interface_set_gate(voice->interface, 0.0f);
     voice->gate_forced_off = true;
@@ -176,11 +163,19 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         }
     }
 
-    // 3. Apply fixed-duration forced release (optional)
+    // 3. Apply per-voice safety releases (optional)
     if (!voice->gate_forced_off && engine->fixed_duration_enabled)
     {
         uint64_t elapsed = engine->sample_counter - voice->note_on_sample;
         if (elapsed >= engine->fixed_duration_samples)
+        {
+            force_voice_off(voice, engine);
+        }
+    }
+    if (!voice->gate_forced_off && engine->watchdog_enabled)
+    {
+        uint64_t elapsed = engine->sample_counter - voice->note_on_sample;
+        if (elapsed >= engine->watchdog_samples)
         {
             force_voice_off(voice, engine);
         }
@@ -205,12 +200,6 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
     // Check if envelope is done
     if (!envelope_is_active(voice->envelope))
     {
-        // Restore release time if we temporarily shortened it
-        if (voice->release_override_active)
-        {
-            voice->envelope->release_samples = voice->release_restore_samples;
-            voice->release_override_active = false;
-        }
         voice->active = false;
         voice->gate_forced_off = false; // ready for reuse
         return 0.0f;
@@ -413,14 +402,6 @@ void synth_engine_process(SynthEngine *engine, float *output, int num_samples)
         {
             output[i] = 0.0f;
         }
-
-        // Inactivity watchdog: if enabled and we haven't seen MIDI for the window, clear any held voices
-        if (engine->watchdog_enabled &&
-            engine->sample_counter - engine->last_midi_event_sample >= engine->watchdog_samples &&
-            active_count > 0)
-        {
-            synth_engine_all_notes_off(engine);
-        }
     }
 }
 
@@ -521,11 +502,6 @@ void synth_engine_note_off(SynthEngine *engine, int midi_note)
             envelope_set_gate(voice->envelope, false);
             interface_set_gate(voice->interface, 0.0f);
             voice->gate_forced_off = false;
-            if (voice->release_override_active)
-            {
-                voice->envelope->release_samples = voice->release_restore_samples;
-                voice->release_override_active = false;
-            }
         }
     }
     engine->last_midi_event_sample = engine->sample_counter;
