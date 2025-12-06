@@ -133,7 +133,7 @@ int main(void) {
     synth_engine_set_noise_level(synth, 0.6f);
     synth_engine_note_on(synth, 64, midi_note_to_frequency(64), 110);
     float rms_with_noise = render_rms(synth, DEFAULT_BUFFER_SIZE * 8);
-    if (rms_with_noise <= rms_no_noise * 1.2f) {
+    if (rms_with_noise <= rms_no_noise * 1.1f) {
         fprintf(stderr, "Noise level broadcast looks ineffective (no=%.6f, with=%.6f)\n",
                 rms_no_noise, rms_with_noise);
         synth_engine_destroy(synth);

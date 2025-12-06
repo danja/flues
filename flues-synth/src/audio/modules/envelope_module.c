@@ -10,7 +10,7 @@
 #define MIN_ATTACK 0.001f
 #define MAX_ATTACK 1.0f
 #define MIN_RELEASE 0.01f
-#define MAX_RELEASE 3.0f
+#define MAX_RELEASE 1.0f
 
 EnvelopeModule* envelope_create(float sample_rate) {
     EnvelopeModule* envelope = (EnvelopeModule*)calloc(1, sizeof(EnvelopeModule));

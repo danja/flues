@@ -19,6 +19,7 @@ static volatile bool running = true;
 // Synth engine (global for audio callback)
 static SynthEngine* g_synth = NULL;
 static bool g_use_mk449_remap = true;  // remap CCs for the Evolution MK-449 defaults
+static bool g_control_notes_enabled = false;  // off by default to avoid consuming low notes
 
 // Translate MK-449 default CCs to the synth’s parameter map
 static uint8_t mk449_remap_cc(uint8_t cc_in) {
@@ -37,6 +38,10 @@ static uint8_t mk449_remap_cc(uint8_t cc_in) {
 // Note numbers 36-42 toggle sections of the DSP chain for debugging hiss
 // 36: Noise, 37: Disyn, 38: Feedback, 39: Formants, 40: Filter, 41: Hard mute, 42: Reset
 static bool handle_control_note(const MidiEvent* event, SynthEngine* synth) {
+    if (!g_control_notes_enabled) {
+        return false;
+    }
+
     const uint8_t note = event->note;
     if (note < 36 || note > 42) {
         return false;
@@ -386,6 +391,16 @@ int main(int argc, char* argv[]) {
     }
     if (g_use_mk449_remap) {
         printf("MK-449 CC remap: enabled (91→28, 92→29, 93→30, 84→27, 5→1)\n");
+    }
+
+    const char* ctl_env = getenv("FLUES_CONTROL_NOTES");
+    if (ctl_env && ctl_env[0] == '1') {
+        g_control_notes_enabled = true;
+    }
+    if (g_control_notes_enabled) {
+        printf("Control notes 36-42: ENABLED (debug toggles)\n");
+    } else {
+        printf("Control notes 36-42: disabled (set FLUES_CONTROL_NOTES=1 to enable)\n");
     }
 
     // Setup signal handlers

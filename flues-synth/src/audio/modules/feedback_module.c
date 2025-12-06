@@ -39,13 +39,13 @@ float feedback_process(FeedbackModule* fb, float delay1, float delay2, float fil
 }
 
 void feedback_set_delay1(FeedbackModule* fb, float amount) {
-    fb->delay1_amount = amount;
+    fb->delay1_amount = clamp(amount, 0.0f, 0.75f);
 }
 
 void feedback_set_delay2(FeedbackModule* fb, float amount) {
-    fb->delay2_amount = amount;
+    fb->delay2_amount = clamp(amount, 0.0f, 0.75f);
 }
 
 void feedback_set_filter(FeedbackModule* fb, float amount) {
-    fb->filter_amount = amount;
+    fb->filter_amount = clamp(amount, 0.0f, 0.5f);
 }

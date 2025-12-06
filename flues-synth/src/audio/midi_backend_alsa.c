@@ -202,6 +202,8 @@ MidiBackendALSA* midi_backend_alsa_create(MidiEventCallback callback, void* user
 
     backend->callback = callback;
     backend->callback_user_data = user_data;
+    const char* dbg = getenv("FLUES_MIDI_DEBUG");
+    backend->debug = dbg && dbg[0] == '1';
     backend->running = false;
     backend->connected_port = -1;
     backend->debug = getenv("FLUES_MIDI_DEBUG") != NULL;
