@@ -1,0 +1,27 @@
+[Unit]
+Description=Flues Web Server (UI + MIDI Bridge)
+Documentation=https://github.com/danja/flues
+After=network.target flues-synth.service
+Wants=flues-synth.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/flues/flues-synth/web-ui/server
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment="NODE_ENV=production"
+Environment="HTTP_PORT=8080"
+Environment="WS_PORT=8081"
+
+# Resource limits
+LimitNOFILE=1024
+LimitNPROC=512
+
+[Install]
+WantedBy=multi-user.target

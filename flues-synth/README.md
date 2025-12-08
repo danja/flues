@@ -2,7 +2,7 @@
 
 **Headless Hybrid Speech/Physical Modeling Synthesizer for Raspberry Pi**
 
-Unified polyphonic synthesizer combining Disyn distortion algorithms, Chatterbox formant synthesis, and PM-Synth physical modeling. Designed for headless operation on Raspberry Pi 4 with MIDI control.
+Unified **polyphonic (4-voice default)** synthesizer combining Disyn distortion algorithms, Chatterbox formant synthesis, and PM-Synth physical modeling. Designed for headless operation on Raspberry Pi 4 with MIDI control.
 
 ## Features
 
@@ -11,10 +11,10 @@ Unified polyphonic synthesizer combining Disyn distortion algorithms, Chatterbox
 - **PM-Synth Physical Modeling**: 12 interface strategies (Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma)
 - **Dual DC Blocking**: Prevents feedback latching with -60dB DC rejection
 - **Calibrated Signal Levels**: Safe 0.28 peak output with headroom for dynamics
-- **ALSA Audio**: Direct PCM output (48kHz, 512 samples, ~10ms latency)
+- **ALSA Audio**: Direct PCM output (32 kHz default, 512 samples; configure at build/runtime)
 - **ALSA MIDI**: Auto-connects to best external MIDI port on startup
 - **Headless Control**: Comprehensive MIDI CC mapping (29 parameters + 6 control notes)
-- **Single Voice**: Phase 1 implementation (polyphony coming in Phase 2)
+- **Polyphony**: 4 voices by default (set `-Dmax_voices=` at configure time)
 
 ## Signal Flow
 
@@ -60,7 +60,7 @@ ALSA Audio Out (peak ~0.28, safe margin)
   - Formant makeup: 2.0× (compensates for Q-induced attenuation)
   - Global pad: 0.7× + soft clip (tanh) + master 0.5×
   - Final peak: ~0.28 (safe, no clipping)
-- **Debug Toggles**: MIDI notes 36-41 toggle DSP sections
+- **Debug Toggles**: MIDI notes 36-41 toggle DSP sections (disabled by default; enable with `FLUES_CONTROL_NOTES=1`)
 
 ## Requirements
 
@@ -120,21 +120,13 @@ cd flues-synth
 Expected output:
 ```
 === Flues-Synth v0.1.0 ===
-Unified Polyphonic Synthesizer (Phase 1: Single Voice)
+Unified Polyphonic Synthesizer (4-voice default)
 Target: Raspberry Pi 4 (ARM Cortex-A72)
-
-Audio device: default
-Sample rate: 48000 Hz
-Buffer size: 256 frames (5.3 ms)
+Control notes 36-42: disabled (set FLUES_CONTROL_NOTES=1 to enable)
+MK-449 CC remap: enabled (91→28, 92→29, 93→30, 84→27, 5→1)
 
 Synth engine initialized
-MIDI: Found port 20:0 'USB MIDI Device' (score: 18)
-MIDI: Auto-connected to port 20:0
-MIDI: Initialized (client ID: 128, port: 0)
-
-=== Flues-Synth Running ===
-Listening for MIDI input...
-Press Ctrl+C to quit
+...
 ```
 
 ### Manual MIDI Connection
@@ -161,6 +153,11 @@ CC ch1: 20 -> 66
 ```
 
 After the first move of each CC, subsequent values show only numbers for cleaner console output.
+
+### Environment toggles
+- `FLUES_CONTROL_NOTES=1` – enable debug control notes 36-41 (default: off to avoid stealing low notes from DAWs).
+- `FLUES_MK449_MAP=0` – disable MK-449 remap (91→28, 92→29, 93→30, 84→27, 5→1, 12→20, 13→19).
+- `FLUES_MIDI_DEBUG=1` – verbose MIDI event logging (note on/off/CC/All Notes Off with ALSA source port).
 
 ### Stop the Synthesizer
 Press `Ctrl+C` for clean shutdown.

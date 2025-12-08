@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flues Synth Control</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="synth-container">
+        <!-- Header -->
+        <header class="synth-header">
+            <h1>Flues Synth</h1>
+            <div class="connection-status">
+                <span class="status-indicator" id="status-indicator"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Visualizer + Voice Meters -->
+        <section class="visualizer-section">
+            <canvas id="visualizer-canvas" width="1200" height="200"></canvas>
+            <div class="voice-meters-container">
+                <label>Voices:</label>
+                <div id="voice-meters" class="voice-meters"></div>
+            </div>
+        </section>
+
+        <!-- Control Modules Grid (8 sections) -->
+        <div class="modules-grid">
+
+            <!-- Row 1: Disyn Source + Formants -->
+            <section class="control-section" id="disyn-section">
+                <h2>Disyn Source</h2>
+                <div id="disyn-controls" class="controls-grid">
+                    <div class="control-item" data-control="algorithm"></div>
+                    <div class="control-item" data-control="param1"></div>
+                    <div class="control-item" data-control="param2"></div>
+                    <div class="control-item" data-control="level"></div>
+                    <div class="control-item" data-control="noise"></div>
+                    <div class="control-item" data-control="dc"></div>
+                </div>
+            </section>
+
+            <section class="control-section" id="formants-section">
+                <h2>Formants</h2>
+                <div id="formants-controls" class="controls-grid">
+                    <div class="control-item" data-control="f1"></div>
+                    <div class="control-item" data-control="f2"></div>
+                    <div class="control-item" data-control="f3"></div>
+                    <div class="control-item" data-control="f4"></div>
+                    <div class="vocal-modes-group" data-control="vocal-modes">
+                        <label>Vocal Modes:</label>
+                        <!-- Toggles will be added by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Row 2: Envelope + Interface -->
+            <section class="control-section" id="envelope-section">
+                <h2>Envelope</h2>
+                <div id="envelope-controls" class="controls-grid">
+                    <div class="control-item" data-control="attack"></div>
+                    <div class="control-item" data-control="release"></div>
+                </div>
+            </section>
+
+            <section class="control-section" id="interface-section">
+                <h2>Interface</h2>
+                <div id="interface-controls" class="controls-grid">
+                    <div class="control-item" data-control="type"></div>
+                    <div class="control-item" data-control="intensity"></div>
+                    <div class="control-item" data-control="tuning"></div>
+                    <div class="control-item" data-control="ratio"></div>
+                </div>
+            </section>
+
+            <!-- Row 3: Feedback + Filter -->
+            <section class="control-section" id="feedback-section">
+                <h2>Feedback</h2>
+                <div id="feedback-controls" class="controls-grid">
+                    <div class="control-item" data-control="delay1"></div>
+                    <div class="control-item" data-control="delay2"></div>
+                    <div class="control-item" data-control="filter"></div>
+                </div>
+            </section>
+
+            <section class="control-section" id="filter-section">
+                <h2>Filter</h2>
+                <div id="filter-controls" class="controls-grid">
+                    <div class="control-item" data-control="freq"></div>
+                    <div class="control-item" data-control="q"></div>
+                    <div class="control-item" data-control="shape"></div>
+                </div>
+            </section>
+
+            <!-- Row 4: Modulation + Output -->
+            <section class="control-section" id="modulation-section">
+                <h2>Modulation</h2>
+                <div id="modulation-controls" class="controls-grid">
+                    <div class="control-item" data-control="lfo-freq"></div>
+                    <div class="control-item" data-control="am-fm"></div>
+                </div>
+            </section>
+
+            <section class="control-section" id="output-section">
+                <h2>Output</h2>
+                <div id="output-controls" class="controls-grid">
+                    <div class="control-item" data-control="master"></div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="synth-footer">
+            <span>Flues Synth Web UI v0.1.0</span>
+            <span>•</span>
+            <span>29 Parameters</span>
+            <span>•</span>
+            <span><a href="https://github.com/anthropics/flues" target="_blank">GitHub</a></span>
+        </footer>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

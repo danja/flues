@@ -1,0 +1,27 @@
+[Unit]
+Description=Flues Synthesizer
+Documentation=https://github.com/danja/flues
+After=sound.target alsa-restore.service
+Requires=sound.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/flues/flues-synth
+ExecStart=/home/pi/flues/flues-synth/builddir/flues-synth
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment="FLUES_MIDI_DEBUG=0"
+Environment="FLUES_CONTROL_NOTES=0"
+Environment="FLUES_MK449_MAP=1"
+
+# Resource limits
+LimitNOFILE=1024
+LimitNPROC=512
+
+[Install]
+WantedBy=multi-user.target
