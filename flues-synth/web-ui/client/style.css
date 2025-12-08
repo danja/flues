@@ -381,6 +381,45 @@ button:focus-visible {
     transform: scale(0.98);
 }
 
+/* Keyboard */
+.keyboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.key {
+    padding: 16px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.key.white {
+    background: linear-gradient(180deg, #f7f9ff, #dfe7f5);
+    color: #0f172a;
+}
+
+.key.black {
+    background: linear-gradient(180deg, #1c2333, #0f172a);
+    color: #e2e8f0;
+}
+
+.key:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.key.active {
+    box-shadow: 0 0 12px rgba(74, 158, 255, 0.6);
+    border-color: var(--accent-blue);
+}
+
 /* Print Styles */
 @media print {
     .visualizer-section,

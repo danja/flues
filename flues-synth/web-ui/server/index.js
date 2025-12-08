@@ -13,7 +13,7 @@ import { AudioTap } from './audio-tap.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const HTTP_PORT = process.env.HTTP_PORT || 8080;
+const HTTP_PORT = process.env.HTTP_PORT || 8082;
 const WS_PORT = process.env.WS_PORT || 8081;
 const UPDATE_RATE_MS = 16;  // 60 Hz
 

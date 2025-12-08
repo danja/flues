@@ -194,6 +194,44 @@ flues-synth/web-ui/
 
 All 29 flues-synth MIDI CC parameters are wired and functional.
 
+### UI Controls (what appears on screen)
+
+| Group | Label (UI control) | Type | CC | Range / Options |
+|-------|--------------------|------|----|-----------------|
+| Header | Connection status | Indicator | — | Connected / Disconnected (auto-reconnect) |
+| Visualization | Waveform + Spectrum | Canvas | — | 60 Hz updates |
+| Visualization | Voices 1-4 | LED meters | — | Active voice count |
+| Disyn Source | Algorithm | 12-position rotary switch | 16 | Dirichlet, DSF Single, DSF Double, Tanh Square, Tanh Saw, PAF, Modified FM |
+| Disyn Source | Param 1 | Knob | 17 | 0.0-1.0 (algo specific) |
+| Disyn Source | Param 2 | Knob | 18 | 0.0-1.0 (algo specific) |
+| Disyn Source | Level | Knob | 19 | 0.0-1.0 |
+| Disyn Source | Noise | Knob | 20 | 0.0-1.0 |
+| Disyn Source | DC | Knob | 21 | 0.0-1.0 |
+| Formants | F1 (Jaw) | Knob | 71 | 200-1000 Hz (exp) |
+| Formants | F2 (Tongue) | Knob | 10 | 500-3000 Hz (exp) |
+| Formants | F3 (Lips) | Knob | 74 | 1500-4000 Hz (exp) |
+| Formants | F4 (Quality) | Knob | 75 | 2500-4500 Hz (exp) |
+| Formants | Nasal | Toggle button | 80 | Off/On (≥64) |
+| Formants | Sing | Toggle button | 81 | Off/On (≥64) |
+| Formants | Shout | Toggle button | 82 | Off/On (≥64) |
+| Formants | Fry | Toggle button | 83 | Off/On (≥64) |
+| Envelope | Attack | Knob | 73 | 1-1000 ms (exp) |
+| Envelope | Release | Knob | 72 | 10-3000 ms (exp) |
+| Interface | Type | 12-position rotary switch | 24 | Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma |
+| Interface | Intensity | Knob | 1 | 0.0-1.0 |
+| Interface | Tuning | Knob | 26 | -12 to +12 st |
+| Interface | Ratio | Knob | 27 | 0.5-2.0 |
+| Feedback | Delay 1 | Knob | 28 | 0.0-1.0 |
+| Feedback | Delay 2 | Knob | 29 | 0.0-1.0 |
+| Feedback | Filter | Knob | 30 | 0.0-1.0 |
+| Filter | Frequency | Knob | 32 | 20-20000 Hz (exp) |
+| Filter | Q | Knob | 33 | 0.1-10 (exp) |
+| Filter | Shape | Knob | 34 | LP ↔ BP ↔ HP |
+| Modulation | LFO Freq | Knob | 36 | 0.1-20 Hz (exp) |
+| Modulation | AM ↔ FM | Knob | 37 | -1.0 to +1.0 (bipolar) |
+| Output | Master Gain | Knob | 7 | 0.0-1.0 |
+| Keyboard | C4–C5 (13 keys) | Buttons | note on/off | Fixed velocity 96 |
+
 ### Parameter Groups
 
 1. **Disyn Source (6 params)** - CC 16-21
@@ -475,6 +513,8 @@ npm test
 │ │ [2 knobs]        │  │ [1 knob]         │            │
 │ └──────────────────┘  └──────────────────┘            │
 │                                                         │
+├────────────────────────────────────────────────────────┤
+│ [C4..C5 On-Screen Keyboard]                            │
 ├────────────────────────────────────────────────────────┤
 │ Flues Synth Web UI v0.1.0 • 29 Parameters • GitHub    │
 └────────────────────────────────────────────────────────┘

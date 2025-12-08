@@ -8,11 +8,13 @@ import { KnobController } from './ui/KnobController.js';
 import { RotarySwitchController } from './ui/RotarySwitchController.js';
 import { Visualizer } from './ui/Visualizer.js';
 import { VoiceMeters } from './ui/VoiceMeters.js';
+import { Keyboard } from './ui/Keyboard.js';
 import { PARAMETERS, paramToMidi, formatParamValue } from './utils/parameterMaps.js';
 
 // WebSocket client
 const wsUrl = `ws://${window.location.hostname}:8081`;
 const ws = new WebSocketClient(wsUrl);
+let keyboard = null;
 
 // Connection status
 const statusIndicator = document.getElementById('status-indicator');
@@ -28,6 +30,9 @@ ws.onDisconnect(() => {
     statusIndicator.className = 'status-indicator disconnected';
     statusText.textContent = 'Disconnected (reconnecting...)';
     console.log('✗ Disconnected from server');
+    if (keyboard) {
+        keyboard.allNotesOff();
+    }
 });
 
 // Start connection
@@ -204,5 +209,13 @@ createKnob('amFmDepth', modulationContainer.querySelector('[data-control="am-fm"
 // === OUTPUT ===
 const outputContainer = document.getElementById('output-controls');
 createKnob('masterGain', outputContainer.querySelector('[data-control="master"]'), 'Master Gain');
+
+// === KEYBOARD ===
+const keyboardContainer = document.getElementById('keyboard');
+keyboard = new Keyboard(keyboardContainer, {
+    onNoteOn: (note, velocity) => ws.sendNoteOn(note, velocity),
+    onNoteOff: (note) => ws.sendNoteOff(note),
+    velocity: 96
+});
 
 console.log('✓ Flues Web UI initialized - 29 parameters wired');
