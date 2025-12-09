@@ -20,6 +20,7 @@ flues-synth (unchanged)
 - **Audio Visualization**: Captures audio from ALSA loopback → FFT → WebSocket → browser
 - **Zero Modifications**: flues-synth runs headless and unmodified
 - **Lightweight**: Node.js server (~30MB RAM), vanilla JS client (<50KB)
+- **On-screen keyboard**: C4–C5 buttons send Note On/Off for quick smoke tests (velocity 96)
 
 ## Quick Start
 
@@ -92,7 +93,7 @@ npm start
 
 ### 5. Open Browser
 
-Open `http://localhost:8080` (or `http://raspberrypi.local:8080` from another device)
+Open `http://localhost:8080` (or `http://raspberrypi.local:8080` from another device). Use the on-screen C4–C5 keyboard for a quick sound check if no MIDI controller is attached.
 
 ## Development
 
@@ -126,6 +127,7 @@ web-ui/
 │   │   └── ui/
 │   │       ├── KnobController.js
 │   │       ├── RotarySwitchController.js
+│   │       ├── Keyboard.js
 │   │       ├── Visualizer.js
 │   │       └── VoiceMeters.js
 │   ├── index.html

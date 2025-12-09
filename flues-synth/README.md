@@ -162,6 +162,15 @@ After the first move of each CC, subsequent values show only numbers for cleaner
 ### Stop the Synthesizer
 Press `Ctrl+C` for clean shutdown.
 
+## Troubleshooting
+
+### Low-frequency hum (~50Hz) when idle
+- First isolate the synth: send `CC 7` (Master Gain) to `0`, or trigger control note **41** (Hard Mute, requires `FLUES_CONTROL_NOTES=1`). If the hum remains, it is coming from the audio path, not the DSP.
+- Toggle sections to see if noise changes: control notes **36** (Noise) and **38** (Feedback) off/on. If no change, suspect hardware/ALSA.
+- Check the output device: `hw:0,0` analog outs can pick up mains/ground noise. Try a USB DAC (`./builddir/flues-synth hw:2,0`) or `plughw` to add ALSA conversion.
+- Verify baseline with ALSA: `speaker-test -D hw:0,0 -c1 -t s16 -f 0` should be silent; hum here indicates device/grounding, not the synth.
+- Ensure capture paths are muted in `alsamixer` (mic/boost off) and avoid sharing loopback capture with the playback device.
+
 ## Audio Device Setup
 
 ### Using a USB DAC
