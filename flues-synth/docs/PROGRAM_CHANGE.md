@@ -47,15 +47,15 @@ The MIDI controller has 9 sliders sending these CC numbers:
 **Use Case**: Add echo/resonance to Disyn without formants
 
 **Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **Delay1 Feedback** (28) - Delay line 1 return
-- Slider 4: **Delay2 Feedback** (30→29) - Delay line 2 return
-- Slider 5: **Filter Feedback** (74→30) - Filter return (usually 0)
-- Slider 6: **Disyn Level** (71→19)
-- Slider 7: Intensity (1)
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
+- Slider 1: **Delay1 Feedback** (73→28) - Delay line 1 return
+- Slider 2: **Delay2 Feedback** (72→29) - Delay line 2 return
+- Slider 3: **Filter Feedback** (28→30) - Filter return (usually 0)
+- Slider 4: **Disyn Level** (30→19) - Disyn output level
+- Slider 5: **Intensity** (74→1) - Interface intensity
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Ratio** (1→27) - Delay ratio
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
 **Default Settings**: Disyn 0.6, Delay1/2 feedback 0.3
 
@@ -67,15 +67,15 @@ The MIDI controller has 9 sliders sending these CC numbers:
 **Use Case**: Shape Disyn with state-variable filter
 
 **Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **Filter Frequency** (28→32) - SVF cutoff (20Hz-20kHz)
-- Slider 4: **Filter Q** (30→33) - Resonance (0.1-10)
-- Slider 5: **Filter Shape** (74→34) - LP→BP→HP morph (0-1)
-- Slider 6: **Disyn Level** (71→19)
-- Slider 7: Intensity (1)
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
+- Slider 1: **Filter Frequency** (73→32) - SVF cutoff (20Hz-20kHz)
+- Slider 2: **Filter Q** (72→33) - Resonance (0.1-10)
+- Slider 3: **Filter Shape** (28→34) - LP→BP→HP morph (0-1)
+- Slider 4: **Disyn Level** (30→19) - Disyn output level
+- Slider 5: **Intensity** (74→1) - Interface intensity
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Ratio** (1→27) - Delay ratio
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
 **Default Settings**: Disyn 0.5, delays 0.25, filter FB 0.2, freq 1kHz, Q=2
 
@@ -87,15 +87,15 @@ The MIDI controller has 9 sliders sending these CC numbers:
 **Use Case**: Pure vocal formant synthesis
 
 **Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **F1 (Jaw)** (28→71) - 200-1000 Hz
-- Slider 4: **F2 (Tongue)** (30→10) - 500-3000 Hz
-- Slider 5: **F3 (Lips)** (74) - 1500-4000 Hz
-- Slider 6: **F4 (Quality)** (71→75) - 2500-4500 Hz
-- Slider 7: **Noise Level** (1→20) - Aspirator level
-- Slider 8: **Nasal Toggle** (27→80) - ≥64 = nasal resonance ON
-- Slider 9: Master Gain (7)
+- Slider 1: **F1 (Jaw)** (73→71) - 200-1000 Hz
+- Slider 2: **F2 (Tongue)** (72→10) - 500-3000 Hz
+- Slider 3: **F3 (Lips)** (28→74) - 1500-4000 Hz
+- Slider 4: **F4 (Quality)** (30→75) - 2500-4500 Hz
+- Slider 5: **Noise Level** (74→20) - Aspirator level
+- Slider 6: **Nasal Toggle** (71→80) - ≥64 = nasal resonance ON
+- Slider 7: **Master Gain** (1→7) - Final output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
 **Default Settings**: Noise 0.5, F1=500Hz, F2=1500Hz, F3=2500Hz, F4=3500Hz
 
@@ -107,15 +107,15 @@ The MIDI controller has 9 sliders sending these CC numbers:
 **Use Case**: Voiced speech (larynx-like excitation through formants)
 
 **Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **F1 (Jaw)** (28→71)
-- Slider 4: **F2 (Tongue)** (30→10)
-- Slider 5: **F3 (Lips)** (74)
-- Slider 6: **F4 (Quality)** (71→75)
-- Slider 7: **Disyn Level** (1→19) - Harmonic content
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
+- Slider 1: **F1 (Jaw)** (73→71) - 200-1000 Hz
+- Slider 2: **F2 (Tongue)** (72→10) - 500-3000 Hz
+- Slider 3: **F3 (Lips)** (28→74) - 1500-4000 Hz
+- Slider 4: **F4 (Quality)** (30→75) - 2500-4500 Hz
+- Slider 5: **Disyn Level** (74→19) - Harmonic content
+- Slider 6: **Noise Level** (71→20) - Aspirator level
+- Slider 7: **Master Gain** (1→7) - Final output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
 **Default Settings**: Disyn 0.4, noise 0.15, formants at default vowel positions
 
@@ -127,15 +127,15 @@ The MIDI controller has 9 sliders sending these CC numbers:
 **Use Case**: Classic Karplus-Strong style physical modeling
 
 **Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **Delay1 Feedback** (28)
-- Slider 4: **Delay2 Feedback** (30→29)
-- Slider 5: **Filter Feedback** (74→30)
-- Slider 6: **Interface Type** (71→24) - 0-11 (Reed, Pluck, Hit, etc.)
-- Slider 7: Intensity (1)
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
+- Slider 1: **Delay1 Feedback** (73→28) - Delay line 1 return
+- Slider 2: **Delay2 Feedback** (72→29) - Delay line 2 return
+- Slider 3: **Filter Feedback** (28→30) - Filter return
+- Slider 4: **Interface Type** (30→24) - 0-11 (Reed, Pluck, Hit, etc.)
+- Slider 5: **Intensity** (74→1) - Interface intensity
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Ratio** (1→27) - Delay ratio
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
 **Default Settings**: Noise 0.3, delays 0.4, filter FB 0.3, interface=Reed
 
@@ -148,38 +148,18 @@ The MIDI controller has 9 sliders sending these CC numbers:
 
 **Use Case**: All modules active (maximum flexibility) - currently disabled
 
-**Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **Delay1 Feedback** (28)
-- Slider 4: **Delay2 Feedback** (30→29)
-- Slider 5: **Filter Feedback** (74→30)
-- Slider 6: **Interface Type** (71→24)
-- Slider 7: Intensity (1)
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
-
-**Default Settings**: Disyn 0.3, noise 0.15, formants default, delays 0.35, filter FB 0.25, interface=Reed
+**Note**: Slider mappings and default settings are not active. Program 5 settings will be used instead.
 
 ---
 
-### Program 7: Experimental
+### Program 7: Experimental (DISABLED)
+**Status**: This program is temporarily disabled due to stability issues (segfaults). Selecting program 7 will redirect to program 4.
+
 **Signal Chain**: Disyn → Interface → Delays + Formants → Filter (formants in feedback loop)
 
-**Use Case**: Resonant formant coloring in the feedback path
+**Use Case**: Resonant formant coloring in the feedback path - currently disabled
 
-**Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **F1 (Jaw)** (28→71)
-- Slider 4: **F2 (Tongue)** (30→10)
-- Slider 5: **Delay1 Feedback** (74→28)
-- Slider 6: **Interface Type** (71→24)
-- Slider 7: Intensity (1)
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
-
-**Default Settings**: Disyn 0.35, noise 0.1, delays 0.3, filter FB 0.2, interface=Flute
+**Note**: Slider mappings and default settings are not active. Program 4 settings will be used instead.
 
 ---
 
@@ -198,8 +178,10 @@ When a MIDI Program Change is received:
 The `remap_slider_cc()` function translates slider CCs based on `g_current_program`:
 - Input: CC number from hardware slider
 - Output: Target CC number for the actual parameter
+- Sliders 8 and 9 are **always** mapped to Attack (CC 73) and Release (CC 72)
+- Sliders 1-7 are context-dependent per program
 
-Example: In Program 0, slider 3 sends CC 28, which is remapped to CC 16 (Disyn Algorithm).
+Example: In Program 0, slider 1 sends CC 73, which is remapped to CC 16 (Disyn Algorithm).
 
 ### CC Processing Order
 
@@ -222,10 +204,10 @@ Send MIDI Program Change 0-7 from your controller or DAW.
 **Example MIDI sequence**:
 ```
 Program Change 3    ; Switch to Formant Voice
-CC 28 = 64          ; Slider 3 → F1 (Jaw) = mid position
-CC 30 = 96          ; Slider 4 → F2 (Tongue) = higher
-Program Change 6    ; Switch to Full Hybrid
-CC 28 = 64          ; Slider 3 → Delay1 Feedback (same CC, different function!)
+CC 73 = 64          ; Slider 1 → F1 (Jaw) = mid position
+CC 72 = 96          ; Slider 2 → F2 (Tongue) = higher
+Program Change 5    ; Switch to Physical Model
+CC 73 = 64          ; Slider 1 → Delay1 Feedback (same CC, different function!)
 ```
 
 ### Workflow Tip
@@ -234,14 +216,14 @@ Use programs to quickly A/B between synthesis methods:
 - **Program 0**: Hear raw Disyn algorithms
 - **Program 3**: Hear pure formant synthesis
 - **Program 4**: Blend Disyn through formants
-- **Program 6**: Full hybrid with all processing
+- **Program 5**: Classic physical modeling
 
 ### Advanced: Per-Program Presets
 
 Since slider mappings change per program, you can save controller snapshots:
 - Program 0 snapshot: Dirichlet algorithm with high drive
 - Program 3 snapshot: /a/ vowel (F1=700Hz, F2=1200Hz)
-- Program 6 snapshot: Reed interface with heavy feedback
+- Program 5 snapshot: Reed interface with heavy feedback
 
 ---
 
