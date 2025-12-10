@@ -1,0 +1,222 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<https://danja.github.io/flues/plugins/drumkit>
+    a lv2:InstrumentPlugin ;
+    doap:name "Flues Drumkit" ;
+    doap:description "Hardcore industrial TR-909 drum synthesizer with 8 voices (kick, snare, clap, toms, hi-hats, crash). MIDI channel 10." ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:requiredFeature <http://lv2plug.in/ns/ext/urid#map> ;
+    ui:ui <https://danja.github.io/flues/plugins/drumkit#ui> ;
+
+    # Port 0: Audio Output
+    lv2:port [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 0 ;
+        lv2:symbol "audio_out" ;
+        lv2:name "Audio Out"
+    ] , [
+        # Port 1: MIDI Input
+        a lv2:InputPort , atom:AtomPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_in" ;
+        lv2:name "MIDI In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+        rdfs:comment "MIDI channel 10 only. General MIDI drum mapping."
+    ] , [
+        # Port 2: Kick Pitch
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "kick_pitch" ;
+        lv2:name "Kick Pitch" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Starting pitch for kick sweep (60-250 Hz exponential)"
+    ] , [
+        # Port 3: Kick Decay
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "kick_decay" ;
+        lv2:name "Kick Decay" ;
+        lv2:default 0.4 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Envelope decay time (50-1500ms exponential)"
+    ] , [
+        # Port 4: Kick Drive
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "kick_drive" ;
+        lv2:name "Kick Drive" ;
+        lv2:default 0.3 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Saturation amount (1.0-10.0 linear)"
+    ] , [
+        # Port 5: Kick Punch
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "kick_punch" ;
+        lv2:name "Kick Punch" ;
+        lv2:default 0.15 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "High-frequency click enhancement"
+    ] , [
+        # Port 6: Snare Tone
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "snare_tone" ;
+        lv2:name "Snare Tone" ;
+        lv2:default 0.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Body/shell resonator mix and Q (4-20)"
+    ] , [
+        # Port 7: Snare Snap
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "snare_snap" ;
+        lv2:name "Snare Snap" ;
+        lv2:default 0.6 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Noise level and HPF cutoff (500Hz-4kHz)"
+    ] , [
+        # Port 8: Clap Density
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "clap_density" ;
+        lv2:name "Clap Density" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Impulse count (3-7) and spacing tightness"
+    ] , [
+        # Port 9: Clap Tone
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "clap_tone" ;
+        lv2:name "Clap Tone" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Bandpass center frequency (800Hz-3.5kHz)"
+    ] , [
+        # Port 10: Tom Pitch
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "tom_pitch" ;
+        lv2:name "Tom Pitch" ;
+        lv2:default 0.4 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Base frequency (note-dependent: Lo 60-150Hz, Hi 150-400Hz)"
+    ] , [
+        # Port 11: Tom Decay
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "tom_decay" ;
+        lv2:name "Tom Decay" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Envelope decay time (80-800ms exponential)"
+    ] , [
+        # Port 12: Hi-Hat Brightness
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "hh_brightness" ;
+        lv2:name "HH Brightness" ;
+        lv2:default 0.6 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "HPF cutoff frequency (4kHz-12kHz exponential)"
+    ] , [
+        # Port 13: Hi-Hat Decay
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "hh_decay" ;
+        lv2:name "HH Decay" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Envelope decay (note-dependent: Closed 50-200ms, Open 200-1200ms)"
+    ] , [
+        # Port 14: Crash Brightness
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "crash_brightness" ;
+        lv2:name "Crash Brightness" ;
+        lv2:default 0.65 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Bandpass center frequency shift (1.5kHz-10kHz)"
+    ] , [
+        # Port 15: Crash Decay
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "crash_decay" ;
+        lv2:name "Crash Decay" ;
+        lv2:default 0.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Envelope decay time (300-2500ms exponential)"
+    ] , [
+        # Port 16: Bit Crush
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "bit_crush" ;
+        lv2:name "Bit Crush" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Bit depth reduction (0=off, 1=4-bit, global)"
+    ] , [
+        # Port 17: Master Drive
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "master_drive" ;
+        lv2:name "Master Drive" ;
+        lv2:default 0.25 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Tanh saturation on master bus (1.0-5.0 linear)"
+    ] , [
+        # Port 18: Master Reverb
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "master_reverb" ;
+        lv2:name "Master Reverb" ;
+        lv2:default 0.2 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Reverb level (0-60%, Schroeder, fixed size 0.6)"
+    ] , [
+        # Port 19: Master Gain
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "master_gain" ;
+        lv2:name "Master Gain" ;
+        lv2:default 0.7 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Final output level (0-100%)"
+    ] .
+
+<https://danja.github.io/flues/plugins/drumkit#ui>
+    a ui:X11UI ;
+    ui:binary <drumkit_ui.so> ;
+    rdfs:label "Drumkit Control Panel" .
