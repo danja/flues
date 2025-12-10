@@ -29,6 +29,8 @@ private:
     int currentImpulse;
     int samplesUntilNext;
     int impulseSpacing;
+    int burstLength;
+    int burstSamples;
 
     static float expoMap(float value, float min, float max) {
         return min * std::pow(max / min, std::clamp(value, 0.0f, 1.0f));
@@ -46,27 +48,32 @@ public:
         , currentImpulse(0)
         , samplesUntilNext(0)
         , impulseSpacing(480)  // 10ms at 48kHz
+        , burstLength(240)     // 5ms burst at 48kHz
+        , burstSamples(0)
     {
-        bandpass.setParameters(1500.0f, 3.0f);
-        env.setAttackTime(0.01f);
-        env.setDecayTime(0.2f);
+        bandpass.setParameters(1500.0f, 6.0f);  // Higher Q for more resonance
+        env.setAttackTime(0.001f);  // Very fast attack
+        env.setDecayTime(0.3f);     // Longer decay
     }
 
     void setDensity(float value) {
         densityParam = std::clamp(value, 0.0f, 1.0f);
         impulseCount = static_cast<int>(3.0f + densityParam * 4.0f);  // 3-7 impulses
-        impulseSpacing = static_cast<int>(sampleRate * (0.03f - densityParam * 0.02f));  // 30-10ms
+        impulseSpacing = static_cast<int>(sampleRate * (0.025f - densityParam * 0.015f));  // 25-10ms
+        burstLength = static_cast<int>(sampleRate * (0.003f + densityParam * 0.004f));  // 3-7ms bursts
     }
 
     void setTone(float value) {
         toneParam = std::clamp(value, 0.0f, 1.0f);
-        const float freq = expoMap(toneParam, 800.0f, 3500.0f);
-        bandpass.setFrequency(freq);
+        const float freq = expoMap(toneParam, 1000.0f, 4500.0f);  // Higher frequency range
+        const float q = 4.0f + toneParam * 4.0f;  // Q from 4-8 (more resonance at high tone)
+        bandpass.setParameters(freq, q);
     }
 
     void trigger(float vel = 1.0f) {
         currentImpulse = 0;
         samplesUntilNext = 0;
+        burstSamples = 0;
         env.trigger();
         bandpass.reset();
     }
@@ -80,20 +87,26 @@ public:
 
         // Generate impulse bursts
         if (currentImpulse < impulseCount) {
-            if (samplesUntilNext <= 0) {
-                // Generate short burst (50 samples)
-                sample = noise.process() * 0.8f;
+            if (burstSamples > 0) {
+                // Continue current burst
+                sample = noise.process() * 1.2f;  // Louder bursts
+                burstSamples--;
+            } else if (samplesUntilNext <= 0) {
+                // Start new burst
+                sample = noise.process() * 1.2f;
+                burstSamples = burstLength;
                 currentImpulse++;
                 samplesUntilNext = impulseSpacing;
+            } else {
+                samplesUntilNext--;
             }
-            samplesUntilNext--;
         }
 
         // Filter and envelope
         sample = bandpass.process(sample);
         sample *= env.process();
 
-        return sample * 0.5f;
+        return sample * 0.8f;  // Higher output level
     }
 
     bool isActive() const { return env.isActive(); }

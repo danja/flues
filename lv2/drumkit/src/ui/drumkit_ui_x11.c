@@ -237,6 +237,9 @@ static void draw_group_background(cairo_t* cr, const GroupState* group, const ch
     cairo_set_source_rgb(cr, 0.95, 0.82, 0.46);
     cairo_move_to(cr, x + GROUP_PADDING, y + GROUP_PADDING + 10);
     cairo_show_text(cr, title);
+
+    // Clear path to prevent artifacts
+    cairo_new_path(cr);
 }
 
 static void draw_knob(cairo_t* cr, const Knob* knob) {
@@ -300,6 +303,9 @@ static void draw_knob(cairo_t* cr, const Knob* knob) {
     cairo_text_extents(cr, knob->label, &extents);
     cairo_move_to(cr, cx - extents.width / 2.0, knob->y + knob->height - 7.0);
     cairo_show_text(cr, knob->label);
+
+    // Clear path to prevent artifacts
+    cairo_new_path(cr);
 }
 
 static void draw_ui(DrumkitUI* ui) {
