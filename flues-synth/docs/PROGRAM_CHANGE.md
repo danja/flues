@@ -7,17 +7,17 @@ MIDI Program Change messages (0-7) configure the signal chain routing and dynami
 ## Hardware Slider Mapping
 
 The MIDI controller has 9 sliders sending these CC numbers:
-1. **Slider 1**: CC 73 (Attack)
-2. **Slider 2**: CC 72 (Release)
-3. **Slider 3**: CC 28
-4. **Slider 4**: CC 30
-5. **Slider 5**: CC 74 (F3/Lips)
-6. **Slider 6**: CC 71 (F1/Jaw)
-7. **Slider 7**: CC 1 (Intensity/Mod Wheel)
-8. **Slider 8**: CC 27 (Delay Ratio)
-9. **Slider 9**: CC 7 (Master Gain)
+1. **Slider 1**: CC 73 (context-dependent)
+2. **Slider 2**: CC 72 (context-dependent)
+3. **Slider 3**: CC 28 (context-dependent)
+4. **Slider 4**: CC 30 (context-dependent)
+5. **Slider 5**: CC 74 (context-dependent)
+6. **Slider 6**: CC 71 (context-dependent)
+7. **Slider 7**: CC 1 (context-dependent)
+8. **Slider 8**: CC 27 → **Attack** (73) - always
+9. **Slider 9**: CC 7 → **Release** (72) - always
 
-**Note**: Sliders 1, 2, and 9 (Attack, Release, Master) are **not remapped** - they always control the same parameters across all programs.
+**Note**: Sliders 8 and 9 are **always** Attack and Release. Sliders 1-7 change function based on the current program.
 
 ## Programs
 
@@ -27,15 +27,15 @@ The MIDI controller has 9 sliders sending these CC numbers:
 **Use Case**: Raw distortion synthesis, no formants, delays, or filtering
 
 **Slider Mappings**:
-- Slider 1: Attack (73)
-- Slider 2: Release (72)
-- Slider 3: **Disyn Algorithm** (28→16) - Select algorithm 0-6
-- Slider 4: **Disyn Param1** (30→17) - Algorithm-specific parameter 1
-- Slider 5: **Disyn Param2** (74→18) - Algorithm-specific parameter 2
-- Slider 6: **Disyn Level** (71→19) - Disyn output level
-- Slider 7: Intensity (1)
-- Slider 8: Delay Ratio (27)
-- Slider 9: Master Gain (7)
+- Slider 1: **Disyn Algorithm** (73→16) - Select algorithm 0-6
+- Slider 2: **Disyn Param1** (72→17) - Algorithm-specific parameter 1
+- Slider 3: **Disyn Param2** (28→18) - Algorithm-specific parameter 2
+- Slider 4: **Disyn Level** (30→19) - Disyn output level
+- Slider 5: **Intensity** (74→1) - Interface intensity
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Ratio** (1→27) - Delay ratio
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
 **Default Settings**: Disyn level 0.8, master gain 0.7
 
@@ -141,10 +141,12 @@ The MIDI controller has 9 sliders sending these CC numbers:
 
 ---
 
-### Program 6: Full Hybrid
+### Program 6: Full Hybrid (DISABLED)
+**Status**: This program is temporarily disabled due to stability issues (segfaults). Selecting program 6 will redirect to program 5.
+
 **Signal Chain**: Disyn + Noise → Formants → Interface → Delay Lines → Filter
 
-**Use Case**: All modules active (maximum flexibility)
+**Use Case**: All modules active (maximum flexibility) - currently disabled
 
 **Slider Mappings**:
 - Slider 1: Attack (73)
