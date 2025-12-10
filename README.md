@@ -1,186 +1,229 @@
-# flues
+# Flues
 
-[Live synth experiments](https://danja.github.io/flues/)
+**Live synthesis experiments exploring physical modeling, speech synthesis, distortion algorithms, and hybrid techniques**
 
-First attempt was a physical modelling approach to clarinet. Second, a more general physical modelling setup. Third addition explores fairly obscure distortion synthesis techniques largely based on Victor Lazzarini’s [Distortion Synthesis tutorial in Csound Journal Issue 11](https://csoundjournal.com/issue11/distortionSynthesis.html), with a browser-based Disyn instrument covering DSF, waveshaping, and modified FM algorithms.
+[![Live Demos](https://img.shields.io/badge/Try-Live%20Demos-blue?style=for-the-badge)](https://danja.github.io/flues/)
 
-I typically work in a DAW (Reaper) so although the browser-based synths are usable from there, for convenience it made sense to port them into plugins. I work on Linux so LV2s were the obvious choice. At this point it occurred to me that it would also make sense to combine them, hence **Floozy** :
+---
+
+## What is this?
+
+Flues is a collection of experimental synthesizers exploring different approaches to sound generation. What started as a simple clarinet simulator has evolved into a family of instruments spanning physical modeling, vocal synthesis, distortion techniques, and hybrid architectures.
+
+Each concept begins as a browser-based experiment (using Web Audio API), then evolves through multiple implementations: native desktop apps (GTK4/C), DAW plugins (LV2), and embedded hardware (Raspberry Pi). The goal is to understand synthesis techniques deeply by implementing them across different platforms.
+
+---
+
+## 🎹 Try It Now - Live Web Experiments
+
+No installation required - these run entirely in your browser:
+
+| Experiment | Synthesis Type | What It Does |
+|------------|---------------|--------------|
+| **[Stove](https://danja.github.io/flues/pm-synth/)** | Physical Modeling | 12 interface types (reed, pluck, bow, brass, etc.) with waveguide synthesis |
+| **[Chatterbox](https://danja.github.io/flues/chatterbox/)** | Speech Synthesis | Formant-based vocal synthesis with IPA vowel quadrilateral control |
+| **[Clarinet](https://danja.github.io/flues/clarinet-synth/)** | Physical Modeling | Digital waveguide clarinet (the original experiment) |
+
+All web experiments support MIDI input, keyboard control, and touch/mouse interaction.
+
+---
+
+## The Experimental Journey
+
+### 1. **Physical Modeling** → Stove
+
+**Concept**: Simulate acoustic instruments using digital waveguides, delay lines, and nonlinear interfaces.
+
+Started with a clarinet synthesizer (Karplus-Strong algorithm), then generalized into **Stove** - a modular physical modeling engine with 12 different interface types representing physical (reed, bow, brass) and hypothetical (crystal, vapor, quantum, plasma) excitation methods.
+
+**Signal Flow**: `Sources → Envelope → Interface → Delay Lines → Filter → Modulation → Reverb`
+
+**Available as:**
+- 🌐 **[Web app](https://danja.github.io/flues/pm-synth/)** - Try in browser ([docs](experiments/pm-synth/README.md))
+- 🖥️ **Desktop app** - GTK4/C native ([gtk-synth/](gtk-synth/))
+- 🔌 **LV2 plugin** - For DAWs ([lv2/pm-synth/](lv2/pm-synth/))
+
+### 2. **Speech Synthesis** → Chatterbox + ChatGen
+
+**Concept**: Source-filter vocal tract modeling using formant cascade filters.
+
+**Chatterbox** implements a larynx (voiced source), aspirator (noise), and four formant filters (F1-F4) representing jaw, tongue, lips, and voice quality. Includes vocal modes: nasal resonance, vibrato (sing), shout (boost), and vocal fry (subharmonics).
+
+**ChatGen** is a companion LV2 plugin that converts typed English text into MIDI events controlling Chatterbox, enabling text-to-speech synthesis in a DAW.
+
+**Available as:**
+- 🌐 **[Chatterbox web app](https://danja.github.io/flues/chatterbox/)** - Interactive vowel quadrilateral ([docs](experiments/chatterbox/README.md))
+- 🔌 **Chatterbox LV2** - Full vocal synthesis plugin ([lv2/chatterbox/](lv2/chatterbox/))
+- 🔌 **ChatGen LV2** - Text-to-speech MIDI generator ([lv2/chatgen/](lv2/chatgen/))
+  - Usage: `[ChatGen] → [Chatterbox]` on same track
+
+### 3. **Distortion Synthesis** → Disyn
+
+**Concept**: Generate complex spectra using mathematical distortion functions.
+
+Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjournal.com/issue11/distortionSynthesis.html), implementing 7 algorithms: Dirichlet Pulse, DSF Single/Double, Tanh Square/Saw, PAF (Phase-Aligned Formant), and Modified FM.
+
+**Available as:**
+- 🔌 **LV2 plugin** - Monophonic distortion synth ([lv2/disyn/](lv2/disyn/))
+
+### 4. **Hybrid Synthesis** → Floozy + Flues-Synth
+
+**Concept**: Combine multiple synthesis approaches in a single signal chain.
+
+**Floozy** grafts Disyn's aggressive distortion algorithms onto Stove's physical modeling engine. Disyn provides the excitation source, feeding into the waveguide/filter/modulation chain for acoustic resonance.
 
 ![Floozy screenshot](docs/images/floozy-plugin.png)
 
-I'm aiming to put some of these things onto hardware (Daisy Seed) next. Good fun!
+**Flues-Synth** is the ultimate hybrid: a headless ALSA synthesizer for Raspberry Pi combining Disyn, formants, and physical modeling with MIDI program changes dynamically reconfiguring the signal chain.
 
-## Projects
+**Signal Flow**: `Disyn → Formants → Interface → Delays → Filter → Modulation`
 
-### Stove
-A modular physical modeling synthesizer featuring **12 interface types** (8 physical models + 4 hypothetical) with strategy pattern architecture.
+**Available as:**
+- 🔌 **Floozy (mono)** - Single voice hybrid ([lv2/floozy/](lv2/floozy/))
+- 🔌 **Floozy Poly** - 8-voice polyphonic ([lv2/floozy-poly/](lv2/floozy-poly/))
+- 🎛️ **Flues-Synth** - Headless Raspberry Pi ([flues-synth/](flues-synth/))
+  - [Signal flow diagram](flues-synth/docs/flues-synth-signal-flow.svg)
+  - 8 MIDI programs (0-7) switching signal chain configurations
+  - 29 MIDI CCs + 6 control notes for live tweaking
 
-Available in three implementations:
+### 5. **Drum Synthesis** → Drumkit
 
-#### 1. Web App (Browser)
-* **[Try it live](https://danja.github.io/flues/pm-synth/)**
-* [Project README](experiments/pm-synth/README.md)
-* Web Audio API with AudioWorklet processing
-* PWA support for offline use
-* Documentation:
-  * [Implementation Plan](experiments/pm-synth/docs/PLAN.md)
-  * [Implementation Status](experiments/pm-synth/docs/IMPLEMENTATION_STATUS.md)
-  * [Interface Refactoring Summary](docs/interface-refactoring-summary.md)
-  * [Interface Algorithms Research](docs/interface-algorithms-research.md)
-  * [Signal Flow Documentation](docs/interface-signal-flow.md)
-  * [Adding New Interfaces Guide](docs/adding-new-interface-guide.md)
+**Concept**: Synthesized drum voices inspired by TR-909 but pushed into hardcore industrial territory.
 
-#### 2. GTK4 Desktop App (Linux Native)
-* **[Project README](gtk-synth/README.md)**
-* Native C implementation with GTK4 interface
-* PulseAudio backend with threaded processing
-* All 12 interface strategies fully implemented
-* Complete DSP engine matching JavaScript exactly
-* Build: `cd gtk-synth && meson setup builddir && ninja -C builddir`
+8 synthesized voices (kick, snare, clap, toms, hi-hats, crash) using pitch envelopes, resonant filters, noise bursts, and inharmonic oscillators. Master FX chain includes bit crushing, distortion, and reverb for aggressive, metallic tones.
 
-#### 3. LV2 Plugin: Stove Synth
-* Source & docs: [`lv2/pm-synth/`](lv2/pm-synth)
-* Root-level helper: `./build_synths.sh --clean --install-default`
-  - Installs to `~/.lv2/pm-synth.lv2/`
+**Available as:**
+- 🔌 **LV2 plugin** - 8 voices, 18 parameters, General MIDI mapping ([lv2/drumkit/](lv2/drumkit/))
 
-**Features (all implementations):**
-- 12 interface types: Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma
-- Modular DSP architecture (8 modules) with strategy pattern
-- Real-time parameter control (18 parameters)
-- High-fidelity physical modeling algorithms
+---
 
-### Chatterbox
-Speech synthesis using formant filtering and source-filter vocal tract modeling.
+## Implementation Patterns
 
-Available in two implementations:
+Each synthesis concept follows a progression:
 
-#### 1. Web App (Browser)
-* **[Try it live](https://danja.github.io/flues/chatterbox/)**
-* [Project README](experiments/chatterbox/README.md)
-* Interactive IPA vowel quadrilateral joystick control
-* Real-time F1-F4 formant manipulation
-* Larynx (voiced) and aspirator (unvoiced) excitation sources
+```
+🌐 Web Experiment          → Learn the DSP, iterate quickly
+   ↓
+🖥️ Native Desktop App      → Optimize performance, direct hardware access
+   ↓
+🔌 LV2 Plugin             → Integrate with DAWs (Ardour, Reaper, etc.)
+   ↓
+🎛️ Embedded Hardware       → Deploy on Raspberry Pi / Daisy Seed
+```
 
-#### 2. LV2 Plugin: Chatterbox
-* Source & docs: [`lv2/chatterbox/`](lv2/chatterbox)
-* [Plugin README](lv2/chatterbox/README.md)
-* Build: `cd lv2/chatterbox && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
-* Native X11/Cairo UI with IPA vowel quadrilateral joystick
-* Comprehensive MIDI control (note on/off, velocity, 17 CC mappings including CC 103/104 for speech synthesis)
-* Vocal modes: Nasal, Sing (vibrato), Shout, Fry (vocal fry)
-* Source control: Voiced (larynx) and Aspirated (noise) with MIDI CC support (CC 103/104)
-* Built-in Schroeder reverb with size and level controls
+**Technologies used:**
+- **Web**: JavaScript ES modules, Web Audio API, AudioWorklet, Vite, Vitest
+- **Desktop**: C/GTK4, PulseAudio, Meson
+- **Plugins**: C++, LV2, X11/Cairo UI, CMake
+- **Embedded**: C/C++, ALSA MIDI/Audio, Meson
 
-### ChatGen
-Text-to-speech MIDI generator that converts English text into MIDI events (Note On/Off + CCs) for controlling Chatterbox's formant speech synthesizer.
+---
 
-**LV2 Plugin:**
-* Source & docs: [`lv2/chatgen/`](lv2/chatgen)
-* [Plugin README](lv2/chatgen/README.md)
-* Build: `cd lv2/chatgen && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
-* Status: **Phase 2 Complete** - Full DSP engine with X11/Cairo UI
-* Native X11/Cairo UI with text input and real-time phoneme preview
-* Full phoneme support: 40+ phonemes (vowels, fricatives, plosives, nasals, liquids, affricates)
-* Complete speech control: 7 MIDI CCs + Note On/Off generation
-* Text persistence across UI focus changes and DAW restarts
+## Getting Started
 
-**Features:**
-- **Text input widget** with instant phoneme preview (e.g., "cat" → `[k] [ae] [t]`)
-- **Full phoneme parsing**: 40+ IPA phonemes with digraph support (sh, ch, th, ee, oo, er, etc.)
-- **MIDI Note generation**: Sends Note On (C4) when Play starts, Note Off when stops
-- **7 MIDI CCs for complete speech control**:
-  - CC 71, 10, 74, 75 (formants F1-F4)
-  - CC 102 (Noise Level - 0-127 for fricative/plosive articulation)
-  - CC 103 (Aspirated - noise generator on/off)
-  - CC 104 (Voiced - larynx on/off for voiced vs unvoiced consonants)
-- **Voiced/Unvoiced articulation**: Proper larynx control (vowels voiced, fricatives like f/s/sh unvoiced)
-- **Half-note timing**: Each phoneme lasts 2 beats (1 second at 120 BPM, adjustable via DAW tempo)
-- **Play/Loop controls** for sequence playback with DAW transport sync
-- **Simple routing**: Place both plugins on same track: `[ChatGen] → [Chatterbox] → Audio Out`
+### Try the Live Demos (Easiest)
+Visit https://danja.github.io/flues/ and start playing immediately. All web experiments support MIDI controllers and computer keyboard input.
 
-**Usage Example:**
-1. Type "cat dog fish" in ChatGen text input, press Enter
-2. Click Play button (or start DAW transport)
-3. Hear phonemes: `[k] [ae] [t] [d] [o] [g] [f] [ih] [sh]` with proper voiced/unvoiced transitions
-4. Fricatives (f, sh) sound breathy, vowels (ae, o, ih) sound tonal
+### Build LV2 Plugins (Linux)
 
-### Drumkit
-Hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the TR-909 but pushed into aggressive territory.
+**Prerequisites**: `cmake`, `build-essential`, `lv2-dev`, `libx11-dev`, `libcairo2-dev`
 
-**LV2 Plugin:**
-* Source & docs: [`lv2/drumkit/`](lv2/drumkit)
-* [Plugin README](lv2/drumkit/README.md)
-* Build: `cd lv2/drumkit && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
-* Native X11/Cairo UI with 18 rotary knobs organized by drum type
-* MIDI omni mode (responds to all channels)
-* General MIDI note mapping (C2-D3, notes 36-50)
+**Quick start** (builds all plugins):
+```bash
+git clone https://github.com/danja/flues.git
+cd flues
+./build_synths.sh --install-default
+```
 
-**Features:**
-- **8 synthesized drum voices**: Kick, Snare, Clap, Lo Tom, Hi Tom, Closed HH, Open HH, Crash
-- **18 parameters**: 4 for kick, 2 each for other drums, 4 for master FX
-- **Velocity sensitivity**: Kick, snare, and toms respond to MIDI velocity
-- **Hi-hat choke group**: Closed hi-hat (note 42) kills open hi-hat (note 46)
-- **Master FX chain**: Bit crusher, distortion (tanh), Schroeder reverb
-- **Industrial sound design**: Aggressive transients, metallic resonance, harsh harmonic content
+Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, etc.)
 
-**Drum Voices:**
-- **Kick**: Pitch envelope + sine + distortion + punch (click burst)
-- **Snare**: Dual resonators (180/330 Hz) + filtered noise
-- **Clap**: Multi-impulse noise bursts with resonant bandpass (Q=4-8)
-- **Toms**: Pitch envelope + resonant bandpass
-- **Hi-Hats**: 6× inharmonic oscillators + ring modulation + noise
-- **Crash**: Noise → 3× bandpass cascade → soft clipping
+**Individual builds**: See subdirectory READMEs for specific instructions
+- [lv2/pm-synth/README.md](lv2/pm-synth/README.md) - Stove plugin
+- [lv2/chatterbox/README.md](lv2/chatterbox/README.md) - Speech synthesis
+- [lv2/chatgen/README.md](lv2/chatgen/README.md) - Text-to-speech
+- [lv2/disyn/README.md](lv2/disyn/README.md) - Distortion synthesis
+- [lv2/floozy/README.md](lv2/floozy/README.md) - Hybrid mono
+- [lv2/floozy-poly/README.md](lv2/floozy-poly/README.md) - Hybrid poly
+- [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
 
-### Clarinet Synth
-Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.
+### Build Native Apps
 
-* **[Try it live](https://danja.github.io/flues/clarinet-synth/)**
-* [Project README](experiments/clarinet-synth/README.md)
+**GTK Desktop (Stove):**
+```bash
+cd gtk-synth
+meson setup builddir
+ninja -C builddir
+./builddir/pm-synth-gtk
+```
 
-### Floozy (mono) and Floozy Poly
-Hybrid LV2 instruments that graft Disyn's distortion algorithms onto the Stove physical-modelling engine. A Disyn source block feeds the Stove interface/delay/filter/modulation/reverb chain, giving aggressive spectra inside the resonant acoustic loop.
+**Raspberry Pi (Flues-Synth):**
+```bash
+cd flues-synth
+meson setup builddir
+meson compile -C builddir
+./builddir/flues-synth    # Auto-detects MIDI/audio
+```
 
-| Variant | Voices | Source | Notes |
-| --- | --- | --- | --- |
-| Floozy | 1 | [`lv2/floozy/`](lv2/floozy) | Original mono implementation |
-| Floozy Poly | 8 | [`lv2/floozy-poly/`](lv2/floozy-poly) | Polyphonic fork of the dev engine |
+---
 
-* Plugin READMEs: [Floozy](lv2/floozy/README.md), [Floozy Poly](lv2/floozy-poly/README.md)
-* Build helper: `./build_pm_synth.sh --install-default` (builds/distributes pm-synth, disyn, floozy bundles). For Floozy Poly, `cmake -S lv2/floozy-poly -B lv2/floozy-poly/build && cmake --build ... --target install`.
+## Project Structure
 
-### Flues Synth
-**Headless Hybrid Speech/Physical Modeling Synthesizer for Raspberry Pi**
+```
+flues/
+├── experiments/           # Web-based experiments (JavaScript/Web Audio)
+│   ├── pm-synth/         # Stove physical modeling
+│   ├── chatterbox/       # Speech synthesis
+│   └── clarinet-synth/   # Original clarinet experiment
+├── lv2/                  # LV2 plugins for DAWs
+│   ├── pm-synth/         # Stove plugin
+│   ├── chatterbox/       # Speech synthesis plugin
+│   ├── chatgen/          # Text-to-speech MIDI generator
+│   ├── disyn/            # Distortion synthesis plugin
+│   ├── floozy/           # Hybrid mono plugin
+│   ├── floozy-poly/      # Hybrid polyphonic plugin
+│   └── drumkit/          # Drum synthesizer plugin
+├── gtk-synth/            # GTK4 native desktop app (Stove)
+├── flues-synth/          # Headless Raspberry Pi synthesizer
+├── www/                  # Built static site (GitHub Pages)
+└── docs/                 # Cross-project documentation
+```
 
-A standalone C/C++ ALSA MIDI synthesizer combining Disyn, Chatterbox, and PM-Synth architectures for headless Raspberry Pi deployment.
+---
 
-* **[Project README](flues-synth/README.md)**
-* **[Signal Flow Diagram](flues-synth/docs/flues-synth-signal-flow.svg)**
-* Source: [`flues-synth/`](flues-synth)
-* Build: `cd flues-synth && meson setup builddir && meson compile -C builddir`
-* Run: `./builddir/flues-synth hw:2,0`
-* Status: **Phase 1 Complete** - Single voice with full MIDI control
+## Philosophy
 
-**Key Features:**
-- **Hybrid synthesis**: Disyn (7 algorithms) → Formants (F1-F4) → Interface (12 types) → Delays → Filter → Modulation
-- **Dual DC blocking**: R=0.999 (-60dB @ DC) prevents feedback latching
-- **Calibrated levels**: 0.28 peak output, safe with headroom
-- **MIDI control**: 29 CCs + 6 control notes (36-41) for debug toggles
-- **ALSA audio/MIDI**: Direct hardware access, 48kHz, 512 samples (~10ms latency)
-- **Test suite**: engine-smoke, envelope-test, disyn-levels verify operation
-- **Real-time feedback**: CC names printed on first occurrence
+These are **experiments**, not polished products. The goal is to:
+- Understand DSP algorithms by implementing them multiple ways
+- Explore unconventional synthesis techniques (distortion, hybrid chains)
+- Learn platform differences (web timing vs. native RT audio vs. embedded)
+- Prioritize sound quality and expressiveness over preset count
+- Keep code readable and educational (see [CLAUDE.md](CLAUDE.md))
 
-**Control Notes (36-41):**
-- 36: Toggle Noise | 37: Toggle Disyn | 38: Toggle Feedback
-- 39: Toggle Formants | 40: Toggle Filter | 41: Hard Mute (emergency)
+Expect rough edges, occasional segfaults (we're looking at you, Programs 6 & 7), and unfinished features. That's part of the fun.
 
-**Use Cases:**
-- Headless Pi synthesizer with MIDI controller
-- Experimental sound design with hybrid synthesis
-- Speech synthesis via formants + Disyn excitation
-- Physical modeling with distortion-driven sources
+---
 
 ## Reference Materials
-* [CLAUDE.md](CLAUDE.md) - Project guidelines and development practices
-* [AGENTS Project Notes](AGENTS.md)
-* Wikipedia: [Physical Modelling Synthesis](https://en.wikipedia.org/wiki/Physical_modelling_synthesis), [Digital waveguide synthesis](https://en.wikipedia.org/wiki/Digital_waveguide_synthesis), [Karplus-Strong Algorithm](https://en.wikipedia.org/wiki/Karplus%E2%80%93Strong_string_synthesis)
-* [Physical Audio Signal Processing](http://ccrma.stanford.edu/~jos/pasp/) - Julius O. Smith III
+
+- [CLAUDE.md](CLAUDE.md) - Project guidelines and development practices
+- [AGENTS.md](AGENTS.md) - Agent collaboration notes
+- [Physical Audio Signal Processing](http://ccrma.stanford.edu/~jos/pasp/) - Julius O. Smith III
+- [Distortion Synthesis](https://csoundjournal.com/issue11/distortionSynthesis.html) - Victor Lazzarini
+- Wikipedia: [Physical Modelling Synthesis](https://en.wikipedia.org/wiki/Physical_modelling_synthesis), [Digital waveguide synthesis](https://en.wikipedia.org/wiki/Digital_waveguide_synthesis), [Karplus-Strong](https://en.wikipedia.org/wiki/Karplus%E2%80%93Strong_string_synthesis)
+
+---
+
+## Future Directions
+
+- **Hardware deployment**: Port to Daisy Seed / Electro-Smith platform
+- **Polyphony**: Add voice allocation to remaining plugins
+- **Preset system**: Cross-platform preset storage
+- **WebAssembly**: Compile C/C++ engines to WASM for web
+- **MPE support**: Polyphonic expression for expressive controllers
+- **More hybrid experiments**: What happens when formants feedback through delay lines?
+
+---
+
+**License**: See individual subdirectories
+**Author**: Danny Ayers
+**Status**: Active development, expect changes
