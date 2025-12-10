@@ -53,43 +53,43 @@ set_target_properties(drumkit PROPERTIES
     OUTPUT_NAME "drumkit"
 )
 
-# UI Plugin (C) - COMMENTED OUT TEMPORARILY
-# add_library(drumkit_ui MODULE
-#     src/ui/drumkit_ui_x11.c
-# )
-#
-# target_include_directories(drumkit_ui
-#     PRIVATE
-#         ${LV2_INCLUDE_DIRS}
-#         ${X11_INCLUDE_DIRS}
-#         ${CAIRO_INCLUDE_DIRS}
-#         src/ui
-# )
-#
-# target_link_libraries(drumkit_ui
-#     PRIVATE
-#         ${LV2_LIBRARIES}
-#         ${X11_LIBRARIES}
-#         ${CAIRO_LIBRARIES}
-#         m
-#         pthread
-# )
-#
-# target_compile_options(drumkit_ui PRIVATE
-#     ${LV2_CFLAGS_OTHER}
-#     ${X11_CFLAGS_OTHER}
-#     ${CAIRO_CFLAGS_OTHER}
-# )
-#
-# target_compile_definitions(drumkit_ui PRIVATE LV2_EXPORT_SHARED)
-#
-# set_target_properties(drumkit_ui PROPERTIES
-#     PREFIX ""
-#     OUTPUT_NAME "drumkit_ui"
-# )
+# UI Plugin (C)
+add_library(drumkit_ui MODULE
+    src/ui/drumkit_ui_x11.c
+)
+
+target_include_directories(drumkit_ui
+    PRIVATE
+        ${LV2_INCLUDE_DIRS}
+        ${X11_INCLUDE_DIRS}
+        ${CAIRO_INCLUDE_DIRS}
+        src/ui
+)
+
+target_link_libraries(drumkit_ui
+    PRIVATE
+        ${LV2_LIBRARIES}
+        ${X11_LIBRARIES}
+        ${CAIRO_LIBRARIES}
+        m
+        pthread
+)
+
+target_compile_options(drumkit_ui PRIVATE
+    ${LV2_CFLAGS_OTHER}
+    ${X11_CFLAGS_OTHER}
+    ${CAIRO_CFLAGS_OTHER}
+)
+
+target_compile_definitions(drumkit_ui PRIVATE LV2_EXPORT_SHARED)
+
+set_target_properties(drumkit_ui PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "drumkit_ui"
+)
 
 # Install to ~/.lv2/drumkit.lv2/
-install(TARGETS drumkit
+install(TARGETS drumkit drumkit_ui
     LIBRARY DESTINATION drumkit.lv2
 )
 
