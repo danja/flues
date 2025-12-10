@@ -104,6 +104,33 @@ Text-to-speech MIDI generator that converts English text into MIDI events (Note 
 3. Hear phonemes: `[k] [ae] [t] [d] [o] [g] [f] [ih] [sh]` with proper voiced/unvoiced transitions
 4. Fricatives (f, sh) sound breathy, vowels (ae, o, ih) sound tonal
 
+### Drumkit
+Hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the TR-909 but pushed into aggressive territory.
+
+**LV2 Plugin:**
+* Source & docs: [`lv2/drumkit/`](lv2/drumkit)
+* [Plugin README](lv2/drumkit/README.md)
+* Build: `cd lv2/drumkit && cmake -S . -B build && cmake --build build && cmake --install build --prefix ~/.lv2`
+* Native X11/Cairo UI with 18 rotary knobs organized by drum type
+* MIDI omni mode (responds to all channels)
+* General MIDI note mapping (C2-D3, notes 36-50)
+
+**Features:**
+- **8 synthesized drum voices**: Kick, Snare, Clap, Lo Tom, Hi Tom, Closed HH, Open HH, Crash
+- **18 parameters**: 4 for kick, 2 each for other drums, 4 for master FX
+- **Velocity sensitivity**: Kick, snare, and toms respond to MIDI velocity
+- **Hi-hat choke group**: Closed hi-hat (note 42) kills open hi-hat (note 46)
+- **Master FX chain**: Bit crusher, distortion (tanh), Schroeder reverb
+- **Industrial sound design**: Aggressive transients, metallic resonance, harsh harmonic content
+
+**Drum Voices:**
+- **Kick**: Pitch envelope + sine + distortion + punch (click burst)
+- **Snare**: Dual resonators (180/330 Hz) + filtered noise
+- **Clap**: Multi-impulse noise bursts with resonant bandpass (Q=4-8)
+- **Toms**: Pitch envelope + resonant bandpass
+- **Hi-Hats**: 6× inharmonic oscillators + ring modulation + noise
+- **Crash**: Noise → 3× bandpass cascade → soft clipping
+
 ### Clarinet Synth
 Digital waveguide clarinet synthesizer - the original experiment that led to the PM Synth.
 

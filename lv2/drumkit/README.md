@@ -43,10 +43,10 @@ A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the 
 **Synthesis**: Dual bandpass resonators (180Hz + 330Hz) + filtered noise burst
 
 ### Clap (2 Parameters)
-- **Density**: Impulse count (3-7) + spacing tightness (30-10ms)
-- **Tone**: Bandpass center frequency 800Hz-3.5kHz
+- **Density**: Impulse count (3-7) + spacing tightness (25-10ms) + burst length (3-7ms)
+- **Tone**: Bandpass center frequency 1000Hz-4500Hz + Q factor (4-8)
 
-**Synthesis**: Multi-impulse burst → Bandpass filter → Short reverb
+**Synthesis**: Multi-impulse noise bursts → Resonant bandpass filter (Q=4-8) → Envelope
 
 ### Toms (2 Parameters, Shared)
 - **Pitch**: Base frequency (Lo: 60-150Hz, Hi: 150-400Hz)
@@ -126,9 +126,9 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 - Tone: 0.7-0.9 (emphasize shell resonator, high Q)
 - Snap: 0.6-0.8 (bright, cutting snap)
 
-**Dense Clap**:
-- Density: 0.7-0.9 (7 impulses, tight spacing)
-- Tone: 0.3-0.5 (telephone-like bandpass)
+**Snappy Clap**:
+- Density: 0.7-0.9 (7 impulses, tight spacing, longer bursts)
+- Tone: 0.5-0.8 (bright, cutting, high Q resonance)
 
 **Harsh Hi-Hats**:
 - Brightness: 0.7-1.0 (8-12kHz, very bright)

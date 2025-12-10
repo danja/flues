@@ -552,6 +552,124 @@ This ensures typed text persists even when the UI window loses focus or is close
 
 See `lv2/chatgen/README.md` for detailed usage, phoneme tables, sound design tips, and troubleshooting.
 
+### Drumkit LV2 Plugin
+
+**Location:** `lv2/drumkit/`
+
+A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
+
+**Key Features:**
+- Native C++ implementation with 8 synthesized drum voices
+- X11/Cairo UI with 18 rotary knobs organized by drum type (4 rows)
+- MIDI omni mode (responds to all MIDI channels)
+- General MIDI note mapping (C2-D3, notes 36-50)
+- Velocity sensitivity on kick, snare, and toms
+- Hi-hat choke group (closed hi-hat kills open hi-hat)
+- Master FX chain: Bit crusher, distortion (tanh), Schroeder reverb
+
+**Architecture:**
+- `src/modules/` - Seven DSP modules:
+  - `NoiseGenerator.hpp` - LCG white noise generator
+  - `ADEnvelope.hpp` - Attack/decay envelope for one-shot drums
+  - `PitchEnvelope.hpp` - Exponential pitch sweep for kick/toms
+  - `BiquadFilter.hpp` - Bandpass/highpass filtering
+  - `Distortion.hpp` - Tanh soft clipping
+  - `Bitcrusher.hpp` - Bit depth reduction (16→4 bit)
+  - `DCBlocker.hpp` - DC offset removal (R=0.999)
+- `src/voices/` - Six drum voice classes (8 instances):
+  - `KickVoice.hpp` - Pitch env → sine → distortion → punch (4 params)
+  - `SnareVoice.hpp` - Dual resonators (180/330 Hz) + noise (2 params)
+  - `ClapVoice.hpp` - Multi-impulse noise bursts + resonant BP filter (2 params)
+  - `TomVoice.hpp` - Pitch env → resonant bandpass (2 params, shared Lo/Hi)
+  - `HiHatVoice.hpp` - 6× inharmonic oscillators + ring mod (2 params, shared)
+  - `CrashVoice.hpp` - Noise → 3× bandpass cascade (2 params)
+- `src/DrumKitEngine.hpp` - Main coordinator (8 voices + master FX)
+- `src/drumkit_plugin.cpp` - LV2 wrapper with sample-accurate MIDI
+- `src/ui/drumkit_ui_x11.c` - X11/Cairo UI (18 knobs, 4 rows)
+- `drumkit.lv2/*.ttl` - LV2 metadata and 20 port definitions
+
+**Signal Flow:**
+```
+MIDI Note → Voice Synthesis → Voice Mixer
+    ↓
+Bit Crusher (global)
+    ↓
+Master Distortion (tanh)
+    ↓
+Reverb (Schroeder, shared)
+    ↓
+DC Blocker (R=0.999)
+    ↓
+Master Gain
+    ↓
+Audio Out
+```
+
+**Building:**
+```bash
+cd lv2/drumkit
+cmake -S . -B build
+cmake --build build
+cmake --install build --prefix ~/.lv2
+```
+
+**Usage:**
+```bash
+# Verify installation
+lv2ls | grep drumkit
+lv2info https://danja.github.io/flues/plugins/drumkit
+
+# Load in DAW (Reaper, Ardour, Carla, etc.)
+```
+
+**MIDI Note Mapping:**
+| MIDI Note | Drum Voice | Velocity Sensitive |
+|-----------|------------|-------------------|
+| 36 (C2) | Kick | Yes |
+| 38 (D2) | Snare | Yes |
+| 39 (Eb2) | Clap | No (fixed level) |
+| 42 (F#2) | Closed Hi-Hat | No (chokes open HH) |
+| 45 (A2) | Lo Tom | Yes |
+| 46 (A#2) | Open Hi-Hat | No (fixed level) |
+| 49 (C#3) | Crash | No (fixed level) |
+| 50 (D3) | Hi Tom | Yes |
+
+**Parameters (18 total):**
+- **Kick (4)**: Pitch (60-250Hz), Decay (50-1500ms), Drive (1-10×), Punch (0-100%)
+- **Snare (2)**: Tone (body/shell mix + Q 4-20), Snap (noise + HPF 500Hz-4kHz)
+- **Clap (2)**: Density (3-7 impulses, 25-10ms spacing, 3-7ms bursts), Tone (1000-4500Hz, Q 4-8)
+- **Toms (2, shared)**: Pitch (Lo 60-150Hz, Hi 150-400Hz), Decay (80-800ms)
+- **Hi-Hats (2, shared)**: Brightness (HPF 4-12kHz), Decay (Closed 50-200ms, Open 200-1200ms)
+- **Crash (2)**: Brightness (BP 1.5-10kHz), Decay (300-2500ms)
+- **Master (4)**: Bit Crush (0-4 bit), Drive (1-5× tanh), Reverb (0-60%), Gain (0-100%)
+
+**Implementation Status:**
+- ✓ All 8 drum voices fully implemented
+- ✓ Sample-accurate MIDI processing (omni mode)
+- ✓ Velocity sensitivity on kick/snare/toms
+- ✓ Hi-hat choke group working
+- ✓ Master FX chain complete
+- ✓ X11/Cairo UI with 18 knobs
+- ✓ Industrial sound design: aggressive transients, metallic resonance, harsh harmonics
+
+**Sound Design Notes:**
+The clap voice was significantly improved from initial implementation:
+- Changed from single-sample impulses to 3-7ms noise bursts (much more punch)
+- Higher Q resonance (4-8, was fixed at 3) for more "snap"
+- Brighter frequency range (1000-4500Hz, was 800-3500Hz)
+- Faster attack (1ms, was 10ms) for immediate response
+- Louder bursts (1.2× amplitude) and higher output level (0.8×, was 0.5×)
+- Dynamic Q: higher tone settings increase Q for cutting bright claps
+
+**Translation Fidelity:**
+The C++ code follows established patterns from other LV2 plugins:
+- Same DSP module architecture as Disyn/Chatterbox
+- Identical X11/Cairo UI pattern with pthread event handling
+- Sample-accurate MIDI processing with LV2 Atom sequences
+- Proper voice management with reset and trigger methods
+
+See `lv2/drumkit/README.md` for detailed usage, sound design tips, and synthesis methods.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.
