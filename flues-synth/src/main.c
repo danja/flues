@@ -20,6 +20,7 @@ static volatile bool running = true;
 static SynthEngine* g_synth = NULL;
 static bool g_use_mk449_remap = true;  // remap CCs for the Evolution MK-449 defaults
 static bool g_control_notes_enabled = false;  // off by default to avoid consuming low notes
+static int g_current_program = 0;  // Current MIDI program (0-7)
 
 // Translate MK-449 default CCs to the synth’s parameter map
 static uint8_t mk449_remap_cc(uint8_t cc_in) {
@@ -99,6 +100,217 @@ static bool handle_control_note(const MidiEvent* event, SynthEngine* synth) {
     return false;
 }
 
+// Handle MIDI program change
+// Programs configure signal chain and remap the 9 keyboard sliders
+// Slider CCs: 73 (Attack), 72 (Release), 28, 30, 74 (F3), 71 (F1), 1 (Intensity), 27, 7 (Master)
+static void handle_program_change(uint8_t program, SynthEngine* synth) {
+    g_current_program = program;
+
+    printf("\n═══════════════════════════════════════════════════════════\n");
+    printf("PROGRAM CHANGE: %d\n", program);
+
+    switch (program) {
+        case 0:  // Disyn Direct - Raw distortion synth straight to output
+            printf("Program 0: Disyn Direct\n");
+            printf("  - Disyn enabled, all other processing bypassed\n");
+            printf("  - Sliders: Attack(73), Release(72), Alg(28→16), P1(30→17), P2(74→18), Level(71→19), Intensity(1), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.8f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 1:  // Disyn + Delays - Add delay lines to Disyn
+            printf("Program 1: Disyn + Delays\n");
+            printf("  - Disyn + delay lines, feedback enabled\n");
+            printf("  - Sliders: Attack(73), Release(72), Dly1(28), Dly2(30→29), Filt(74→30), Level(71→19), Intensity(1), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.3f);
+            synth_engine_set_filter_feedback(synth, 0.0f);
+            break;
+
+        case 2:  // Disyn + Filter - Add state-variable filter
+            printf("Program 2: Disyn + Filter\n");
+            printf("  - Disyn + delays + filter\n");
+            printf("  - Sliders: Attack(73), Release(72), Freq(28→32), Q(30→33), Shape(74→34), Level(71→19), Intensity(1), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_delay1_feedback(synth, 0.25f);
+            synth_engine_set_delay2_feedback(synth, 0.25f);
+            synth_engine_set_filter_feedback(synth, 0.2f);
+            synth_engine_set_filter_frequency(synth, 1000.0f);
+            synth_engine_set_filter_q(synth, 2.0f);
+            break;
+
+        case 3:  // Formant Voice - Vocal formants only
+            printf("Program 3: Formant Voice\n");
+            printf("  - Noise source through formant cascade\n");
+            printf("  - Sliders: Attack(73), Release(72), F1(28→71), F2(30→10), F3(74), F4(71→75), Noise(1→20), Nasal(27→80), Master(7)\n");
+            synth_engine_enable_disyn(synth, false);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_noise_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 500.0f);
+            synth_engine_set_f2(synth, 1500.0f);
+            synth_engine_set_f3(synth, 2500.0f);
+            synth_engine_set_f4(synth, 3500.0f);
+            break;
+
+        case 4:  // Hybrid Speech - Disyn + Formants
+            printf("Program 4: Hybrid Speech\n");
+            printf("  - Disyn through formants (speech synthesis)\n");
+            printf("  - Sliders: Attack(73), Release(72), F1(28→71), F2(30→10), F3(74), F4(71→75), DisLvl(1→19), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.4f);
+            synth_engine_set_noise_level(synth, 0.15f);
+            synth_engine_set_f1(synth, 500.0f);
+            synth_engine_set_f2(synth, 1500.0f);
+            synth_engine_set_f3(synth, 2500.0f);
+            synth_engine_set_f4(synth, 3500.0f);
+            break;
+
+        case 5:  // Physical Model - Full PM chain (no formants)
+            printf("Program 5: Physical Model\n");
+            printf("  - Noise through interface/delays/filter (pure PM)\n");
+            printf("  - Sliders: Attack(73), Release(72), Dly1(28), Dly2(30→29), FiltFB(74→30), Interface(71→24), Intensity(1), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, false);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_noise_level(synth, 0.3f);
+            synth_engine_set_delay1_feedback(synth, 0.4f);
+            synth_engine_set_delay2_feedback(synth, 0.4f);
+            synth_engine_set_filter_feedback(synth, 0.3f);
+            synth_engine_set_interface_type(synth, 2);  // Reed
+            break;
+
+        case 6:  // Full Hybrid - All modules enabled
+            printf("Program 6: Full Hybrid\n");
+            printf("  - Disyn → Formants → Interface → Delays → Filter\n");
+            printf("  - Sliders: Attack(73), Release(72), Dly1(28), Dly2(30→29), FiltFB(74→30), Interface(71→24), Intensity(1), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_level(synth, 0.3f);
+            synth_engine_set_noise_level(synth, 0.15f);
+            synth_engine_set_delay1_feedback(synth, 0.35f);
+            synth_engine_set_delay2_feedback(synth, 0.35f);
+            synth_engine_set_filter_feedback(synth, 0.25f);
+            synth_engine_set_interface_type(synth, 2);  // Reed
+            break;
+
+        case 7:  // Experimental - Formants in feedback loop
+            printf("Program 7: Experimental\n");
+            printf("  - Disyn → Interface → Delays+Formants → Filter (formants in loop)\n");
+            printf("  - Sliders: Attack(73), Release(72), F1(28→71), F2(30→10), Dly1(74→28), Interface(71→24), Intensity(1), Ratio(27), Master(7)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, true);  // In feedback path
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_level(synth, 0.35f);
+            synth_engine_set_noise_level(synth, 0.1f);
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.3f);
+            synth_engine_set_filter_feedback(synth, 0.2f);
+            synth_engine_set_interface_type(synth, 3);  // Flute
+            break;
+
+        default:
+            printf("Program %d: Unknown (using program 0)\n", program);
+            handle_program_change(0, synth);
+            return;
+    }
+
+    printf("═══════════════════════════════════════════════════════════\n\n");
+}
+
+// Remap slider CCs based on current program
+// The 9 hardware sliders send: 73, 72, 28, 30, 74, 71, 1, 27, 7
+static uint8_t remap_slider_cc(uint8_t cc) {
+    switch (g_current_program) {
+        case 0:  // Disyn Direct
+            if (cc == 28) return 16;  // Slider 3 → Disyn Algorithm
+            if (cc == 30) return 17;  // Slider 4 → Disyn Param1
+            if (cc == 74) return 18;  // Slider 5 → Disyn Param2
+            if (cc == 71) return 19;  // Slider 6 → Disyn Level
+            break;
+
+        case 1:  // Disyn + Delays
+            if (cc == 30) return 29;  // Slider 4 → Delay2 Feedback
+            if (cc == 74) return 30;  // Slider 5 → Filter Feedback
+            if (cc == 71) return 19;  // Slider 6 → Disyn Level
+            break;
+
+        case 2:  // Disyn + Filter
+            if (cc == 28) return 32;  // Slider 3 → Filter Frequency
+            if (cc == 30) return 33;  // Slider 4 → Filter Q
+            if (cc == 74) return 34;  // Slider 5 → Filter Shape
+            if (cc == 71) return 19;  // Slider 6 → Disyn Level
+            break;
+
+        case 3:  // Formant Voice
+            if (cc == 28) return 71;  // Slider 3 → F1
+            if (cc == 30) return 10;  // Slider 4 → F2
+            // Slider 5 (74) stays F3
+            if (cc == 71) return 75;  // Slider 6 → F4
+            if (cc == 1) return 20;   // Slider 7 → Noise Level
+            if (cc == 27) return 80;  // Slider 8 → Nasal toggle
+            break;
+
+        case 4:  // Hybrid Speech
+            if (cc == 28) return 71;  // Slider 3 → F1
+            if (cc == 30) return 10;  // Slider 4 → F2
+            // Slider 5 (74) stays F3
+            if (cc == 71) return 75;  // Slider 6 → F4
+            if (cc == 1) return 19;   // Slider 7 → Disyn Level
+            break;
+
+        case 5:  // Physical Model
+            if (cc == 30) return 29;  // Slider 4 → Delay2 Feedback
+            if (cc == 74) return 30;  // Slider 5 → Filter Feedback
+            if (cc == 71) return 24;  // Slider 6 → Interface Type
+            break;
+
+        case 6:  // Full Hybrid
+            if (cc == 30) return 29;  // Slider 4 → Delay2 Feedback
+            if (cc == 74) return 30;  // Slider 5 → Filter Feedback
+            if (cc == 71) return 24;  // Slider 6 → Interface Type
+            break;
+
+        case 7:  // Experimental
+            if (cc == 28) return 71;  // Slider 3 → F1
+            if (cc == 30) return 10;  // Slider 4 → F2
+            if (cc == 74) return 28;  // Slider 5 → Delay1 Feedback
+            if (cc == 71) return 24;  // Slider 6 → Interface Type
+            break;
+    }
+
+    return cc;  // No remapping for this program/CC
+}
+
 // Signal handler for clean shutdown
 static void signal_handler(int sig) {
     printf("\nReceived signal %d, shutting down...\n", sig);
@@ -140,9 +352,13 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
         case MIDI_CONTROL_CHANGE: {
             uint8_t cc = event->cc_number;
 
+            // Apply MK-449 remapping first (if enabled)
             if (g_use_mk449_remap) {
                 cc = mk449_remap_cc(cc);
             }
+
+            // Apply program-based slider remapping
+            cc = remap_slider_cc(cc);
 
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
 
@@ -334,6 +550,10 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             synth_engine_all_notes_off(synth);
             printf("All Notes OFF\n");
             break;
+
+        case MIDI_PROGRAM_CHANGE:
+            handle_program_change(event->program_number, synth);
+            break;
     }
 }
 
@@ -429,6 +649,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     printf("Synth engine initialized\n");
+
+    // Initialize with Program 0
+    handle_program_change(0, g_synth);
 
     // Create MIDI backend (auto-connects to external MIDI port)
     MidiBackendALSA* midi = midi_backend_alsa_create(midi_event_handler, g_synth);

@@ -9,7 +9,8 @@ typedef enum {
     MIDI_NOTE_ON = 0,
     MIDI_NOTE_OFF = 1,
     MIDI_CONTROL_CHANGE = 2,
-    MIDI_ALL_NOTES_OFF = 3
+    MIDI_ALL_NOTES_OFF = 3,
+    MIDI_PROGRAM_CHANGE = 4
 } MidiEventType;
 
 // MIDI event structure
@@ -20,6 +21,7 @@ typedef struct {
     uint8_t velocity;
     uint8_t cc_number;
     uint8_t cc_value;
+    uint8_t program_number;
 } MidiEvent;
 
 // MIDI event handler callback

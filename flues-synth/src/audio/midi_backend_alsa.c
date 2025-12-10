@@ -147,6 +147,13 @@ static void* midi_thread_func(void* arg) {
                 }
                 send_event = true;
                 break;
+
+            case SND_SEQ_EVENT_PGMCHANGE:
+                event.type = MIDI_PROGRAM_CHANGE;
+                event.channel = ev->data.control.channel;
+                event.program_number = ev->data.control.value;
+                send_event = true;
+                break;
         }
 
         if (send_event && backend->callback) {
@@ -179,6 +186,13 @@ static void* midi_thread_func(void* arg) {
                     case MIDI_ALL_NOTES_OFF:
                         printf("MIDI DBG: ch%d ALL NOTES OFF (src %d:%d)\n",
                                event.channel + 1,
+                               ev->source.client,
+                               ev->source.port);
+                        break;
+                    case MIDI_PROGRAM_CHANGE:
+                        printf("MIDI DBG: ch%d PROGRAM CHANGE %3u (src %d:%d)\n",
+                               event.channel + 1,
+                               event.program_number,
                                ev->source.client,
                                ev->source.port);
                         break;
