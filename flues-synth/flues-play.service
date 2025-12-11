@@ -1,0 +1,19 @@
+# see flues-synth/docs/startup.md
+
+[Unit]
+Description=Flues play runner
+After=network.target sound.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/danny/github/flues
+ExecStart=/home/danny/github/flues/play
+Restart=always
+RestartSec=2
+# Optional: set env vars or log to a file
+# Environment=FLUES_CONTROL_NOTES=1 FLUES_MIDI_DEBUG=0
+# StandardOutput=append:/home/danny/github/flues/play.log
+# StandardError=append:/home/danny/github/flues/play.log
+
+[Install]
+WantedBy=default.target
