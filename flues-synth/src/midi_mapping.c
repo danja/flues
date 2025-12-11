@@ -141,7 +141,7 @@ static const SynthParameter PROGRAM_7_MAP[9] = {
     PARAM_DISYN_ALGORITHM,  // Slider 1 (CC 73)
     PARAM_DISYN_PARAM1,     // Slider 2 (CC 72)
     PARAM_DISYN_PARAM2,     // Slider 3 (CC 28)
-    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30)
+    PARAM_INTERFACE_TYPE,   // Slider 4 (CC 30)
     PARAM_INTENSITY,        // Slider 5 (CC 74)
     PARAM_TUNING,           // Slider 6 (CC 71)
     PARAM_DELAY1_FEEDBACK,  // Slider 7 (CC 1)  ← THE FIX!
