@@ -318,7 +318,7 @@ static uint8_t remap_slider_cc(uint8_t cc) {
             if (cc == 30) return 19;  // Slider 4 → Disyn Level
             if (cc == 74) return 1;   // Slider 5 → Intensity
             if (cc == 71) return 26;  // Slider 6 → Tuning (delay pitch offset)
-            if (cc == 1) return 28;   // Slider 7 → Delay1 Feedback
+            if (cc == 1)  return 28;  // Slider 7 → Delay1 Feedback (CC 28 not 27!)
             break;
     }
 
@@ -377,8 +377,15 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             cc = remap_slider_cc(cc);
 
             // Debug: show remapping for program 7
-            if (g_current_program == 7 && cc != cc_before_program) {
-                printf("Program 7 remap: CC %d → CC %d\n", cc_before_program, cc);
+            if (g_current_program == 7) {
+                if (cc != cc_before_program) {
+                    printf("Program 7 remap: CC %d → CC %d", cc_before_program, cc);
+                    if (cc == 28) printf(" [Should be Delay1 Feedback]");
+                    if (cc == 27) printf(" [BUG: This is Delay Ratio!]");
+                    printf("\n");
+                } else if (cc_before_program == 1 || cc_before_program == 74) {
+                    printf("Program 7: CC %d NOT remapped (BUG!)\n", cc_before_program);
+                }
             }
 
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
