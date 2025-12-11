@@ -1,2 +1,2 @@
-FLUES_NOTE_TIMEOUT_MS=2000 ./flues-synth/builddir/flues-synth hw:0,0
+FLUES_NOTE_TIMEOUT_MS=2000 ./flues-synth/builddir/flues-synth hw:3,0
 

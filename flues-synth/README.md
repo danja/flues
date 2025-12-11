@@ -164,6 +164,9 @@ Set your nine sliders to these CC numbers (left→right): **73, 72, 28, 30, 74, 
 ### Stop the Synthesizer
 Press `Ctrl+C` for clean shutdown.
 
+### Autostart on Raspberry Pi
+See `docs/startup.md` for a systemd user service that launches `/home/danny/github/flues/play` on boot and restarts it if it crashes.
+
 ## Troubleshooting
 
 ### Low-frequency hum (~50Hz) when idle
