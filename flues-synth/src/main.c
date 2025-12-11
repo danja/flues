@@ -364,7 +364,8 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             break;
 
         case MIDI_CONTROL_CHANGE: {
-            uint8_t cc = event->cc_number;
+            uint8_t cc_orig = event->cc_number;
+            uint8_t cc = cc_orig;
 
             // Apply MK-449 remapping first (if enabled)
             if (g_use_mk449_remap) {
@@ -372,7 +373,13 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             }
 
             // Apply program-based slider remapping
+            uint8_t cc_before_program = cc;
             cc = remap_slider_cc(cc);
+
+            // Debug: show remapping for program 7
+            if (g_current_program == 7 && cc != cc_before_program) {
+                printf("Program 7 remap: CC %d → CC %d\n", cc_before_program, cc);
+            }
 
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
 
