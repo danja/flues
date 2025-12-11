@@ -1,5 +1,5 @@
 // flues_control_plugin.cpp - LV2 plugin wrapper for Flues Control
-// MIDI CC controller for flues-synth with 8 programs and 9 sliders
+// MIDI CC controller for flues-synth with 18 programs and 9 sliders
 
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
@@ -104,7 +104,7 @@ static void appendMidiMessage(LV2_Atom_Sequence* seq,
 static void sendProgramChange(FluesControlLV2* self, uint8_t program, uint32_t frame) {
     const uint8_t midiMsg[2] = {
         0xC0,     // Program Change on channel 1
-        program   // Program number (0-7)
+        program   // Program number (0-17)
     };
     appendMidiMessage(self->midiOut, self->bufferCapacity, self->midiEventUrid,
                      frame, midiMsg, 2);

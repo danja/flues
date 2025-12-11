@@ -14,7 +14,7 @@
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
 
-    rdfs:comment "MIDI CC controller for flues-synth with 8 programs and 9 parameter sliders" ;
+    rdfs:comment "MIDI CC controller for flues-synth with 18 programs and 9 parameter sliders" ;
 
     lv2:port [
         # Port 0: MIDI Input
@@ -42,7 +42,7 @@
         lv2:name "Program" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
-        lv2:maximum 7 ;
+        lv2:maximum 17 ;
         lv2:portProperty lv2:integer, lv2:enumeration ;
         lv2:scalePoint [
             rdfs:label "Disyn Echo" ;
@@ -68,6 +68,36 @@
         ] , [
             rdfs:label "Disyn Direct" ;
             rdf:value 7
+        ] , [
+            rdfs:label "ModFM Formant" ;
+            rdf:value 8
+        ] , [
+            rdfs:label "DSF Inharmonic" ;
+            rdf:value 9
+        ] , [
+            rdfs:label "PAF Direct" ;
+            rdf:value 10
+        ] , [
+            rdfs:label "Cascaded DSF+PAF" ;
+            rdf:value 11
+        ] , [
+            rdfs:label "Tanh Spectral" ;
+            rdf:value 12
+        ] , [
+            rdfs:label "Hybrid DSF→Formant" ;
+            rdf:value 13
+        ] , [
+            rdfs:label "Feedback ModFM" ;
+            rdf:value 14
+        ] , [
+            rdfs:label "Dirichlet Explorer" ;
+            rdf:value 15
+        ] , [
+            rdfs:label "Multi-Algorithm" ;
+            rdf:value 16
+        ] , [
+            rdfs:label "Spectral Sculptor" ;
+            rdf:value 17
         ] ;
         rdfs:comment "Synth program selector (remaps sliders to different parameters)" ;
     ] , [
