@@ -380,7 +380,7 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
                 apply_parameter(synth, param, value);
             } else {
                 // Non-slider CC: ignore under the simplified mapping scheme
-                printf(\"Unmapped CC ch%d: %3u -> %3u\\n\", event->channel + 1, cc, event->cc_value);
+                printf("Unmapped CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
             }
             break;
         }
