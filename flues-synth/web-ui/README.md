@@ -174,7 +174,11 @@ web-ui/
 
 ## MIDI CC Mapping
 
-All 29 parameters from flues-synth are accessible:
+All 29 parameters from flues-synth are accessible. The web-ui uses identical CC mapping to the synth engine.
+
+**Complete specification**: See [flues-synth/docs/midi.md](../docs/midi.md) for full MIDI reference.
+
+**Summary**:
 
 | CC  | Parameter       | Range           | Mapping      |
 |-----|-----------------|-----------------|--------------|
@@ -182,16 +186,16 @@ All 29 parameters from flues-synth are accessible:
 | 7   | Master Gain     | 0-1             | Linear       |
 | 10  | F2 (Tongue)     | 500-3000 Hz     | Exponential  |
 | 16  | Disyn Algorithm | 0-6             | Discrete     |
-| 17-21 | Disyn Params  | Various         | See docs     |
+| 17-21 | Disyn Params  | Various         | Linear       |
 | 24  | Interface Type  | 0-11            | Discrete     |
-| 26-27 | Tuning/Ratio  | Various         | See docs     |
+| 26-27 | Tuning/Ratio  | Various         | Linear/Exp   |
 | 28-30 | Feedback      | 0-1             | Linear       |
-| 32-34 | Filter        | Various         | See docs     |
-| 36-37 | Modulation    | Various         | See docs     |
+| 32-34 | Filter        | Various         | Exp/Linear   |
+| 36-37 | Modulation    | Various         | Exp/Bipolar  |
 | 71-75 | Formants      | Frequency Hz    | Exponential  |
 | 80-83 | Vocal Modes   | Toggle (≥64)    | Boolean      |
 
-See `docs/UI-PLAN.md` for complete parameter mapping table.
+See `client/src/utils/parameterMaps.js` for implementation details.
 
 ## Systemd Services (Auto-start)
 

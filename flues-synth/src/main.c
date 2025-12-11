@@ -212,12 +212,21 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             handle_program_change(5, synth);
             return;
 
-        case 7:  // Experimental - Formants in feedback loop (DISABLED - causes segfault)
-            printf("Program 7: Experimental (DISABLED)\n");
-            printf("  - This program is temporarily disabled due to stability issues\n");
-            printf("  - Using Program 4 instead\n");
-            handle_program_change(4, synth);
-            return;
+        case 7:  // Disyn Echo - Disyn through single delay line
+            printf("Program 7: Disyn Echo\n");
+            printf("  - Disyn + single delay line (simple echo effect)\n");
+            printf("  - Sliders: Alg(73→16), P1(72→17), P2(28→18), Level(30→19), Intensity(74→1), Tuning(71→26), Feedback(1→28), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);  // Enable feedback for delay
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.0f);  // Disable second delay
+            synth_engine_set_filter_feedback(synth, 0.0f);  // No filter in path
+            synth_engine_set_master_gain(synth, 0.6f);
+            break;
 
         default:
             printf("Program %d: Unknown (using program 0)\n", program);
@@ -298,8 +307,17 @@ static uint8_t remap_slider_cc(uint8_t cc) {
             break;
 
         case 6:  // Full Hybrid (disabled, redirects to 5)
-        case 7:  // Experimental (disabled, redirects to 4)
-            // These programs redirect, so no remapping needed
+            // This program redirects, so no remapping needed
+            break;
+
+        case 7:  // Disyn Echo
+            if (cc == 73) return 16;  // Slider 1 → Disyn Algorithm
+            if (cc == 72) return 17;  // Slider 2 → Disyn Param1
+            if (cc == 28) return 18;  // Slider 3 → Disyn Param2
+            if (cc == 30) return 19;  // Slider 4 → Disyn Level
+            if (cc == 74) return 1;   // Slider 5 → Intensity
+            if (cc == 71) return 26;  // Slider 6 → Tuning (delay pitch offset)
+            if (cc == 1) return 28;   // Slider 7 → Delay1 Feedback
             break;
     }
 

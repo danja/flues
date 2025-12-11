@@ -4,6 +4,19 @@
 
 MIDI Program Change messages (0-7) configure the signal chain routing and dynamically remap the 9 hardware sliders to the most relevant parameters for each program.
 
+### Program Summary
+
+| Program | Name | Signal Chain | Status |
+|---------|------|--------------|--------|
+| 0 | Disyn Direct | Disyn → Output | Active |
+| 1 | Disyn + Delays | Disyn → Delays | Active |
+| 2 | Disyn + Filter | Disyn → Delays → Filter | Active |
+| 3 | Formant Voice | Noise → Formants | Active |
+| 4 | Hybrid Speech | Disyn + Noise → Formants | Active |
+| 5 | Physical Model | Noise → Interface → Delays → Filter | Active |
+| 6 | Full Hybrid | *DISABLED* (redirects to 5) | Disabled |
+| 7 | Disyn Echo | Disyn → Delay1 | Active |
+
 ## Hardware Slider Mapping
 
 The MIDI controller has 9 sliders sending these CC numbers:
@@ -152,14 +165,23 @@ The MIDI controller has 9 sliders sending these CC numbers:
 
 ---
 
-### Program 7: Experimental (DISABLED)
-**Status**: This program is temporarily disabled due to stability issues (segfaults). Selecting program 7 will redirect to program 4.
+### Program 7: Disyn Echo
+**Signal Chain**: Disyn → Delay Line 1 (single delay, no formants/filter)
 
-**Signal Chain**: Disyn → Interface → Delays + Formants → Filter (formants in feedback loop)
+**Use Case**: Simple echo/delay effect on distortion synthesis
 
-**Use Case**: Resonant formant coloring in the feedback path - currently disabled
+**Slider Mappings**:
+- Slider 1: **Disyn Algorithm** (73→16) - Select algorithm 0-6
+- Slider 2: **Disyn Param1** (72→17) - Algorithm-specific parameter 1
+- Slider 3: **Disyn Param2** (28→18) - Algorithm-specific parameter 2
+- Slider 4: **Disyn Level** (30→19) - Disyn output level
+- Slider 5: **Intensity** (74→1) - Interface intensity
+- Slider 6: **Tuning** (71→26) - Delay pitch offset (-12 to +12 semitones)
+- Slider 7: **Delay1 Feedback** (1→28) - Echo return level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
 
-**Note**: Slider mappings and default settings are not active. Program 4 settings will be used instead.
+**Default Settings**: Disyn 0.6, Delay1 feedback 0.3, Delay2 off, master gain 0.6
 
 ---
 
@@ -217,6 +239,7 @@ Use programs to quickly A/B between synthesis methods:
 - **Program 3**: Hear pure formant synthesis
 - **Program 4**: Blend Disyn through formants
 - **Program 5**: Classic physical modeling
+- **Program 7**: Simple echo effect on Disyn
 
 ### Advanced: Per-Program Presets
 

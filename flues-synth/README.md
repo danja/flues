@@ -266,6 +266,10 @@ Override with: `./builddir/flues-synth <device-name>`
 
 ## MIDI Control
 
+**Full MIDI specification**: See **[docs/midi.md](docs/midi.md)** for complete reference including program changes, CC mapping details, and exponential/bipolar scaling formulas.
+
+**Quick reference** for common controls:
+
 ### Control Notes (36-42) - Debug Toggles
 
 Special MIDI notes toggle DSP sections for diagnostics and isolation:
@@ -549,6 +553,8 @@ flues-synth/
 
 ## Documentation
 
+- **[MIDI Reference](docs/midi.md)** - Complete MIDI control specification (29 CCs, 8 programs, control notes)
+- **[Program Change Guide](docs/PROGRAM_CHANGE.md)** - Signal chain configurations and slider remapping
 - **[Signal Flow Diagram](docs/flues-synth-signal-flow.svg)** - Visual architecture with signal levels
 - **[Handover Document](docs/flues-synth-handover.md)** - Original implementation notes and design decisions
 - **[Envelope Fix](docs/envelope-fix-2025-12-05.md)** - DC blocker optimization (removed output blocker)
