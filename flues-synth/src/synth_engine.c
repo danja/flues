@@ -250,7 +250,7 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
     float output = filter_out * am_scale;
 
     // danny keyword for finding again
-    output *= 0.7f;                         // Global pad to reduce accumulated level
+    output *= 0.85f;                        // Global pad (increased from 0.7 for better S16_LE bit depth usage)
     output = soft_clip_drive(output, 1.0f); // final guard against runaway noise
 
     // 16. Master gain (final DC blocker removed - was too aggressive and killed envelope attack)
@@ -270,7 +270,7 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->global_note_counter = 0; // Initialize voice age counter
     engine->sample_counter = 0;
     engine->last_midi_event_sample = 0;
-    engine->master_gain = 0.8f;      // Increased from 0.35 to boost output level (safe after soft clipping)
+    engine->master_gain = 0.95f;     // Increased from 0.8 for better S16_LE bit depth usage (~81% vs 56%)
     // danny tweak
     engine->disyn_level = 0.8f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
     engine->sing_enabled = false;
@@ -530,7 +530,7 @@ void synth_engine_reset(SynthEngine *engine)
     synth_engine_all_notes_off(engine);
 
     // 2. Reset global parameters
-    engine->master_gain = 0.8f;
+    engine->master_gain = 0.95f;
     engine->disyn_level = 0.8f;
     engine->sing_enabled = false;
     engine->fry_enabled = false;

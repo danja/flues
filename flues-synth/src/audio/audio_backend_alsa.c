@@ -27,7 +27,29 @@ struct AudioBackendALSA {
 
     pthread_t audio_thread;
     bool running;
+
+    // TPDF dither state for S16_LE conversion
+    uint32_t dither_seed;
 };
+
+// Simple PRNG for TPDF dither (xorshift32)
+static inline uint32_t xorshift32(uint32_t* state) {
+    uint32_t x = *state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *state = x;
+    return x;
+}
+
+// Generate triangular PDF dither in range [-1.0, 1.0]
+static inline float tpdf_dither(uint32_t* seed) {
+    // Two uniform random values
+    float r1 = (float)xorshift32(seed) / (float)UINT32_MAX;
+    float r2 = (float)xorshift32(seed) / (float)UINT32_MAX;
+    // Sum creates triangular PDF
+    return (r1 + r2 - 1.0f);
+}
 
 // Audio thread function
 static void* audio_thread_func(void* arg) {
@@ -41,15 +63,22 @@ static void* audio_thread_func(void* arg) {
         // Convert format if needed
         void* write_buffer = backend->audio_buffer;
         if (backend->format == SND_PCM_FORMAT_S16_LE) {
-            // Convert float [-1.0, 1.0] to int16 [-32768, 32767]
+            // Convert float [-1.0, 1.0] to int16 [-32768, 32767] with TPDF dither
             int16_t* out = (int16_t*)backend->output_buffer;
             for (int i = 0; i < backend->buffer_size; i++) {
                 float sample = backend->audio_buffer[i];
                 // Clamp to [-1.0, 1.0]
                 if (sample > 1.0f) sample = 1.0f;
                 if (sample < -1.0f) sample = -1.0f;
-                // Convert to int16
-                out[i] = (int16_t)(sample * 32767.0f);
+
+                // Scale to 16-bit range
+                sample *= 32767.0f;
+
+                // Add TPDF dither (±1.0 LSB for optimal noise shaping)
+                sample += tpdf_dither(&backend->dither_seed);
+
+                // Round and convert to int16
+                out[i] = (int16_t)(sample + (sample >= 0.0f ? 0.5f : -0.5f));
             }
             write_buffer = backend->output_buffer;
         }
@@ -95,6 +124,7 @@ AudioBackendALSA* audio_backend_alsa_create(const char* device_name,
     backend->callback = callback;
     backend->callback_user_data = user_data;
     backend->running = false;
+    backend->dither_seed = 1234567;  // Initialize PRNG seed
 
     // Open PCM device
     int err = snd_pcm_open(&backend->pcm_handle, device_name,
