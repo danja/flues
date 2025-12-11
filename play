@@ -1,2 +1,5 @@
-FLUES_NOTE_TIMEOUT_MS=2000 ./flues-synth/builddir/flues-synth hw:3,0
+#!/usr/bin/env bash
+set -euo pipefail
 
+# Launch Flues-Synth with a 2s note timeout on the desired ALSA device.
+FLUES_NOTE_TIMEOUT_MS=2000 ./flues-synth/builddir/flues-synth hw:3,0
