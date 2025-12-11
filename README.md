@@ -83,7 +83,8 @@ Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjourna
 - 🔌 **Floozy Poly** - 8-voice polyphonic ([lv2/floozy-poly/](lv2/floozy-poly/))
 - 🎛️ **Flues-Synth** - Headless Raspberry Pi ([flues-synth/](flues-synth/))
   - [Signal flow diagram](flues-synth/docs/flues-synth-signal-flow.svg)
-  - 8 MIDI programs (0-7) switching signal chain configurations
+  - [Algorithm reference](flues-synth/docs/algorithms.md) - Complete DSP documentation
+  - 18 MIDI programs (0-17) switching signal chain configurations
   - 29 MIDI CCs + 6 control notes for live tweaking
 
 ### 5. **Drum Synthesis** → Drumkit
@@ -199,7 +200,32 @@ These are **experiments**, not polished products. The goal is to:
 - Prioritize sound quality and expressiveness over preset count
 - Keep code readable and educational (see [CLAUDE.md](CLAUDE.md))
 
-Expect rough edges, occasional segfaults (we're looking at you, Programs 6 & 7), and unfinished features. That's part of the fun.
+Expect rough edges, experimental features, and ongoing evolution. That's part of the fun.
+
+---
+
+## Recent Updates
+
+### December 2025 - Flues-Synth Expansion
+
+**18 MIDI Programs (expanded from 8):** Flues-synth now includes 10 new programs (8-17) based on distortion synthesis research. These programs leverage the existing 7 Disyn algorithms through different signal chain routing configurations:
+
+- **Program 8:** ModFM Formant - Voice-like synthesis with FM evolution
+- **Program 9:** DSF Inharmonic Explorer - Bell/gong timbres
+- **Program 10:** PAF Direct - Pure vowel synthesis
+- **Program 11:** Cascaded DSF+PAF - Inharmonic resonator
+- **Program 12:** Tanh Spectral - Acid-style filtered synthesis
+- **Program 13:** Hybrid DSF→Formant - Rich vocal synthesis
+- **Program 14:** Feedback ModFM - FM bells with feedback
+- **Program 15:** Dirichlet Explorer - Harmonic pulse synthesis
+- **Program 16:** Multi-Algorithm Demo - Algorithm comparison mode
+- **Program 17:** Spectral Sculptor - Adaptive filtering
+
+Each program includes optimized slider mappings (9 sliders) and level safety calculations. The expansion required no new C++ algorithm code - all new programs use creative routing of existing modules. See [flues-synth/docs/PROGRAM_CHANGE.md](flues-synth/docs/PROGRAM_CHANGE.md) for complete details.
+
+**LV2 Flues-Control Update:** The flues-control LV2 plugin (MIDI CC controller for flues-synth) now supports all 18 programs with dropdown selection in DAW hosts.
+
+**Algorithm Documentation:** New comprehensive [algorithms.md](flues-synth/docs/algorithms.md) document provides implementation-level detail for all synthesis algorithms, filters, and signal processing modules.
 
 ---
 

@@ -601,6 +601,7 @@ flues-synth/
 
 - **[MIDI Reference](docs/midi.md)** - Complete MIDI control specification (29 CCs, 18 programs, control notes)
 - **[Program Change Guide](docs/PROGRAM_CHANGE.md)** - Signal chain configurations and slider remapping
+- **[Algorithm Reference](docs/algorithms.md)** - Implementation-level DSP documentation (all synthesis algorithms, filters, and signal processing)
 - **[Signal Flow Diagram](docs/flues-synth-signal-flow.svg)** - Visual architecture with signal levels
 - **[Handover Document](docs/flues-synth-handover.md)** - Original implementation notes and design decisions
 - **[Envelope Fix](docs/envelope-fix-2025-12-05.md)** - DC blocker optimization (removed output blocker)

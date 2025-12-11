@@ -694,11 +694,12 @@ A standalone headless C/C++ ALSA MIDI synthesizer for Raspberry Pi that combines
 **Key Features:**
 - Native C/C++ implementation with ALSA audio/MIDI
 - Hybrid synthesis: Disyn (7 algorithms) → Formants (F1-F4) → Interface (12 types) → Delays → Filter → Modulation
+- 18 MIDI programs (0-17) with signal chain reconfiguration and context-dependent slider remapping
 - Dual DC blocking (R=0.999) prevents feedback latching
 - Calibrated signal levels (0.28 peak output, safe margin)
 - 29 MIDI CCs + 6 control notes (36-41) for debug toggles
 - 48kHz sample rate, 512 sample buffer (~10ms latency)
-- Test suite: engine-smoke, envelope-test, disyn-levels
+- Test suite: engine-smoke, envelope-test, disyn-levels, polyphony-smoke, noise-isolation
 - Real-time CC name printing on first occurrence
 
 **Architecture:**
@@ -709,8 +710,8 @@ A standalone headless C/C++ ALSA MIDI synthesizer for Raspberry Pi that combines
 - `src/audio/midi_backend_alsa.c` - ALSA sequencer input with auto-connect
 - `src/audio/modules/` - Nine DSP modules (Disyn, Sources, Envelope, Formants, Interface, Delays, Feedback, Filter, Modulation)
 - `src/audio/modules/strategies/` - 12 interface implementations (Reed, Pluck, Hit, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma)
-- `tests/` - Three test suites (engine-smoke, envelope-test, disyn-levels)
-- `docs/` - Documentation including SVG signal flow diagram
+- `tests/` - Five test suites (engine-smoke, envelope-test, disyn-levels, polyphony-smoke, noise-isolation)
+- `docs/` - Documentation including SVG signal flow diagram, algorithms.md (complete DSP reference), PROGRAM_CHANGE.md (18 programs)
 
 **Building:**
 ```bash
