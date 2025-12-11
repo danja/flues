@@ -19,23 +19,8 @@ static volatile bool running = true;
 
 // Synth engine (global for audio callback)
 static SynthEngine* g_synth = NULL;
-static bool g_use_mk449_remap = true;  // remap CCs for the Evolution MK-449 defaults
 static bool g_control_notes_enabled = false;  // off by default to avoid consuming low notes
 static int g_current_program = 0;  // Current MIDI program (0-7)
-
-// Translate MK-449 default CCs to the synth’s parameter map
-static uint8_t mk449_remap_cc(uint8_t cc_in) {
-    switch (cc_in) {
-        case 91: return 28;  // Effect 1 depth → Delay1 feedback
-        case 92: return 29;  // Effect 2 depth → Delay2 feedback
-        case 93: return 30;  // Effect 3 depth → Filter feedback
-        case 84: return 27;  // Portamento control → Delay ratio
-        case 12: return 20;  // Data entry → Noise level
-        case 13: return 19;  // Data entry fine → Disyn level
-        case 5:  return 1;   // Portamento time → Intensity (mod wheel stand-in)
-        default: return cc_in;
-    }
-}
 
 // Note numbers 36-42 toggle sections of the DSP chain for debugging hiss
 // 36: Noise, 37: Disyn, 38: Feedback, 39: Formants, 40: Filter, 41: Hard mute, 42: Reset
@@ -377,12 +362,7 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
         case MIDI_CONTROL_CHANGE: {
             uint8_t cc = event->cc_number;
 
-            // Apply MK-449 remapping first (if enabled)
-            if (g_use_mk449_remap) {
-                cc = mk449_remap_cc(cc);
-            }
-
-            // NEW: Clean parameter-based mapping system
+            // Clean parameter-based mapping system
             // Find which slider this CC corresponds to
             int slider_index = midi_find_slider_by_cc(cc);
 
@@ -399,45 +379,8 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
                 // Apply the parameter value to the engine
                 apply_parameter(synth, param, value);
             } else {
-                // Direct CC (not a slider) - handle legacy CCs
-                // Support direct CC control for parameters not on sliders
-                printf("CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
-
-                // Handle standard MIDI CCs that aren't slider-mapped
-                switch (cc) {
-                    case 1:   apply_parameter(synth, PARAM_INTENSITY, value); break;
-                    case 7:   apply_parameter(synth, PARAM_MASTER_GAIN, value); break;
-                    case 10:  apply_parameter(synth, PARAM_F2, value); break;
-                    case 16:  apply_parameter(synth, PARAM_DISYN_ALGORITHM, value); break;
-                    case 17:  apply_parameter(synth, PARAM_DISYN_PARAM1, value); break;
-                    case 18:  apply_parameter(synth, PARAM_DISYN_PARAM2, value); break;
-                    case 19:  apply_parameter(synth, PARAM_DISYN_LEVEL, value); break;
-                    case 20:  apply_parameter(synth, PARAM_NOISE_LEVEL, value); break;
-                    case 21:  apply_parameter(synth, PARAM_DC_LEVEL, value); break;
-                    case 24:  apply_parameter(synth, PARAM_INTERFACE_TYPE, value); break;
-                    case 26:  apply_parameter(synth, PARAM_TUNING, value); break;
-                    case 27:  apply_parameter(synth, PARAM_RATIO, value); break;
-                    case 28:  apply_parameter(synth, PARAM_DELAY1_FEEDBACK, value); break;
-                    case 29:  apply_parameter(synth, PARAM_DELAY2_FEEDBACK, value); break;
-                    case 30:  apply_parameter(synth, PARAM_FILTER_FEEDBACK, value); break;
-                    case 32:  apply_parameter(synth, PARAM_FILTER_FREQ, value); break;
-                    case 33:  apply_parameter(synth, PARAM_FILTER_Q, value); break;
-                    case 34:  apply_parameter(synth, PARAM_FILTER_SHAPE, value); break;
-                    case 36:  apply_parameter(synth, PARAM_LFO_FREQ, value); break;
-                    case 37:  apply_parameter(synth, PARAM_AM_FM_DEPTH, value); break;
-                    case 71:  apply_parameter(synth, PARAM_F1, value); break;
-                    case 72:  apply_parameter(synth, PARAM_RELEASE, value); break;
-                    case 73:  apply_parameter(synth, PARAM_ATTACK, value); break;
-                    case 74:  apply_parameter(synth, PARAM_F3, value); break;
-                    case 75:  apply_parameter(synth, PARAM_F4, value); break;
-                    case 80:  apply_parameter(synth, PARAM_NASAL, value); break;
-                    case 81:  apply_parameter(synth, PARAM_SING, value); break;
-                    case 82:  apply_parameter(synth, PARAM_SHOUT, value); break;
-                    case 83:  apply_parameter(synth, PARAM_FRY, value); break;
-                    default:
-                        // Unknown CC, ignore
-                        break;
-                }
+                // Non-slider CC: ignore under the simplified mapping scheme
+                printf(\"Unmapped CC ch%d: %3u -> %3u\\n\", event->channel + 1, cc, event->cc_value);
             }
             break;
         }
@@ -500,14 +443,6 @@ int main(int argc, char* argv[]) {
     printf("=== Flues-Synth v0.1.0 ===\n");
     printf("Unified Polyphonic Synthesizer (4-voice default)\n");
     printf("Target: Raspberry Pi 4 (ARM Cortex-A72)\n\n");
-
-    const char* mk_env = getenv("FLUES_MK449_MAP");
-    if (mk_env && mk_env[0] == '0') {
-        g_use_mk449_remap = false;
-    }
-    if (g_use_mk449_remap) {
-        printf("MK-449 CC remap: enabled (91→28, 92→29, 93→30, 84→27, 5→1)\n");
-    }
 
     const char* ctl_env = getenv("FLUES_CONTROL_NOTES");
     if (ctl_env && ctl_env[0] == '1') {
