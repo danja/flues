@@ -12,15 +12,23 @@ InterfaceModule* interface_create(float sample_rate) {
 
     iface->sample_rate = sample_rate;
     iface->current_type = 2; // Reed default
-    iface->strategy = interface_strategy_create(iface->current_type, sample_rate);
+    for (int i = 0; i < 12; i++) {
+        iface->cache[i] = NULL;
+    }
+
+    // Pre-create default strategy and cache it so we never free a live strategy
+    iface->cache[iface->current_type] = interface_strategy_create(iface->current_type, sample_rate);
+    iface->strategy = iface->cache[iface->current_type];
 
     return iface;
 }
 
 void interface_destroy(InterfaceModule* iface) {
     if (!iface) return;
-    if (iface->strategy) {
-        interface_strategy_destroy(iface->strategy);
+    for (int i = 0; i < 12; i++) {
+        if (iface->cache[i]) {
+            interface_strategy_destroy(iface->cache[i]);
+        }
     }
     free(iface);
 }
@@ -30,17 +38,26 @@ float interface_process(InterfaceModule* iface, float input) {
 }
 
 void interface_set_type(InterfaceModule* iface, int type) {
+    if (type < 0 || type > 11) {
+        type = 2; // Clamp to Reed if out of range
+    }
     if (type != iface->current_type) {
-        float old_intensity = iface->strategy->intensity;
-        float old_gate = iface->strategy->gate;
+        float old_intensity = iface->strategy ? iface->strategy->intensity : 0.5f;
+        float old_gate = iface->strategy ? iface->strategy->gate : false;
 
-        interface_strategy_destroy(iface->strategy);
-        iface->strategy = interface_strategy_create(type, iface->sample_rate);
-        iface->current_type = type;
+        // Create once per type and cache to avoid freeing while audio thread may be reading
+        if (!iface->cache[type]) {
+            iface->cache[type] = interface_strategy_create(type, iface->sample_rate);
+        }
 
-        // Restore parameters
-        interface_strategy_set_intensity(iface->strategy, old_intensity);
-        interface_strategy_set_gate(iface->strategy, old_gate);
+        if (iface->cache[type]) {
+            iface->strategy = iface->cache[type];
+            iface->current_type = type;
+
+            // Restore parameters on the newly selected strategy
+            interface_strategy_set_intensity(iface->strategy, old_intensity);
+            interface_strategy_set_gate(iface->strategy, old_gate);
+        }
     }
 }
 

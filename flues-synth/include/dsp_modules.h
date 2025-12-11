@@ -130,6 +130,7 @@ typedef struct {
     float sample_rate;
     int current_type;
     InterfaceStrategy* strategy;
+    InterfaceStrategy* cache[12];  // Cache per type to avoid frees during audio processing
 } InterfaceModule;
 
 typedef enum {
