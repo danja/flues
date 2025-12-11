@@ -98,17 +98,22 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
     printf("PROGRAM CHANGE: %d\n", program);
 
     switch (program) {
-        case 0:  // Disyn Direct - Raw distortion synth straight to output
-            printf("Program 0: Disyn Direct\n");
-            printf("  - Disyn enabled, all other processing bypassed\n");
-            printf("  - Sliders: Alg(73→16), P1(72→17), P2(28→18), Level(30→19), Intensity(74→1), Tuning(71→26), Ratio(1→27), Attack(27→73), Release(7→72)\n");
+        case 0:  // Disyn Echo - Disyn through single delay line
+            printf("Program 0: Disyn Echo\n");
+            printf("  - Disyn directly into single delay line + interface selector\n");
+            printf("  - Sliders: Alg(73→16), P1(72→17), P2(28→18), Interface(30→24), Intensity(74→1), Tuning(71→26), Feedback(1→28), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
-            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_feedback(synth, true);  // Enable feedback for delay
             synth_engine_enable_filter(synth, false);
-            synth_engine_set_disyn_level(synth, 0.8f);
-            synth_engine_set_master_gain(synth, 0.7f);
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_intensity(synth, 0.5f);  // Default interface intensity (still used by chosen interface)
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.0f);  // Disable second delay
+            synth_engine_set_filter_feedback(synth, 0.0f);  // No filter in path
+            synth_engine_set_interface_type(synth, INTERFACE_REED);
+            synth_engine_set_master_gain(synth, 0.6f);
             break;
 
         case 1:  // Disyn + Delays - Add delay lines to Disyn
@@ -199,22 +204,17 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             handle_program_change(5, synth);
             return;
 
-        case 7:  // Disyn Echo - Disyn through single delay line
-            printf("Program 7: Disyn Echo\n");
-            printf("  - Disyn directly into single delay line + interface selector\n");
-            printf("  - Sliders: Alg(73→16), P1(72→17), P2(28→18), Interface(30→24), Intensity(74→1), Tuning(71→26), Feedback(1→28), Attack(27→73), Release(7→72)\n");
+        case 7:  // Disyn Direct - Raw distortion synth straight to output
+            printf("Program 7: Disyn Direct\n");
+            printf("  - Disyn enabled, all other processing bypassed\n");
+            printf("  - Sliders: Alg(73→16), P1(72→17), P2(28→18), Level(30→19), Intensity(74→1), Tuning(71→26), Ratio(1→27), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
-            synth_engine_enable_feedback(synth, true);  // Enable feedback for delay
+            synth_engine_enable_feedback(synth, false);
             synth_engine_enable_filter(synth, false);
-            synth_engine_set_disyn_level(synth, 0.6f);
-            synth_engine_set_intensity(synth, 0.5f);  // Default interface intensity (still used by chosen interface)
-            synth_engine_set_delay1_feedback(synth, 0.3f);
-            synth_engine_set_delay2_feedback(synth, 0.0f);  // Disable second delay
-            synth_engine_set_filter_feedback(synth, 0.0f);  // No filter in path
-            synth_engine_set_interface_type(synth, INTERFACE_REED);
-            synth_engine_set_master_gain(synth, 0.6f);
+            synth_engine_set_disyn_level(synth, 0.8f);
+            synth_engine_set_master_gain(synth, 0.7f);
             break;
 
         default:

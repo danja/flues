@@ -52,15 +52,15 @@ static const char* PARAMETER_NAMES[] = {
     [PARAM_NONE]              = "(unmapped)"
 };
 
-// Program 0: Disyn Direct
+// Program 0: Disyn Echo
 static const SynthParameter PROGRAM_0_MAP[9] = {
     PARAM_DISYN_ALGORITHM,  // Slider 1 (CC 73)
     PARAM_DISYN_PARAM1,     // Slider 2 (CC 72)
     PARAM_DISYN_PARAM2,     // Slider 3 (CC 28)
-    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30)
+    PARAM_INTERFACE_TYPE,   // Slider 4 (CC 30)
     PARAM_INTENSITY,        // Slider 5 (CC 74)
     PARAM_TUNING,           // Slider 6 (CC 71)
-    PARAM_RATIO,            // Slider 7 (CC 1)
+    PARAM_DELAY1_FEEDBACK,  // Slider 7 (CC 1)
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -136,15 +136,15 @@ static const SynthParameter PROGRAM_6_MAP[9] = {
     PARAM_NONE, PARAM_NONE, PARAM_NONE, PARAM_NONE
 };
 
-// Program 7: Disyn Echo
+// Program 7: Disyn Direct
 static const SynthParameter PROGRAM_7_MAP[9] = {
     PARAM_DISYN_ALGORITHM,  // Slider 1 (CC 73)
     PARAM_DISYN_PARAM1,     // Slider 2 (CC 72)
     PARAM_DISYN_PARAM2,     // Slider 3 (CC 28)
-    PARAM_INTERFACE_TYPE,   // Slider 4 (CC 30)
+    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30)
     PARAM_INTENSITY,        // Slider 5 (CC 74)
     PARAM_TUNING,           // Slider 6 (CC 71)
-    PARAM_DELAY1_FEEDBACK,  // Slider 7 (CC 1)  ← THE FIX!
+    PARAM_RATIO,            // Slider 7 (CC 1)
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
