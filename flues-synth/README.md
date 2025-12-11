@@ -167,6 +167,9 @@ Press `Ctrl+C` for clean shutdown.
 ### Autostart on Raspberry Pi
 See `docs/startup.md` for a systemd user service that launches `/home/danny/github/flues/play` on boot and restarts it if it crashes.
 
+### How it works
+See `docs/how-it-works.md` for a quick architecture walkthrough and block descriptions.
+
 ## Troubleshooting
 
 ### Low-frequency hum (~50Hz) when idle
