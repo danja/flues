@@ -1,6 +1,6 @@
 // midi_mapping.c
 // MIDI CC to parameter mapping tables
-// Clean, maintainable mapping system for all 8 programs
+// Clean, maintainable mapping system for all 18 programs
 
 #include "midi_mapping.h"
 #include <stddef.h>
@@ -149,8 +149,138 @@ static const SynthParameter PROGRAM_7_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
+// Program 8: ModFM Formant
+static const SynthParameter PROGRAM_8_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → ModFM Ratio
+    PARAM_F1,               // Slider 3 (CC 28) → F1 Jaw
+    PARAM_F2,               // Slider 4 (CC 30) → F2 Tongue
+    PARAM_F3,               // Slider 5 (CC 74) → F3 Lips
+    PARAM_F4,               // Slider 6 (CC 71) → F4 Quality
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 9: DSF Inharmonic Explorer
+static const SynthParameter PROGRAM_9_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
+    PARAM_DELAY1_FEEDBACK,  // Slider 3 (CC 28) → Delay1 Feedback
+    PARAM_DELAY2_FEEDBACK,  // Slider 4 (CC 30) → Delay2 Feedback
+    PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
+    PARAM_RATIO,            // Slider 7 (CC 1) → Delay Ratio
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 10: PAF Direct
+static const SynthParameter PROGRAM_10_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → PAF Formant
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → PAF Bandwidth
+    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
+    PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 11: Cascaded DSF+PAF
+static const SynthParameter PROGRAM_11_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
+    PARAM_F1,               // Slider 3 (CC 28) → F1 Low Formant
+    PARAM_F2,               // Slider 4 (CC 30) → F2 High Formant
+    PARAM_F3,               // Slider 5 (CC 74) → F3 Brightness
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 12: Tanh Spectral
+static const SynthParameter PROGRAM_12_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Tanh Drive
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Tanh Blend
+    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
+    PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
+    PARAM_FILTER_FEEDBACK,  // Slider 6 (CC 71) → Filter Feedback
+    PARAM_INTENSITY,        // Slider 7 (CC 1) → Intensity
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 13: Hybrid DSF→Formant
+static const SynthParameter PROGRAM_13_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
+    PARAM_F1,               // Slider 3 (CC 28) → F1 Jaw
+    PARAM_F2,               // Slider 4 (CC 30) → F2 Tongue
+    PARAM_F3,               // Slider 5 (CC 74) → F3 Lips
+    PARAM_F4,               // Slider 6 (CC 71) → F4 Quality
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 14: Feedback ModFM
+static const SynthParameter PROGRAM_14_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → ModFM Ratio
+    PARAM_DELAY1_FEEDBACK,  // Slider 3 (CC 28) → Delay1 Feedback
+    PARAM_DELAY2_FEEDBACK,  // Slider 4 (CC 30) → Delay2 Feedback
+    PARAM_FILTER_FEEDBACK,  // Slider 5 (CC 74) → Filter Feedback
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
+    PARAM_RATIO,            // Slider 7 (CC 1) → Delay Ratio
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 15: Dirichlet Explorer
+static const SynthParameter PROGRAM_15_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Harmonics
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Tilt
+    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
+    PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 16: Multi-Algorithm Demo
+static const SynthParameter PROGRAM_16_MAP[9] = {
+    PARAM_DISYN_ALGORITHM,  // Slider 1 (CC 73) → Algorithm Selector
+    PARAM_DISYN_PARAM1,     // Slider 2 (CC 72) → Param1
+    PARAM_DISYN_PARAM2,     // Slider 3 (CC 28) → Param2
+    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30) → Disyn Level
+    PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 17: Spectral Sculptor
+static const SynthParameter PROGRAM_17_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
+    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
+    PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
+    PARAM_DELAY1_FEEDBACK,  // Slider 6 (CC 71) → Delay1 Feedback
+    PARAM_FILTER_FEEDBACK,  // Slider 7 (CC 1) → Filter Feedback
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
 // Master program table (array of pointers)
-static const SynthParameter* PROGRAM_MAPS[8] = {
+static const SynthParameter* PROGRAM_MAPS[18] = {
     PROGRAM_0_MAP,
     PROGRAM_1_MAP,
     PROGRAM_2_MAP,
@@ -158,12 +288,22 @@ static const SynthParameter* PROGRAM_MAPS[8] = {
     PROGRAM_4_MAP,
     PROGRAM_5_MAP,
     PROGRAM_6_MAP,
-    PROGRAM_7_MAP
+    PROGRAM_7_MAP,
+    PROGRAM_8_MAP,
+    PROGRAM_9_MAP,
+    PROGRAM_10_MAP,
+    PROGRAM_11_MAP,
+    PROGRAM_12_MAP,
+    PROGRAM_13_MAP,
+    PROGRAM_14_MAP,
+    PROGRAM_15_MAP,
+    PROGRAM_16_MAP,
+    PROGRAM_17_MAP
 };
 
 // Get parameter for program/slider combination
 SynthParameter midi_get_slider_parameter(uint8_t program, uint8_t slider_index) {
-    if (program >= 8 || slider_index >= 9) {
+    if (program >= 18 || slider_index >= 9) {
         return PARAM_NONE;
     }
     return PROGRAM_MAPS[program][slider_index];

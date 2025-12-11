@@ -2,20 +2,30 @@
 
 ## Overview
 
-MIDI Program Change messages (0-7) configure the signal chain routing and dynamically remap the 9 hardware sliders to the most relevant parameters for each program.
+MIDI Program Change messages (0-17) configure the signal chain routing and dynamically remap the 9 hardware sliders to the most relevant parameters for each program.
 
 ### Program Summary
 
 | Program | Name | Signal Chain | Status |
 |---------|------|--------------|--------|
-| 0 | Disyn Direct | Disyn → Output | Active |
+| 0 | Disyn Echo | Disyn → Interface → Delay1 | Active |
 | 1 | Disyn + Delays | Disyn → Delays | Active |
 | 2 | Disyn + Filter | Disyn → Delays → Filter | Active |
 | 3 | Formant Voice | Noise → Formants | Active |
 | 4 | Hybrid Speech | Disyn + Noise → Formants | Active |
 | 5 | Physical Model | Noise → Interface → Delays → Filter | Active |
 | 6 | Full Hybrid | *DISABLED* (redirects to 5) | Disabled |
-| 7 | Disyn Echo | Disyn → Delay1 | Active |
+| 7 | Disyn Direct | Disyn → Output | Active |
+| 8 | ModFM Formant | ModFM → Formants → Output | Active |
+| 9 | DSF Inharmonic | DSF Single → Delays → Output | Active |
+| 10 | PAF Direct | PAF → Filter → Output | Active |
+| 11 | Cascaded DSF+PAF | DSF Double → Formants → Output | Active |
+| 12 | Tanh Spectral | Tanh Saw → Filter → Feedback → Output | Active |
+| 13 | Hybrid DSF→Formant | DSF Single → Formants → Output | Active |
+| 14 | Feedback ModFM | ModFM → Delays → Filter → Feedback → Output | Active |
+| 15 | Dirichlet Explorer | Dirichlet → Filter → Output | Active |
+| 16 | Multi-Algorithm | Disyn (any) → Output | Active |
+| 17 | Spectral Sculptor | DSF Double → Filter → Feedback → Output | Active |
 
 ## Hardware Slider Mapping
 
@@ -182,6 +192,206 @@ The MIDI controller has 9 sliders sending these CC numbers:
 - Slider 9: **Release** (7→72)
 
 **Default Settings**: Disyn 0.6, Delay1 feedback 0.3, Delay2 off, master gain 0.6
+
+---
+
+### Program 8: ModFM Formant
+**Signal Chain**: ModFM (algo 6) → Formants (F1-F4) → Output
+
+**Use Case**: Voice-like lead synthesizer with natural spectral evolution and formant control. Excellent for solo lines with vowel articulation.
+
+**Slider Mappings**:
+- Slider 1: **ModFM Index** (73→17) - Modulation brightness (0.01-8)
+- Slider 2: **ModFM Ratio** (72→18) - Carrier/modulator ratio (0.25-6)
+- Slider 3: **F1 Jaw** (28→71) - First formant 200-1000 Hz
+- Slider 4: **F2 Tongue** (30→10) - Second formant 500-3000 Hz
+- Slider 5: **F3 Lips** (74→74) - Third formant 1500-4000 Hz
+- Slider 6: **F4 Quality** (71→75) - Fourth formant 2500-4500 Hz
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn level 0.6, F1=500Hz, F2=1500Hz, F3=2500Hz, F4=3500Hz
+
+---
+
+### Program 9: DSF Inharmonic Explorer
+**Signal Chain**: DSF Single (algo 1) → Delay Lines (feedback) → Output
+
+**Use Case**: Bell synthesis, gong sounds, metallic percussion. DSF ratio parameter creates harmonic (1.0) to inharmonic (√2, φ) spectra.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Spectral rolloff (0-0.98)
+- Slider 2: **DSF Ratio** (72→18) - Harmonic/inharmonic (0.5-4.0)
+- Slider 3: **Delay1 Feedback** (28→28) - Primary echo return
+- Slider 4: **Delay2 Feedback** (30→29) - Secondary echo return
+- Slider 5: **Intensity** (74→1) - Interface intensity
+- Slider 6: **Tuning** (71→26) - Delay pitch offset (-12 to +12 semitones)
+- Slider 7: **Delay Ratio** (1→27) - Delay line 2 ratio (0.5-2.0×)
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Single (algo 1), Disyn level 0.6, Delay1 0.4, Delay2 0.2
+
+---
+
+### Program 10: PAF Direct
+**Signal Chain**: PAF (algo 5) → Filter (SVF) → Output
+
+**Use Case**: Vowel-like synthesis with filter articulation. PAF creates formant "bump" in spectrum, filter provides additional shaping.
+
+**Slider Mappings**:
+- Slider 1: **PAF Formant** (73→17) - Formant center (0.5-6× f0)
+- Slider 2: **PAF Bandwidth** (72→18) - Formant width (50-3000 Hz)
+- Slider 3: **Filter Frequency** (28→32) - SVF cutoff (20Hz-20kHz)
+- Slider 4: **Filter Q** (30→33) - Resonance (0.1-10)
+- Slider 5: **Filter Shape** (74→34) - LP→BP→HP morph (0-1)
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: PAF (algo 5), Disyn level 0.8, Filter 3kHz Q=2.0 BP
+
+---
+
+### Program 11: Cascaded DSF+PAF
+**Signal Chain**: DSF Double (algo 2) → Formants (F1-F4) → Output
+
+**Use Case**: Bell-like timbres with formant resonance. Combining DSF's inharmonic capabilities with formant filtering creates complex, evolving metallic tones.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Spectral rolloff
+- Slider 2: **DSF Ratio** (72→18) - Inharmonicity (try √2=1.414, φ=1.618)
+- Slider 3: **F1 Low Formant** (28→71) - 200-1000 Hz
+- Slider 4: **F2 High Formant** (30→10) - 500-3000 Hz
+- Slider 5: **F3 Brightness** (74→74) - 1500-4000 Hz
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Double (algo 2), Disyn level 0.5, F1=800Hz, F2=2400Hz, F3=4000Hz
+
+---
+
+### Program 12: Tanh Spectral
+**Signal Chain**: Tanh Saw (algo 4) → Filter (SVF) → Feedback → Output
+
+**Use Case**: Aggressive filtered synthesis with feedback resonance. Tanh provides harmonic saturation, filter shapes spectrum, feedback adds metallic character. Perfect for acid-style sounds.
+
+**Slider Mappings**:
+- Slider 1: **Tanh Drive** (73→17) - Saturation amount (0.05-4.5)
+- Slider 2: **Tanh Blend** (72→18) - Square/saw mix (0-1)
+- Slider 3: **Filter Frequency** (28→32) - Cutoff sweep (20Hz-20kHz)
+- Slider 4: **Filter Q** (30→33) - Resonance (0.1-10)
+- Slider 5: **Filter Shape** (74→34) - LP→BP→HP morph
+- Slider 6: **Filter Feedback** (71→30) - Feedback return level
+- Slider 7: **Intensity** (1→1) - Interface intensity
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Tanh Saw (algo 4), Disyn level 0.7, Filter 1.5kHz Q=3.0 BP, Filter FB 0.4
+
+---
+
+### Program 13: Hybrid DSF→Formant
+**Signal Chain**: DSF Single (algo 1) → Formants (F1-F4 full cascade) → Output
+
+**Use Case**: Rich vocal synthesis with harmonic source. DSF provides spectrally complex base, formants add vowel character. Excellent for choir-like pads and vocal leads.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Harmonic brightness (0-0.98)
+- Slider 2: **DSF Ratio** (72→18) - Source character (0.5-4)
+- Slider 3: **F1 Jaw** (28→71) - First formant
+- Slider 4: **F2 Tongue** (30→10) - Second formant
+- Slider 5: **F3 Lips** (74→74) - Third formant
+- Slider 6: **F4 Quality** (71→75) - Fourth formant
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Single (algo 1), Disyn level 0.4, F1=600Hz, F2=1500Hz, F3=3000Hz, F4=4000Hz
+
+---
+
+### Program 14: Feedback ModFM
+**Signal Chain**: ModFM (algo 6) → Delays → Filter → Feedback (all returns) → Output
+
+**Use Case**: Metallic bell-like timbres with complex feedback behavior. ModFM's natural evolution + feedback creates unpredictable but musical harmonics. Excellent for FM bells and metallic percussion.
+
+**Slider Mappings**:
+- Slider 1: **ModFM Index** (73→17) - Modulation depth (0.01-8)
+- Slider 2: **ModFM Ratio** (72→18) - Carrier/mod ratio (0.25-6)
+- Slider 3: **Delay1 Feedback** (28→28) - Primary resonance
+- Slider 4: **Delay2 Feedback** (30→29) - Secondary resonance
+- Slider 5: **Filter Feedback** (74→30) - Filter return
+- Slider 6: **Tuning** (71→26) - Delay pitch offset
+- Slider 7: **Delay Ratio** (1→27) - Delay 2 ratio
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn level 0.5, Delay1 0.5, Delay2 0.3, Filter FB 0.4, Filter 2kHz Q=2.5
+
+---
+
+### Program 15: Dirichlet Explorer
+**Signal Chain**: Dirichlet Pulse (algo 0) → Filter (SVF) → Output
+
+**Use Case**: Classic harmonic synthesis with filter control. Windham/Steiglitz pulse train with adjustable bandwidth. Excellent for filter sweeps and resonant sounds.
+
+**Slider Mappings**:
+- Slider 1: **Harmonics** (73→17) - Number of partials (1-64)
+- Slider 2: **Tilt** (72→18) - Spectral tilt (-3 to +15 dB/oct)
+- Slider 3: **Filter Frequency** (28→32) - Cutoff (20Hz-20kHz)
+- Slider 4: **Filter Q** (30→33) - Resonance (0.1-10)
+- Slider 5: **Filter Shape** (74→34) - LP→BP→HP morph
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Dirichlet (algo 0), Disyn level 0.8, Filter 5kHz Q=1.5 LP
+
+---
+
+### Program 16: Multi-Algorithm Demo
+**Signal Chain**: Disyn (any algorithm, selected by slider 1) → Output
+
+**Use Case**: Educational/demo mode. Quickly audition all 7 algorithms with identical parameter control. Useful for sound design and understanding algorithm characteristics.
+
+**Slider Mappings**:
+- Slider 1: **Algorithm Selector** (73→16) - 0-6 (Dirichlet, DSF1, DSF2, TanhSq, TanhSaw, PAF, ModFM)
+- Slider 2: **Param1** (72→17) - Algorithm-specific parameter 1
+- Slider 3: **Param2** (28→18) - Algorithm-specific parameter 2
+- Slider 4: **Disyn Level** (30→19) - Output gain
+- Slider 5: **Intensity** (74→1) - Interface intensity (bypassed)
+- Slider 6: **Tuning** (71→26) - Pitch offset
+- Slider 7: **Master Gain** (1→7) - Final output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Disyn level 0.6, all other modules bypassed, compromise gain for all algorithms
+
+---
+
+### Program 17: Spectral Sculptor
+**Signal Chain**: DSF Double (algo 2) → Filter (SVF) → Feedback (all returns) → Output
+
+**Use Case**: Dynamic spectral animation for acid-style sounds and evolving timbres. DSF decay parameter acts as "cutoff", ratio adds character, filter provides resonance.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Spectral density (acts like Q)
+- Slider 2: **DSF Ratio** (72→18) - Harmonic/inharmonic
+- Slider 3: **Filter Frequency** (28→32) - Cutoff sweep
+- Slider 4: **Filter Q** (30→33) - Resonance
+- Slider 5: **Filter Shape** (74→34) - LP→BP→HP morph
+- Slider 6: **Delay1 Feedback** (71→28) - Resonance feedback
+- Slider 7: **Filter Feedback** (1→30) - Filter return
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Double (algo 2), Disyn level 0.6, Filter 2kHz Q=2.5 BP, Delay1 0.3, Delay2 0.25, Filter FB 0.35
 
 ---
 

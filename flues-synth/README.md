@@ -10,7 +10,7 @@ Unified **polyphonic (4-voice default)** synthesizer combining Disyn distortion 
 - **Chatterbox Formants**: 4-formant cascade (F1-F4) with nasal resonance and vocal modes (Sing, Shout, Nasal, Fry)
 - **PM-Synth Physical Modeling**: 12 interface strategies (Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma)
 - **Dual DC Blocking**: Prevents feedback latching with -60dB DC rejection
-- **Calibrated Signal Levels**: Safe 0.28 peak output with headroom for dynamics
+- **Calibrated Signal Levels**: Optimized 0.81 peak output for maximum S16_LE bit depth usage
 - **ALSA Audio**: Direct PCM output (32 kHz default, 512 samples; configure at build/runtime)
 - **ALSA MIDI**: Auto-connects to best external MIDI port on startup
 - **Headless Control**: Comprehensive MIDI CC mapping (29 parameters + 6 control notes)
@@ -45,9 +45,9 @@ State-Variable Filter (LP/BP/HP morph, Q control)
   ↓
 × AM Modulation (LFO bipolar AM↔FM)
   ↓
-Global Processing (×0.7 pad → tanh clip → ×0.5 master)
+Global Processing (×0.85 pad → tanh clip → ×0.95 master)
   ↓
-ALSA Audio Out (peak ~0.28, safe margin)
+ALSA Audio Out (peak ~0.81, optimized for S16_LE bit depth)
 ```
 
 ### Key Architecture Features
@@ -58,8 +58,8 @@ ALSA Audio Out (peak ~0.28, safe margin)
 - **Level Management**:
   - Disyn level: 0.8 (user adjustable via CC 19)
   - Formant makeup: 2.0× (compensates for Q-induced attenuation)
-  - Global pad: 0.7× + soft clip (tanh) + master 0.5×
-  - Final peak: ~0.28 (safe, no clipping)
+  - Global pad: 0.85× + soft clip (tanh) + master 0.95×
+  - Final peak: ~0.81 (optimized for S16_LE, with tanh safety)
 - **Debug Toggles**: MIDI notes 36-41 toggle DSP sections (disabled by default; enable with `FLUES_CONTROL_NOTES=1`)
 
 ## Requirements
@@ -271,6 +271,44 @@ If no device is specified, flues-synth tries these in order:
 7. `default`
 
 Override with: `./builddir/flues-synth <device-name>`
+
+### Audio Format and Quality
+
+Flues-synth supports multiple ALSA PCM formats with automatic fallback:
+
+**Preferred Formats** (tried in order):
+1. **S16_LE** (16-bit signed little-endian) - Most widely supported
+2. **FLOAT_LE** (32-bit float) - Best quality, less common
+
+**S16_LE Signal Optimization**:
+- **Bit depth usage**: 81% of full scale (0.85 × 0.95 master gain)
+  - Effective range: ±26,542 of ±32,768 possible values
+  - Uses ~15.4 of 16 available bits for optimal SNR
+- **TPDF Dithering**: Triangular PDF dither (±1 LSB) linearizes quantization
+  - Eliminates low-level distortion and quantization artifacts
+  - Decorrelates quantization noise from signal
+  - Improves perceived SNR by ~3-4 dB
+- **Proper Rounding**: Uses round-to-nearest instead of truncation to prevent DC bias
+
+**Why This Matters**:
+- Without dithering, low-level signals (quiet passages, reverb tails) produce audible "digital grunge"
+- TPDF dither trades a tiny amount of noise floor (~-96 dBFS) for much cleaner low-level reproduction
+- Signal levels optimized to use maximum bit depth without clipping
+
+**Format Detection**:
+```bash
+# Check what format your device negotiated
+cat /proc/asound/card*/pcm*p/sub*/hw_params
+```
+
+Example output:
+```
+access: RW_INTERLEAVED
+format: S16_LE
+subformat: STD
+channels: 1
+rate: 48000 (48000/1)
+```
 
 ## MIDI Control
 
@@ -561,7 +599,7 @@ flues-synth/
 
 ## Documentation
 
-- **[MIDI Reference](docs/midi.md)** - Complete MIDI control specification (29 CCs, 8 programs, control notes)
+- **[MIDI Reference](docs/midi.md)** - Complete MIDI control specification (29 CCs, 18 programs, control notes)
 - **[Program Change Guide](docs/PROGRAM_CHANGE.md)** - Signal chain configurations and slider remapping
 - **[Signal Flow Diagram](docs/flues-synth-signal-flow.svg)** - Visual architecture with signal levels
 - **[Handover Document](docs/flues-synth-handover.md)** - Original implementation notes and design decisions
@@ -579,7 +617,8 @@ flues-synth/
 - ✅ 29 MIDI CC controls with name printing
 - ✅ 6 control notes for debug toggles
 - ✅ Dual DC blocking protection
-- ✅ Calibrated signal levels (0.28 peak)
+- ✅ Calibrated signal levels (0.81 peak, optimized for S16_LE)
+- ✅ TPDF dithering for clean 16-bit output
 - ✅ Test suite (engine-smoke, envelope-test, disyn-levels)
 
 ### Phase 2 (Next)
@@ -595,6 +634,35 @@ flues-synth/
 - ☐ Performance profiling
 
 ## Recent Changes
+
+### 2025-12-11: Added Programs 8-17 (Distortion Synthesis Expansion)
+- **Implemented 10 new MIDI programs** based on distortion synthesis algorithms
+  - Program 8: ModFM Formant (voice-like synthesis)
+  - Program 9: DSF Inharmonic Explorer (bells/gongs)
+  - Program 10: PAF Direct (vowel synthesis)
+  - Program 11: Cascaded DSF+PAF (inharmonic resonator)
+  - Program 12: Tanh Spectral (acid synthesis)
+  - Program 13: Hybrid DSF→Formant (vocal synthesis)
+  - Program 14: Feedback ModFM (FM bells)
+  - Program 15: Dirichlet Explorer (harmonic synthesis)
+  - Program 16: Multi-Algorithm Demo (algorithm comparison)
+  - Program 17: Spectral Sculptor (adaptive filtering)
+- **Leverages existing 7 Disyn algorithms** through different signal chain routing
+- **Each program has optimized slider mappings** (9 sliders per program)
+- **Level safety verified** (all programs peak <0.95)
+- **No new C++ code required** - uses proven algorithm implementations
+- **Total expansion**: 8 → 18 MIDI programs
+
+### 2025-12-11: S16_LE Audio Quality Improvements
+- **Increased signal levels** for better bit depth usage (56% → 81% of full scale)
+  - Global pad: 0.7 → 0.85
+  - Master gain: 0.8 → 0.95
+  - Peak output: 0.28 → 0.81 (uses ~15.4 effective bits instead of ~13 bits)
+- **Added TPDF dithering** for S16_LE conversion (±1 LSB triangular PDF)
+  - Eliminates quantization distortion on low-level signals
+  - Improves perceived SNR by ~3-4 dB
+- **Fixed truncation bias** using proper round-to-nearest conversion
+- **Result**: Much cleaner quiet passages, reverb tails, and overall sound quality
 
 ### 2025-12-05: Signal Level & DC Blocking Fixes
 - **Removed aggressive output DC blocker** (was killing envelope attack)

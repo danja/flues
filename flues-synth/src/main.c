@@ -217,6 +217,178 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_master_gain(synth, 0.7f);
             break;
 
+        case 8:  // ModFM Formant - Hybrid Formant Engine
+            printf("Program 8: ModFM Formant\n");
+            printf("  - ModFM → Formants (F1-F4) → Output\n");
+            printf("  - Voice-like lead with natural FM evolution and formant control\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_f1(synth, 500.0f);
+            synth_engine_set_f2(synth, 1500.0f);
+            synth_engine_set_f3(synth, 2500.0f);
+            synth_engine_set_f4(synth, 3500.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 9:  // DSF Inharmonic Explorer - Metallic bells/gongs
+            printf("Program 9: DSF Inharmonic Explorer\n");
+            printf("  - DSF Single → Delays (feedback) → Output\n");
+            printf("  - Bell synthesis with harmonic/inharmonic ratio control\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), Dly1(28→28), Dly2(30→29), Intensity(74→1), Tuning(71→26), DlyRatio(1→27), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 1);  // DSF Single
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_delay1_feedback(synth, 0.4f);
+            synth_engine_set_delay2_feedback(synth, 0.2f);
+            break;
+
+        case 10:  // PAF Direct - Vowel synthesis with filter
+            printf("Program 10: PAF Direct\n");
+            printf("  - PAF → Filter (SVF) → Output\n");
+            printf("  - Vowel-like synthesis with filter articulation\n");
+            printf("  - Sliders: Formant(73→17), Bandwidth(72→18), Freq(28→32), Q(30→33), Shape(74→34), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 5);  // PAF
+            synth_engine_set_disyn_level(synth, 0.8f);
+            synth_engine_set_filter_frequency(synth, 3000.0f);
+            synth_engine_set_filter_q(synth, 2.0f);
+            break;
+
+        case 11:  // Cascaded DSF+PAF - Inharmonic resonator
+            printf("Program 11: Cascaded DSF+PAF\n");
+            printf("  - DSF Double → Formants (F1-F4) → Output\n");
+            printf("  - Bell-like timbres with formant resonance\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 2);  // DSF Double
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 800.0f);
+            synth_engine_set_f2(synth, 2400.0f);
+            synth_engine_set_f3(synth, 4000.0f);
+            break;
+
+        case 12:  // Tanh Spectral - Aggressive filtered synthesis
+            printf("Program 12: Tanh Spectral\n");
+            printf("  - Tanh Saw → Filter (SVF) → Feedback → Output\n");
+            printf("  - Aggressive filtered synthesis with feedback resonance\n");
+            printf("  - Sliders: Drive(73→17), Blend(72→18), Freq(28→32), Q(30→33), Shape(74→34), FiltFB(71→30), Intensity(1→1), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 4);  // Tanh Saw
+            synth_engine_set_disyn_level(synth, 0.7f);
+            synth_engine_set_filter_frequency(synth, 1500.0f);
+            synth_engine_set_filter_q(synth, 3.0f);
+            synth_engine_set_filter_feedback(synth, 0.4f);
+            break;
+
+        case 13:  // Hybrid DSF→Formant - Rich vocal synthesis
+            printf("Program 13: Hybrid DSF→Formant\n");
+            printf("  - DSF Single → Formants (F1-F4 full cascade) → Output\n");
+            printf("  - Rich vocal synthesis with harmonic source\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 1);  // DSF Single
+            synth_engine_set_disyn_level(synth, 0.4f);
+            synth_engine_set_f1(synth, 600.0f);
+            synth_engine_set_f2(synth, 1500.0f);
+            synth_engine_set_f3(synth, 3000.0f);
+            synth_engine_set_f4(synth, 4000.0f);
+            break;
+
+        case 14:  // Feedback ModFM - Metallic bell timbres
+            printf("Program 14: Feedback ModFM\n");
+            printf("  - ModFM → Delays → Filter → Feedback (all returns) → Output\n");
+            printf("  - Metallic bell-like timbres with complex feedback behavior\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), Dly1(28→28), Dly2(30→29), FiltFB(74→30), Tuning(71→26), DlyRatio(1→27), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_delay1_feedback(synth, 0.5f);
+            synth_engine_set_delay2_feedback(synth, 0.3f);
+            synth_engine_set_filter_feedback(synth, 0.4f);
+            synth_engine_set_filter_frequency(synth, 2000.0f);
+            synth_engine_set_filter_q(synth, 2.5f);
+            break;
+
+        case 15:  // Dirichlet Explorer - Harmonic pulse with filter sweeping
+            printf("Program 15: Dirichlet Explorer\n");
+            printf("  - Dirichlet Pulse → Filter (SVF) → Output\n");
+            printf("  - Classic harmonic synthesis with filter control\n");
+            printf("  - Sliders: Harmonics(73→17), Tilt(72→18), Freq(28→32), Q(30→33), Shape(74→34), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 0);  // Dirichlet Pulse
+            synth_engine_set_disyn_level(synth, 0.8f);
+            synth_engine_set_filter_frequency(synth, 5000.0f);
+            synth_engine_set_filter_q(synth, 1.5f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 16:  // Multi-Algorithm Demo - A/B comparison mode
+            printf("Program 16: Multi-Algorithm Demo\n");
+            printf("  - Disyn (any algo, selected by slider 1) → Output\n");
+            printf("  - Educational/demo mode for comparing all 7 algorithms\n");
+            printf("  - Sliders: Algorithm(73→16), P1(72→17), P2(28→18), Level(30→19), Intensity(74→1), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 17:  // Spectral Sculptor - Adaptive filter emulation
+            printf("Program 17: Spectral Sculptor\n");
+            printf("  - DSF Double → Filter (SVF) → Feedback (all returns) → Output\n");
+            printf("  - Dynamic spectral animation for acid-style sounds\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), Freq(28→32), Q(30→33), Shape(74→34), Dly1FB(71→28), FiltFB(1→30), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 2);  // DSF Double
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.25f);
+            synth_engine_set_filter_feedback(synth, 0.35f);
+            synth_engine_set_filter_frequency(synth, 2000.0f);
+            synth_engine_set_filter_q(synth, 2.5f);
+            break;
+
         default:
             printf("Program %d: Unknown (using program 0)\n", program);
             handle_program_change(0, synth);
