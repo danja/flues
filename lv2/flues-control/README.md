@@ -27,17 +27,17 @@ Dropdown menu with 8 synthesis programs:
 ### 9 Parameter Sliders
 Each slider outputs a fixed MIDI CC but controls different parameters per program:
 
-| Slider | CC  | Description |
-|--------|-----|-------------|
-| 1      | 73  | Program-dependent parameter |
-| 2      | 72  | Program-dependent parameter |
-| 3      | 28  | Program-dependent parameter |
-| 4      | 30  | Program-dependent parameter |
-| 5      | 74  | Program-dependent parameter |
-| 6      | 71  | Program-dependent parameter |
-| 7      | 1   | Program-dependent parameter |
-| 8      | 27  | **Attack** (fixed across all programs) |
-| 9      | 7   | **Release** (fixed across all programs) |
+| Control Label      | CC  | Description |
+|--------------------|-----|-------------|
+| Slider 1 (CC 73)   | 73  | Program-dependent: Algorithm/Feedback/Filter Freq/F1 Jaw/etc. |
+| Slider 2 (CC 72)   | 72  | Program-dependent: Param1/Feedback/Filter Q/F2 Tongue/etc. |
+| Slider 3 (CC 28)   | 28  | Program-dependent: Param2/Filter Feedback/Filter Shape/F3 Lips/etc. |
+| Slider 4 (CC 30)   | 30  | Program-dependent: Interface Type/Disyn Level/F4 Quality/etc. |
+| Slider 5 (CC 74)   | 74  | Program-dependent: Intensity/Noise Level/Disyn Level/etc. |
+| Slider 6 (CC 71)   | 71  | Program-dependent: Tuning/Nasal/Master Gain/etc. |
+| Slider 7 (CC 1)    | 1   | Program-dependent: Delay Feedback/Ratio/Master Gain/etc. |
+| Attack (CC 27)     | 27  | Envelope attack time (1-1000ms, fixed across all programs) |
+| Release (CC 7)     | 7   | Envelope release time (10-3000ms, fixed across all programs) |
 
 ## MIDI Input/Output
 
@@ -156,7 +156,8 @@ jalv.gtk https://danja.github.io/flues/plugins/flues-control
 
 You should see:
 - Program dropdown with 8 labeled options
-- 9 sliders labeled "Slider 1" through "Slider 9"
+- Sliders 1-7 labeled with CC numbers (e.g., "Slider 1 (CC 73)")
+- Sliders 8-9 labeled "Attack (CC 27)" and "Release (CC 7)"
 
 Change controls and check terminal output:
 ```
