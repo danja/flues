@@ -123,7 +123,6 @@ Expected output:
 Unified Polyphonic Synthesizer (4-voice default)
 Target: Raspberry Pi 4 (ARM Cortex-A72)
 Control notes 36-42: disabled (set FLUES_CONTROL_NOTES=1 to enable)
-MK-449 CC remap: enabled (91→28, 92→29, 93→30, 84→27, 5→1)
 
 Synth engine initialized
 ...
@@ -154,9 +153,12 @@ CC ch1: 20 -> 66
 
 After the first move of each CC, subsequent values show only numbers for cleaner console output.
 
+### Controller CCs (sliders)
+
+Set your nine sliders to these CC numbers (left→right): **73, 72, 28, 30, 74, 71, 1, 27, 7**. These feed the per-program maps in `src/midi_mapping.c` (Program 7: Disyn Alg, P1, P2, Level, Intensity, Tuning, Delay1 Feedback, Attack, Release). Compatibility aliases exist for common legacy defaults (91/92/93/5/84), but if you see “Unmapped CC…” in the console, reprogram the controller to the canonical list so parameter names and ranges match.
+
 ### Environment toggles
 - `FLUES_CONTROL_NOTES=1` – enable debug control notes 36-41 (default: off to avoid stealing low notes from DAWs).
-- `FLUES_MK449_MAP=0` – disable MK-449 remap (91→28, 92→29, 93→30, 84→27, 5→1, 12→20, 13→19).
 - `FLUES_MIDI_DEBUG=1` – verbose MIDI event logging (note on/off/CC/All Notes Off with ALSA source port).
 
 ### Stop the Synthesizer

@@ -179,10 +179,31 @@ const char* midi_get_parameter_name(SynthParameter param) {
 
 // Find slider index from CC number
 int midi_find_slider_by_cc(uint8_t cc) {
+    // Primary mapping: exact hardware CC numbers
     for (int i = 0; i < 9; i++) {
         if (HARDWARE_SLIDERS[i].cc == cc) {
             return i;
         }
     }
+
+    // Compatibility aliases for controllers still using legacy CCs
+    // (e.g., Evolution MK-449 factory assignments)
+    static const struct {
+        uint8_t cc;
+        uint8_t slider_index;
+    } SLIDER_ALIASES[] = {
+        {91, 2},  // Legacy Effect 1 depth → Slider 3 (CC 28)
+        {92, 1},  // Legacy Effect 2 depth → Slider 2 (CC 72)
+        {93, 3},  // Legacy Effect 3 depth → Slider 4 (CC 30)
+        {5,  6},  // Portamento time      → Slider 7 (CC 1)
+        {84, 7},  // Portamento control   → Slider 8 (CC 27)
+    };
+
+    for (size_t i = 0; i < sizeof(SLIDER_ALIASES) / sizeof(SLIDER_ALIASES[0]); i++) {
+        if (SLIDER_ALIASES[i].cc == cc) {
+            return SLIDER_ALIASES[i].slider_index;
+        }
+    }
+
     return -1;  // Not found
 }
