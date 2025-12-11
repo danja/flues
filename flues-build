@@ -46,7 +46,7 @@ done
 
 DEVICE_ARGS=("$@")
 if [[ ${#DEVICE_ARGS[@]} -eq 0 ]]; then
-    DEVICE_ARGS=("hw:4,0") # danny was 2,0
+    DEVICE_ARGS=("hw:3,0") # danny was 2,0
 fi
 
 cd "${PROJECT_DIR}"
