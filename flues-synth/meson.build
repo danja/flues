@@ -63,6 +63,7 @@ core_lib = static_library('flues_core',
 # Main application sources (audio + MIDI + main)
 app_sources = [
     'src/main.c',
+    'src/midi_mapping.c',
     'src/audio/audio_backend_alsa.c',
     'src/audio/midi_backend_alsa.c',
 ]

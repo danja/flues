@@ -4,6 +4,7 @@
 #include "synth_engine.h"
 #include "audio_backend_alsa.h"
 #include "midi_backend_alsa.h"
+#include "midi_mapping.h"
 #include "dsp_utils.h"
 #include "config.h"
 #include <stdio.h>
@@ -238,91 +239,101 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
     printf("═══════════════════════════════════════════════════════════\n\n");
 }
 
-// Remap slider CCs based on current program
-// The 9 hardware sliders send: 73, 72, 28, 30, 74, 71, 1, 27, 7
-// New layout: Sliders 1-7 = context, Slider 8 = Attack(27→73), Slider 9 = Release(7→72)
-static uint8_t remap_slider_cc(uint8_t cc) {
-    // Attack and Release are always on sliders 8 and 9
-    if (cc == 27) return 73;  // Slider 8 → Attack
-    if (cc == 7) return 72;   // Slider 9 → Release
-
-    switch (g_current_program) {
-        case 0:  // Disyn Direct
-            if (cc == 73) return 16;  // Slider 1 → Disyn Algorithm
-            if (cc == 72) return 17;  // Slider 2 → Disyn Param1
-            if (cc == 28) return 18;  // Slider 3 → Disyn Param2
-            if (cc == 30) return 19;  // Slider 4 → Disyn Level
-            if (cc == 74) return 1;   // Slider 5 → Intensity
-            if (cc == 71) return 26;  // Slider 6 → Tuning
-            if (cc == 1) return 27;   // Slider 7 → Ratio
+// Apply parameter value to synth engine
+// Clean mapping using parameter constants instead of CC numbers
+static void apply_parameter(SynthEngine* synth, SynthParameter param, float value) {
+    switch (param) {
+        case PARAM_DISYN_ALGORITHM:
+            synth_engine_set_disyn_algorithm(synth, (int)(value * 6.999f));
             break;
-
-        case 1:  // Disyn + Delays
-            if (cc == 73) return 28;  // Slider 1 → Delay1 Feedback
-            if (cc == 72) return 29;  // Slider 2 → Delay2 Feedback
-            if (cc == 28) return 30;  // Slider 3 → Filter Feedback
-            if (cc == 30) return 19;  // Slider 4 → Disyn Level
-            if (cc == 74) return 1;   // Slider 5 → Intensity
-            if (cc == 71) return 26;  // Slider 6 → Tuning
-            if (cc == 1) return 27;   // Slider 7 → Ratio
+        case PARAM_DISYN_PARAM1:
+            synth_engine_set_disyn_param1(synth, value);
             break;
-
-        case 2:  // Disyn + Filter
-            if (cc == 73) return 32;  // Slider 1 → Filter Frequency
-            if (cc == 72) return 33;  // Slider 2 → Filter Q
-            if (cc == 28) return 34;  // Slider 3 → Filter Shape
-            if (cc == 30) return 19;  // Slider 4 → Disyn Level
-            if (cc == 74) return 1;   // Slider 5 → Intensity
-            if (cc == 71) return 26;  // Slider 6 → Tuning
-            if (cc == 1) return 27;   // Slider 7 → Ratio
+        case PARAM_DISYN_PARAM2:
+            synth_engine_set_disyn_param2(synth, value);
             break;
-
-        case 3:  // Formant Voice
-            if (cc == 73) return 71;  // Slider 1 → F1 (Jaw)
-            if (cc == 72) return 10;  // Slider 2 → F2 (Tongue)
-            if (cc == 28) return 74;  // Slider 3 → F3 (Lips)
-            if (cc == 30) return 75;  // Slider 4 → F4 (Quality)
-            if (cc == 74) return 20;  // Slider 5 → Noise Level
-            if (cc == 71) return 80;  // Slider 6 → Nasal toggle
-            // Slider 7 (1) stays Intensity
+        case PARAM_DISYN_LEVEL:
+            synth_engine_set_disyn_level(synth, value);
             break;
-
-        case 4:  // Hybrid Speech
-            if (cc == 73) return 71;  // Slider 1 → F1 (Jaw)
-            if (cc == 72) return 10;  // Slider 2 → F2 (Tongue)
-            if (cc == 28) return 74;  // Slider 3 → F3 (Lips)
-            if (cc == 30) return 75;  // Slider 4 → F4 (Quality)
-            if (cc == 74) return 19;  // Slider 5 → Disyn Level
-            if (cc == 71) return 20;  // Slider 6 → Noise Level
-            // Slider 7 (1) stays Intensity
+        case PARAM_NOISE_LEVEL:
+            synth_engine_set_noise_level(synth, value);
             break;
-
-        case 5:  // Physical Model
-            if (cc == 73) return 28;  // Slider 1 → Delay1 Feedback
-            if (cc == 72) return 29;  // Slider 2 → Delay2 Feedback
-            if (cc == 28) return 30;  // Slider 3 → Filter Feedback
-            if (cc == 30) return 24;  // Slider 4 → Interface Type
-            if (cc == 74) return 1;   // Slider 5 → Intensity
-            if (cc == 71) return 26;  // Slider 6 → Tuning
-            if (cc == 1) return 27;   // Slider 7 → Ratio
+        case PARAM_DC_LEVEL:
+            synth_engine_set_dc_level(synth, value);
             break;
-
-        case 6:  // Full Hybrid (disabled, redirects to 5)
-            // This program redirects, so no remapping needed
+        case PARAM_INTENSITY:
+            synth_engine_set_intensity(synth, value);
             break;
-
-        case 7:  // Disyn Echo
-            if (cc == 73) return 16;  // Slider 1 → Disyn Algorithm
-            if (cc == 72) return 17;  // Slider 2 → Disyn Param1
-            if (cc == 28) return 18;  // Slider 3 → Disyn Param2
-            if (cc == 30) return 19;  // Slider 4 → Disyn Level
-            if (cc == 74) return 1;   // Slider 5 → Intensity
-            if (cc == 71) return 26;  // Slider 6 → Tuning (delay pitch offset)
-            if (cc == 1)  return 28;  // Slider 7 → Delay1 Feedback (CC 28 not 27!)
+        case PARAM_TUNING:
+            synth_engine_set_tuning(synth, (value - 0.5f) * 24.0f);  // -12 to +12 semitones
+            break;
+        case PARAM_RATIO:
+            synth_engine_set_ratio(synth, exp_map(value, 0.5f, 2.0f));
+            break;
+        case PARAM_DELAY1_FEEDBACK:
+            synth_engine_set_delay1_feedback(synth, value);
+            break;
+        case PARAM_DELAY2_FEEDBACK:
+            synth_engine_set_delay2_feedback(synth, value);
+            break;
+        case PARAM_FILTER_FEEDBACK:
+            synth_engine_set_filter_feedback(synth, value);
+            break;
+        case PARAM_FILTER_FREQ:
+            synth_engine_set_filter_frequency(synth, exp_map(value, 20.0f, 20000.0f));
+            break;
+        case PARAM_FILTER_Q:
+            synth_engine_set_filter_q(synth, exp_map(value, 0.1f, 10.0f));
+            break;
+        case PARAM_FILTER_SHAPE:
+            synth_engine_set_filter_shape(synth, value);
+            break;
+        case PARAM_F1:
+            synth_engine_set_f1(synth, exp_map(value, 200.0f, 1000.0f));
+            break;
+        case PARAM_F2:
+            synth_engine_set_f2(synth, exp_map(value, 500.0f, 3000.0f));
+            break;
+        case PARAM_F3:
+            synth_engine_set_f3(synth, exp_map(value, 1500.0f, 4000.0f));
+            break;
+        case PARAM_F4:
+            synth_engine_set_f4(synth, exp_map(value, 2500.0f, 4500.0f));
+            break;
+        case PARAM_NASAL:
+            synth_engine_set_nasal(synth, value >= 0.5f);
+            break;
+        case PARAM_SING:
+            synth_engine_set_sing(synth, value >= 0.5f);
+            break;
+        case PARAM_SHOUT:
+            synth_engine_set_shout(synth, value >= 0.5f);
+            break;
+        case PARAM_FRY:
+            synth_engine_set_fry(synth, value >= 0.5f);
+            break;
+        case PARAM_ATTACK:
+            synth_engine_set_attack(synth, value);
+            break;
+        case PARAM_RELEASE:
+            synth_engine_set_release(synth, value);
+            break;
+        case PARAM_LFO_FREQ:
+            synth_engine_set_lfo_frequency(synth, exp_map(value, 0.1f, 20.0f));
+            break;
+        case PARAM_AM_FM_DEPTH:
+            synth_engine_set_am_fm_depth(synth, (value - 0.5f) * 2.0f);  // -1 to +1
+            break;
+        case PARAM_INTERFACE_TYPE:
+            synth_engine_set_interface_type(synth, (int)(value * 11.999f));
+            break;
+        case PARAM_MASTER_GAIN:
+            synth_engine_set_master_gain(synth, value);
+            break;
+        case PARAM_NONE:
+            // Unmapped parameter, do nothing
             break;
     }
-
-    return cc;  // No remapping for this CC/program
 }
 
 // Signal handler for clean shutdown
@@ -364,212 +375,69 @@ static void midi_event_handler(const MidiEvent* event, void* user_data) {
             break;
 
         case MIDI_CONTROL_CHANGE: {
-            uint8_t cc_orig = event->cc_number;
-            uint8_t cc = cc_orig;
+            uint8_t cc = event->cc_number;
 
             // Apply MK-449 remapping first (if enabled)
             if (g_use_mk449_remap) {
                 cc = mk449_remap_cc(cc);
             }
 
-            // Apply program-based slider remapping
-            uint8_t cc_before_program = cc;
-            cc = remap_slider_cc(cc);
-
-            // Debug: show remapping for program 7
-            if (g_current_program == 7) {
-                if (cc != cc_before_program) {
-                    printf("Program 7 remap: CC %d → CC %d", cc_before_program, cc);
-                    if (cc == 28) printf(" [Should be Delay1 Feedback]");
-                    if (cc == 27) printf(" [BUG: This is Delay Ratio!]");
-                    printf("\n");
-                } else if (cc_before_program == 1 || cc_before_program == 74) {
-                    printf("Program 7: CC %d NOT remapped (BUG!)\n", cc_before_program);
-                }
-            }
+            // NEW: Clean parameter-based mapping system
+            // Find which slider this CC corresponds to
+            int slider_index = midi_find_slider_by_cc(cc);
 
             float value = event->cc_value / 127.0f;  // Normalize to 0-1
 
-            // Track first occurrence of each CC to print its name
-            static bool cc_seen[128] = {0};
+            if (slider_index >= 0) {
+                // This is a hardware slider - map to parameter based on current program
+                SynthParameter param = midi_get_slider_parameter(g_current_program, slider_index);
+                const char* param_name = midi_get_parameter_name(param);
 
-            // Print CC with name on first occurrence
-            const char* cc_name = NULL;
-            switch (cc) {
-                case 1:  cc_name = "Intensity"; break;
-                case 7:  cc_name = "Master Gain"; break;
-                case 10: cc_name = "F2 (Tongue)"; break;
-                case 16: cc_name = "Disyn Algorithm"; break;
-                case 17: cc_name = "Disyn Param1"; break;
-                case 18: cc_name = "Disyn Param2"; break;
-                case 19: cc_name = "Disyn Level"; break;
-                case 20: cc_name = "Noise Level"; break;
-                case 21: cc_name = "DC Level"; break;
-                case 24: cc_name = "Interface Type"; break;
-                case 26: cc_name = "Tuning"; break;
-                case 27: cc_name = "Delay Ratio"; break;
-                case 28: cc_name = "Delay1 Feedback"; break;
-                case 29: cc_name = "Delay2 Feedback"; break;
-                case 30: cc_name = "Filter Feedback"; break;
-                case 32: cc_name = "Filter Frequency"; break;
-                case 33: cc_name = "Filter Q"; break;
-                case 34: cc_name = "Filter Shape"; break;
-                case 36: cc_name = "LFO Frequency"; break;
-                case 37: cc_name = "AM↔FM Depth"; break;
-                case 71: cc_name = "F1 (Jaw)"; break;
-                case 72: cc_name = "Release"; break;
-                case 73: cc_name = "Attack"; break;
-                case 74: cc_name = "F3 (Lips)"; break;
-                case 75: cc_name = "F4 (Quality)"; break;
-                case 80: cc_name = "Nasal"; break;
-                case 81: cc_name = "Sing"; break;
-                case 82: cc_name = "Shout"; break;
-                case 83: cc_name = "Fry"; break;
-                default: break;
-            }
+                printf("Slider %d (CC %d) → %s = %d\n",
+                       slider_index + 1, cc, param_name, event->cc_value);
 
-            if (cc_name && !cc_seen[cc]) {
-                printf("CC ch%d: %3u -> %3u  [%s]\n", event->channel + 1, cc, event->cc_value, cc_name);
-                cc_seen[cc] = true;
+                // Apply the parameter value to the engine
+                apply_parameter(synth, param, value);
             } else {
+                // Direct CC (not a slider) - handle legacy CCs
+                // Support direct CC control for parameters not on sliders
                 printf("CC ch%d: %3u -> %3u\n", event->channel + 1, cc, event->cc_value);
-            }
 
-            // Map CCs to parameters
-            switch (cc) {
-                // Standard CCs
-                case 1:  // Modulation Wheel (repurposed for intensity)
-                    synth_engine_set_intensity(synth, value);
-                    break;
-
-                case 7:  // Volume (Master Gain)
-                    synth_engine_set_master_gain(synth, value);
-                    break;
-
-                case 10:  // Pan (repurposed for F2/Tongue)
-                    synth_engine_set_f2(synth, exp_map(value, 500.0f, 3000.0f));
-                    break;
-
-                // Sound Controllers
-                case 71:  // Resonance (F1/Jaw)
-                    synth_engine_set_f1(synth, exp_map(value, 200.0f, 1000.0f));
-                    break;
-
-                case 72:  // Release Time
-                    synth_engine_set_release(synth, value);
-                    printf("CC 72: Release = %.2f\n", value);
-                    break;
-
-                case 73:  // Attack Time
-                    synth_engine_set_attack(synth, value);
-                    printf("CC 73: Attack = %.2f\n", value);
-                    break;
-
-                case 74:  // Brightness (F3/Lips)
-                    synth_engine_set_f3(synth, exp_map(value, 1500.0f, 4000.0f));
-                    break;
-
-                case 75:  // Sound Control 6 (F4/Quality)
-                    synth_engine_set_f4(synth, exp_map(value, 2500.0f, 4500.0f));
-                    break;
-
-                // Vocal Mode Toggles (≥64 = ON)
-                case 80:  // Nasal
-                    synth_engine_set_nasal(synth, event->cc_value >= 64);
-                    printf("CC 80: Nasal = %s\n", event->cc_value >= 64 ? "ON" : "OFF");
-                    break;
-
-                case 81:  // Sing (Vibrato)
-                    synth_engine_set_sing(synth, event->cc_value >= 64);
-                    printf("CC 81: Sing = %s\n", event->cc_value >= 64 ? "ON" : "OFF");
-                    break;
-
-                case 82:  // Shout
-                    synth_engine_set_shout(synth, event->cc_value >= 64);
-                    printf("CC 82: Shout = %s\n", event->cc_value >= 64 ? "ON" : "OFF");
-                    break;
-
-                case 83:  // Fry
-                    synth_engine_set_fry(synth, event->cc_value >= 64);
-                    printf("CC 83: Fry = %s\n", event->cc_value >= 64 ? "ON" : "OFF");
-                    break;
-
-                // Disyn Source Controls
-                case 16:  // GP Controller 1 (Algorithm)
-                    synth_engine_set_disyn_algorithm(synth, (int)(value * 6.999f));  // 0-6
-                    break;
-
-                case 17:  // GP Controller 2 (Param1)
-                    synth_engine_set_disyn_param1(synth, value);
-                    break;
-
-                case 18:  // GP Controller 3 (Param2)
-                    synth_engine_set_disyn_param2(synth, value);
-                    break;
-
-                case 19:  // GP Controller 4 (Disyn Level)
-                    synth_engine_set_disyn_level(synth, value);
-                    break;
-
-                case 20:  // GP Controller 5 (Noise Level)
-                    synth_engine_set_noise_level(synth, value);
-                    break;
-
-                case 21:  // GP Controller 6 (DC Level)
-                    synth_engine_set_dc_level(synth, value);
-                    break;
-
-                // Interface & Delay
-                case 24:  // Interface Type
-                    synth_engine_set_interface_type(synth, (int)(value * 11.999f));  // 0-11
-                    break;
-
-                case 26:  // Tuning
-                    synth_engine_set_tuning(synth, (value - 0.5f) * 24.0f);  // -12 to +12 semitones
-                    break;
-
-                case 27:  // Ratio
-                    synth_engine_set_ratio(synth, exp_map(value, 0.5f, 2.0f));  // absolute ratio
-                    break;
-
-                // Feedback
-                case 28:  // Delay1 Feedback
-                    synth_engine_set_delay1_feedback(synth, value);
-                    break;
-
-                case 29:  // Delay2 Feedback
-                    synth_engine_set_delay2_feedback(synth, value);
-                    break;
-
-                case 30:  // Filter Feedback
-                    synth_engine_set_filter_feedback(synth, value);
-                    break;
-
-                // Filter
-                case 32:  // Filter Frequency
-                    synth_engine_set_filter_frequency(synth, exp_map(value, 20.0f, 20000.0f));
-                    break;
-
-                case 33:  // Filter Q
-                    synth_engine_set_filter_q(synth, exp_map(value, 0.1f, 10.0f));
-                    break;
-
-                case 34:  // Filter Shape
-                    synth_engine_set_filter_shape(synth, value);
-                    break;
-
-                // Modulation
-                case 36:  // LFO Frequency
-                    synth_engine_set_lfo_frequency(synth, exp_map(value, 0.1f, 20.0f));
-                    break;
-
-                case 37:  // AM↔FM Depth (bipolar)
-                    synth_engine_set_am_fm_depth(synth, (value - 0.5f) * 2.0f);  // -1 to +1
-                    break;
-
-                default:
-                    // Ignore unknown CCs
-                    break;
+                // Handle standard MIDI CCs that aren't slider-mapped
+                switch (cc) {
+                    case 1:   apply_parameter(synth, PARAM_INTENSITY, value); break;
+                    case 7:   apply_parameter(synth, PARAM_MASTER_GAIN, value); break;
+                    case 10:  apply_parameter(synth, PARAM_F2, value); break;
+                    case 16:  apply_parameter(synth, PARAM_DISYN_ALGORITHM, value); break;
+                    case 17:  apply_parameter(synth, PARAM_DISYN_PARAM1, value); break;
+                    case 18:  apply_parameter(synth, PARAM_DISYN_PARAM2, value); break;
+                    case 19:  apply_parameter(synth, PARAM_DISYN_LEVEL, value); break;
+                    case 20:  apply_parameter(synth, PARAM_NOISE_LEVEL, value); break;
+                    case 21:  apply_parameter(synth, PARAM_DC_LEVEL, value); break;
+                    case 24:  apply_parameter(synth, PARAM_INTERFACE_TYPE, value); break;
+                    case 26:  apply_parameter(synth, PARAM_TUNING, value); break;
+                    case 27:  apply_parameter(synth, PARAM_RATIO, value); break;
+                    case 28:  apply_parameter(synth, PARAM_DELAY1_FEEDBACK, value); break;
+                    case 29:  apply_parameter(synth, PARAM_DELAY2_FEEDBACK, value); break;
+                    case 30:  apply_parameter(synth, PARAM_FILTER_FEEDBACK, value); break;
+                    case 32:  apply_parameter(synth, PARAM_FILTER_FREQ, value); break;
+                    case 33:  apply_parameter(synth, PARAM_FILTER_Q, value); break;
+                    case 34:  apply_parameter(synth, PARAM_FILTER_SHAPE, value); break;
+                    case 36:  apply_parameter(synth, PARAM_LFO_FREQ, value); break;
+                    case 37:  apply_parameter(synth, PARAM_AM_FM_DEPTH, value); break;
+                    case 71:  apply_parameter(synth, PARAM_F1, value); break;
+                    case 72:  apply_parameter(synth, PARAM_RELEASE, value); break;
+                    case 73:  apply_parameter(synth, PARAM_ATTACK, value); break;
+                    case 74:  apply_parameter(synth, PARAM_F3, value); break;
+                    case 75:  apply_parameter(synth, PARAM_F4, value); break;
+                    case 80:  apply_parameter(synth, PARAM_NASAL, value); break;
+                    case 81:  apply_parameter(synth, PARAM_SING, value); break;
+                    case 82:  apply_parameter(synth, PARAM_SHOUT, value); break;
+                    case 83:  apply_parameter(synth, PARAM_FRY, value); break;
+                    default:
+                        // Unknown CC, ignore
+                        break;
+                }
             }
             break;
         }
