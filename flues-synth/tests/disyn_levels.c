@@ -25,7 +25,17 @@ static const char* algorithm_names[] = {
     "Tanh Square",
     "Tanh Saw",
     "PAF",
-    "Modified FM"
+    "Modified FM",
+    "Hybrid Formant",
+    "Cascaded",
+    "Parallel Bank",
+    "Feedback",
+    "Morphing",
+    "Inharmonic",
+    "Adaptive Filter",
+    "Multi-Stage",
+    "Freq Asymmetry",
+    "Cross-Mod"
 };
 
 typedef struct {
@@ -75,7 +85,7 @@ static void calculate_stats(const float* buffer, int num_samples, LevelStats* st
 /**
  * Test a single algorithm/parameter combination
  */
-static void test_algorithm_params(int algorithm, float param1, float param2) {
+static void test_algorithm_params(int algorithm, float param1, float param2, float param3) {
     // Create oscillator
     DisynModule* osc = disyn_create(TEST_SAMPLE_RATE);
     if (!osc) {
@@ -87,6 +97,7 @@ static void test_algorithm_params(int algorithm, float param1, float param2) {
     disyn_set_algorithm(osc, algorithm);
     disyn_set_param1(osc, param1);
     disyn_set_param2(osc, param2);
+    disyn_set_param3(osc, param3);
 
     // Allocate buffer
     float* buffer = (float*)malloc(TEST_SAMPLES * sizeof(float));
@@ -138,25 +149,55 @@ static void test_all_defaults(void) {
     // Algorithm-specific default parameters (from OscillatorModule.hpp)
 
     // 0: Dirichlet Pulse - harmonics=16, tilt=0
-    test_algorithm_params(0, 0.25f, 0.2f);  // Maps to ~16 harmonics, 0dB tilt
+    test_algorithm_params(0, 0.25f, 0.2f, 0.5f);  // Maps to ~16 harmonics, 0dB tilt
 
     // 1: DSF Single - decay=0.5, ratio=1.0
-    test_algorithm_params(1, 0.5f, 0.33f);
+    test_algorithm_params(1, 0.5f, 0.33f, 0.5f);
 
     // 2: DSF Double - decay=0.5, ratio=1.5
-    test_algorithm_params(2, 0.52f, 0.36f);
+    test_algorithm_params(2, 0.52f, 0.36f, 0.5f);
 
     // 3: Tanh Square - drive=1.0, trim=0.7
-    test_algorithm_params(3, 0.19f, 0.5f);
+    test_algorithm_params(3, 0.19f, 0.5f, 0.5f);
 
     // 4: Tanh Saw - drive=1.0, blend=0.5
-    test_algorithm_params(4, 0.19f, 0.5f);
+    test_algorithm_params(4, 0.19f, 0.5f, 0.5f);
 
     // 5: PAF - ratio=2.0, bandwidth=500Hz
-    test_algorithm_params(5, 0.25f, 0.15f);
+    test_algorithm_params(5, 0.25f, 0.15f, 0.5f);
 
     // 6: Modified FM - index=2.0, ratio=2.0
-    test_algorithm_params(6, 0.25f, 0.30f);
+    test_algorithm_params(6, 0.25f, 0.30f, 0.5f);
+
+    // 7: Hybrid Formant - ModFM index, PAF bandwidth, formant spacing
+    test_algorithm_params(7, 0.5f, 0.5f, 0.5f);
+
+    // 8: Cascaded - DSF decay, Asym ratio, Tanh drive
+    test_algorithm_params(8, 0.5f, 0.5f, 0.5f);
+
+    // 9: Parallel Bank - ModFM index, PAF bandwidth, mix balance
+    test_algorithm_params(9, 0.5f, 0.5f, 0.5f);
+
+    // 10: Feedback - ModFM index, feedback gain, feedback lowpass
+    test_algorithm_params(10, 0.5f, 0.5f, 0.5f);
+
+    // 11: Morphing - morph position, shared character, crossfade curve
+    test_algorithm_params(11, 0.5f, 0.5f, 0.5f);
+
+    // 12: Inharmonic - DSF inharmonicity, PAF shift, PAF formant freq
+    test_algorithm_params(12, 0.5f, 0.5f, 0.5f);
+
+    // 13: Adaptive Filter - cutoff/DSF N, resonance/DSF a, character
+    test_algorithm_params(13, 0.5f, 0.5f, 0.5f);
+
+    // 14: Multi-Stage - Tanh drive, Exp depth, Ring mod carrier
+    test_algorithm_params(14, 0.5f, 0.5f, 0.5f);
+
+    // 15: Freq Asymmetry - low-band r, high-band r, crossover freq
+    test_algorithm_params(15, 0.5f, 0.5f, 0.5f);
+
+    // 16: Cross-Mod - DSF→ModFM depth, ModFM→DSF depth
+    test_algorithm_params(16, 0.5f, 0.5f, 0.5f);
 }
 
 /**
@@ -168,18 +209,18 @@ static void test_extremes(void) {
     printf("  -----------------|---------------|-------------|-------------|-----------|-------\n");
 
     // Test each algorithm at min/max param values
-    for (int alg = 0; alg < 7; alg++) {
+    for (int alg = 0; alg < 17; alg++) {
         // Min params
-        test_algorithm_params(alg, 0.0f, 0.0f);
+        test_algorithm_params(alg, 0.0f, 0.0f, 0.0f);
 
         // Max params
-        test_algorithm_params(alg, 1.0f, 1.0f);
+        test_algorithm_params(alg, 1.0f, 1.0f, 1.0f);
 
-        // High param1, low param2
-        test_algorithm_params(alg, 1.0f, 0.0f);
+        // High param1, low param2/3
+        test_algorithm_params(alg, 1.0f, 0.0f, 0.0f);
 
-        // Low param1, high param2
-        test_algorithm_params(alg, 0.0f, 1.0f);
+        // Low param1, high param2/3
+        test_algorithm_params(alg, 0.0f, 1.0f, 1.0f);
     }
 }
 
@@ -233,21 +274,33 @@ static void test_with_scaling(void) {
         int alg;
         float p1;
         float p2;
+        float p3;
     } configs[] = {
-        {0, 0.25f, 0.2f},  // Dirichlet
-        {1, 0.5f, 0.33f},  // DSF Single
-        {2, 0.52f, 0.36f}, // DSF Double
-        {3, 0.19f, 0.5f},  // Tanh Square
-        {4, 0.19f, 0.5f},  // Tanh Saw
-        {5, 0.25f, 0.15f}, // PAF
-        {6, 0.25f, 0.30f}  // Modified FM
+        {0, 0.25f, 0.2f, 0.5f},   // Dirichlet
+        {1, 0.5f, 0.33f, 0.5f},   // DSF Single
+        {2, 0.52f, 0.36f, 0.5f},  // DSF Double
+        {3, 0.19f, 0.5f, 0.5f},   // Tanh Square
+        {4, 0.19f, 0.5f, 0.5f},   // Tanh Saw
+        {5, 0.25f, 0.15f, 0.5f},  // PAF
+        {6, 0.25f, 0.30f, 0.5f},  // Modified FM
+        {7, 0.5f, 0.5f, 0.5f},    // Hybrid Formant
+        {8, 0.5f, 0.5f, 0.5f},    // Cascaded
+        {9, 0.5f, 0.5f, 0.5f},    // Parallel Bank
+        {10, 0.5f, 0.5f, 0.5f},   // Feedback
+        {11, 0.5f, 0.5f, 0.5f},   // Morphing
+        {12, 0.5f, 0.5f, 0.5f},   // Inharmonic
+        {13, 0.5f, 0.5f, 0.5f},   // Adaptive Filter
+        {14, 0.5f, 0.5f, 0.5f},   // Multi-Stage
+        {15, 0.5f, 0.5f, 0.5f},   // Freq Asymmetry
+        {16, 0.5f, 0.5f, 0.5f}    // Cross-Mod
     };
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 17; i++) {
         DisynModule* osc = disyn_create(TEST_SAMPLE_RATE);
         disyn_set_algorithm(osc, configs[i].alg);
         disyn_set_param1(osc, configs[i].p1);
         disyn_set_param2(osc, configs[i].p2);
+        disyn_set_param3(osc, configs[i].p3);
 
         float* buffer = (float*)malloc(TEST_SAMPLES * sizeof(float));
         for (int j = 0; j < TEST_SAMPLES; j++) {

@@ -20,6 +20,7 @@ float disyn_process(DisynModule* disyn, float frequency);
 void disyn_set_algorithm(DisynModule* disyn, int algorithm);
 void disyn_set_param1(DisynModule* disyn, float value);
 void disyn_set_param2(DisynModule* disyn, float value);
+void disyn_set_param3(DisynModule* disyn, float value);
 
 // ============================================================================
 // Sources Module (from PM-Synth)

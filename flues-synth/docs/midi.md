@@ -55,16 +55,18 @@ See [PROGRAM_CHANGE.md](PROGRAM_CHANGE.md) for complete slider mappings per prog
 | 1 | Intensity | 0.0–1.0 | Linear | 0.5 | Interface intensity (excitation strength) |
 | 7 | Master Gain | 0.0–1.0 | Linear | 0.5 | Final output level |
 
-### Disyn Source (6 parameters)
+### Disyn Source (7 parameters)
 
 | CC | Parameter | Range | Mapping | Default | Description |
 |----|-----------|-------|---------|---------|-------------|
-| 16 | Algorithm | 0–6 | Discrete | 0 | 0=Dirichlet, 1=DSF Single, 2=DSF Double, 3=Tanh Square, 4=Tanh Saw, 5=PAF, 6=Modified FM |
-| 17 | Param1 | 0.0–1.0 | Linear | 0.5 | Algorithm-specific parameter 1 |
-| 18 | Param2 | 0.0–1.0 | Linear | 0.5 | Algorithm-specific parameter 2 |
-| 19 | Level | 0.0–1.0 | Linear | 0.8 | Disyn output level (mix) |
+| 16 | Algorithm | 0–16 | Discrete | 0 | **Primitive:** 0=Dirichlet, 1=DSF Single, 2=DSF Double, 3=Tanh Square, 4=Tanh Saw, 5=PAF, 6=Modified FM<br>**Combinations:** 7=Hybrid Formant, 8=Cascaded, 9=Parallel Bank, 10=Feedback, 11=Morphing, 12=Inharmonic, 13=Adaptive Filter<br>**Novel:** 14=Multi-Stage, 15=Freq Asymmetry, 16=Cross-Mod |
+| 17 | Param1 | 0.0–1.0 | Linear | 0.5 | Algorithm-specific parameter 1 (varies per algorithm, see [algorithms.md](algorithms.md)) |
+| 18 | Param2 | 0.0–1.0 | Linear | 0.5 | Algorithm-specific parameter 2 (varies per algorithm, see [algorithms.md](algorithms.md)) |
+| 19 | Param3 | 0.0–1.0 | Linear | 0.5 | Algorithm-specific parameter 3 (used by algorithms 7-16, see [algorithms.md](algorithms.md)) |
 | 20 | Noise Level | 0.0–1.0 | Linear | 0.15 | White noise generator level |
 | 21 | DC Level | 0.0–1.0 | Linear | 0.0 | DC offset source level |
+
+**Note**: CC 19 was repurposed from "Disyn Level" to "Param3" to enable 3-parameter control of Combination and Novel algorithms (7-16). Use CC 7 (Master Gain) for level control instead.
 
 ### Formants (4 parameters)
 

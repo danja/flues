@@ -13,6 +13,7 @@ typedef enum {
     PARAM_DISYN_ALGORITHM = 0,
     PARAM_DISYN_PARAM1,
     PARAM_DISYN_PARAM2,
+    PARAM_DISYN_PARAM3,     // New: Third parameter for algorithms 7-16
     PARAM_DISYN_LEVEL,
     PARAM_NOISE_LEVEL,
     PARAM_DC_LEVEL,

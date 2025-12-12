@@ -13,7 +13,11 @@ Comprehensive technical documentation of all synthesis and signal processing alg
 
 ## Distortion Synthesis Algorithms
 
-The flues-synth uses seven distortion synthesis algorithms ported from the Disyn LV2 plugin, based on research by Victor Lazzarini. These algorithms generate complex harmonic and inharmonic spectra efficiently without explicit additive synthesis.
+The flues-synth uses seventeen distortion synthesis algorithms ported from the Disyn LV2 plugin. The first seven are primitive algorithms based on research by Victor Lazzarini (2014-2018). Algorithms 8-17 are Combinations and Novel Extrapolations that cascade, blend, or modulate the primitive algorithms in new ways. These algorithms generate complex harmonic and inharmonic spectra efficiently without explicit additive synthesis.
+
+### Primitive Algorithms (0-6)
+
+The seven primitive algorithms provide fundamental distortion synthesis techniques.
 
 ### 1. Dirichlet Pulse (Band-Limited Pulse Train)
 
@@ -252,6 +256,387 @@ s(t) = carrier × exp(index × (modulator - 1)) × envelope × 0.6
 - Filter-like effects without actual filtering
 - Evolving, animated timbres
 - Bell and vocal-like sounds
+
+---
+
+### Combination Algorithms (7-13)
+
+The seven Combination algorithms cascade, mix, or modulate the primitive algorithms to create new synthesis techniques with emergent properties not achievable by signal routing alone.
+
+### 8. Hybrid Formant Engine (Combination 1)
+
+**Principle:** Combines Modified FM synthesis with three fixed-frequency PAF formants (800, 1200, 2400 Hz) to create vocal-like timbres with complex formant structure.
+
+**Formula:**
+```
+base = carrier × exp(-index × (|modulator| - 1)) × 0.4
+formant1 = sin(2π × 800 Hz × spacing)
+formant2 = sin(2π × 1200 Hz × spacing)
+formant3 = sin(2π × 2400 Hz × spacing)
+s(t) = (base + formant1 + formant2 + formant3) × 0.25
+```
+
+**Parameters:**
+- **param1 (ModFM Index):** Modulation depth (0.01-3.0, exponential)
+  - Controls base tone brightness
+- **param2 (PAF Bandwidth):** Not currently used (reserved for formant Q)
+- **param3 (Formant Spacing):** Frequency multiplier (0.8-1.2×)
+  - Shifts all formants proportionally
+  - 0.8× = deeper/darker voice
+  - 1.2× = brighter/higher voice
+
+**Implementation Notes:**
+- ModFM base provides rich harmonic source
+- Three sine-wave formants create formant peaks
+- Formant spacing control enables vowel-like shifting
+- Peak RMS: ~0.17
+- Effective peak with synth scaling: ~0.10
+
+**Use Cases:**
+- Vocal synthesis
+- Formant-rich pads
+- Harmonic/resonant drones
+- Speech-like timbres
+
+---
+
+### 9. Cascaded Spectral Sculptor (Combination 2)
+
+**Principle:** Three-stage cascade: DSF → Asymmetric FM → Tanh waveshaping. Each stage progressively shapes the spectrum.
+
+**Formula:**
+```
+stage1_dsf = (sin(ω) - a·sin(ω-θ)) / (1 - 2a·cos(θ) + a²)
+stage2_asym = cos(ωc + k·sin(ωm)) × exp(k·(r-1/r)·cos(ωm)/2)
+stage3_tanh = tanh(stage2 × drive)
+s(t) = stage3 × 0.6
+```
+
+**Parameters:**
+- **param1 (DSF Decay):** Spectral rolloff (0.5-0.95)
+  - Controls initial harmonic content
+- **param2 (Asym Ratio):** Asymmetric FM ratio r (0.5-2.0)
+  - Adjusts spectral asymmetry
+- **param3 (Tanh Drive):** Waveshaping intensity (0-5)
+  - Controls final harmonic richness
+
+**Implementation Notes:**
+- DSF generates base spectrum with controlled rolloff
+- Asymmetric FM adds spectral complexity
+- Tanh soft-clips and adds additional harmonics
+- Peak RMS: ~0.42
+- Effective peak with synth scaling: ~0.13
+
+**Use Cases:**
+- Complex evolving timbres
+- Aggressive distortion
+- Multi-stage spectral shaping
+- Industrial/harsh sounds
+
+---
+
+### 10. Parallel Distortion Bank (Combination 3)
+
+**Principle:** Five parallel voices mixed together: 3× ModFM at different ratios (1:1, 3:2, 4:3) + 2× PAF formants (800, 2400 Hz).
+
+**Formula:**
+```
+modfm1 = cos(ωc) × exp(k × (cos(ωm) - 1))  // 1:1
+modfm2 = cos(ωc) × exp(k × (cos(1.5·ωm) - 1))  // 3:2
+modfm3 = cos(ωc) × exp(k × (cos(1.333·ωm) - 1))  // 4:3
+paf1 = sin(2π × 800 Hz)
+paf2 = sin(2π × 2400 Hz)
+modfmMix = (modfm1 + modfm2 + modfm3) / 3
+pafMix = (paf1 + paf2) / 2
+s(t) = (modfmMix × (1-balance) + pafMix × balance) × 0.5
+```
+
+**Parameters:**
+- **param1 (ModFM Index):** Shared modulation depth (0.01-8.0)
+  - Controls spectral complexity of all three ModFM voices
+- **param2 (PAF Bandwidth):** Not currently used
+- **param3 (Mix Balance):** ModFM vs. PAF blend (0=ModFM, 1=PAF)
+  - Morphs between harmonic FM and formant tones
+
+**Implementation Notes:**
+- Three ModFM voices create rich inharmonic spectrum
+- Different ratios produce detuned chorus effect
+- Two PAF formants add resonant peaks
+- Peak RMS: ~0.15
+- Effective peak with synth scaling: ~0.09
+
+**Use Cases:**
+- Thick, layered timbres
+- Choir-like pads
+- Detuned ensemble sounds
+- Complex harmonic textures
+
+---
+
+### 11. Feedback Distortion Network (Combination 4)
+
+**Principle:** Modified FM synthesis with feedback loop where output modulates input frequency, creating chaotic/nonlinear behavior.
+
+**Formula:**
+```
+modifiedFreq = baseFreq + feedbackSample × gain × baseFreq
+carrier = cos(2π·phase)  // at modifiedFreq
+modulator = cos(2π·modPhase)  // at modifiedFreq
+output = carrier × exp(k × (modulator - 1))
+feedbackSample = output  // stored for next sample
+s(t) = output × 0.5
+```
+
+**Parameters:**
+- **param1 (ModFM Index):** Modulation depth (0.01-8.0)
+- **param2 (Feedback Gain):** Feedback amount (0-0.95)
+  - 0 = no feedback (normal ModFM)
+  - 0.95 = maximum chaos
+- **param3:** Not currently used (reserved for feedback lowpass)
+
+**Implementation Notes:**
+- One-sample delay in feedback path
+- Feedback modulates frequency, not phase
+- Can produce chaotic/unstable behavior at high gain
+- Peak RMS: ~0.26
+- Effective peak with synth scaling: ~0.13
+
+**Use Cases:**
+- Chaotic/unstable tones
+- Feedback synthesis
+- Nonlinear timbre evolution
+- Experimental/noise textures
+
+---
+
+### 12. Morphing Spectral Engine (Combination 5)
+
+**Principle:** Continuous crossfade between three algorithms: DSF ↔ ModFM ↔ PAF. The param1 morphing position smoothly blends between these three timbres.
+
+**Formula:**
+```
+if morphPos < 0.5:
+  alpha = morphPos × 2
+  dsf = (sin(ω) - a·sin(ω-θ)) / (1 - 2a·cos(θ) + a²)
+  modfm = cos(ωc) × exp(k × (cos(ωm) - 1))
+  output = (1-alpha) × dsf + alpha × modfm
+else:
+  alpha = (morphPos - 0.5) × 2
+  modfm = cos(ωc) × exp(k × (cos(ωm) - 1))
+  paf = sin(2π × 2·frequency)
+  output = (1-alpha) × modfm + alpha × paf
+s(t) = output × 0.6
+```
+
+**Parameters:**
+- **param1 (Morph Position):** Algorithm blend (0-1)
+  - 0.0 = DSF (harmonic/inharmonic)
+  - 0.5 = ModFM (FM synthesis)
+  - 1.0 = PAF (formant)
+- **param2 (Character):** Shared parameter for all three algorithms
+  - DSF decay, ModFM index, PAF ratio
+- **param3:** Not currently used
+
+**Implementation Notes:**
+- Linear crossfading between adjacent algorithms
+- Smooth transitions across full parameter range
+- All three algorithms share param2 for coherent control
+- Peak RMS: ~0.34
+- Effective peak with synth scaling: ~0.15
+
+**Use Cases:**
+- Smooth timbre morphing
+- Evolving pad sounds
+- Spectral transitions
+- Dynamic texture changes
+
+---
+
+### 13. Inharmonic Resonator (Combination 6)
+
+**Principle:** DSF with golden ratio (φ) frequency relationship followed by PAF with frequency shift. Creates naturally inharmonic, bell-like timbres.
+
+**Formula:**
+```
+φ = 1.618034 (golden ratio)
+dsf = (sin(ω) - a·sin(ω - 2π·φ)) / (1 - 2a·cos(2π·φ) + a²)
+pafFreq = 2·frequency + shift
+paf = sin(2π·pafFreq)
+s(t) = (dsf + paf) × 0.5
+```
+
+**Parameters:**
+- **param1 (DSF Decay):** Spectral rolloff (0.5-0.9)
+  - Controls initial harmonic decay
+- **param2 (PAF Shift):** Frequency offset (5-50 Hz, exponential)
+  - Detuning amount for the formant
+- **param3:** Not currently used
+
+**Implementation Notes:**
+- Golden ratio creates natural inharmonicity
+- PAF formant adds resonant peak with slight detuning
+- 50/50 mix of DSF and PAF
+- Peak RMS: ~0.28
+- Effective peak with synth scaling: ~0.14
+
+**Use Cases:**
+- Bell synthesis
+- Gong-like sounds
+- Inharmonic resonance
+- Natural metallic timbres
+
+---
+
+### 14. Adaptive Filter Emulation (Combination 7)
+
+**Principle:** DSF + ModFM mixed to emulate a resonant filter. DSF decay and ratio simulate filter cutoff, ModFM adds character.
+
+**Formula:**
+```
+cutoff = param1
+resonance = param2
+dsfDecay = 0.5 + resonance × 0.49  // 0.5-0.99
+theta = 2π × (1 + cutoff × 2)  // cutoff affects ratio
+dsf = (sin(ω) - a·sin(ω-θ)) / (1 - 2a·cos(θ) + a²)
+modfmIndex = 0.01 × (2.0/0.01)^cutoff
+modfm = cos(ωc) × exp(k × (cos(ωm) - 1))
+s(t) = (dsf + modfm) × 0.15
+```
+
+**Parameters:**
+- **param1 (Cutoff):** Pseudo-filter cutoff (0-1)
+  - Controls DSF ratio and ModFM index
+- **param2 (Resonance):** Pseudo-filter resonance (0-1)
+  - Controls DSF decay (Q-like behavior)
+- **param3:** Not currently used
+
+**Implementation Notes:**
+- Not a real filter, but emulates filter-like spectral shaping
+- Higher cutoff = brighter spectrum
+- Higher resonance = more pronounced peaks
+- Peak RMS: ~0.43
+- Effective peak with synth scaling: ~0.15
+
+**Use Cases:**
+- Filter sweep emulation
+- Resonant sweeps without actual filtering
+- Evolving spectral content
+- Pseudo-subtractive synthesis
+
+---
+
+### Novel Extrapolations (14-16)
+
+Three experimental algorithms that extend distortion synthesis in novel directions: multi-stage waveshaping, frequency-dependent processing, and cross-algorithm modulation.
+
+### 15. Multi-Stage Waveshaping (Novel 1)
+
+**Principle:** Three-stage nonlinear cascade: Tanh saturation → Exponential shaping → Ring modulation. Each stage adds progressively more complex harmonic distortion.
+
+**Formula:**
+```
+input = sin(2π·phase)
+stage1 = tanh(drive × input)
+stage2 = stage1 × exp(depth × stage1)
+carrier = sin(2π × carrierMult × frequency)
+stage3 = stage2 × (1 + carrier)
+s(t) = stage3 × 0.25
+```
+
+**Parameters:**
+- **param1 (Tanh Drive):** Initial saturation (0.1-10.0, exponential)
+  - Controls soft-clipping intensity
+- **param2 (Exp Depth):** Exponential shaping (0.1-1.5, exponential)
+  - Controls asymmetric harmonic enhancement
+- **param3 (Ring Carrier):** Ring mod frequency (0.5x-5x fundamental)
+  - Adds inharmonic sidebands
+
+**Implementation Notes:**
+- Stage 1: Soft saturation via tanh
+- Stage 2: Exponential adds asymmetric distortion
+- Stage 3: Ring mod adds metallic character
+- Peak RMS: ~0.19
+- Effective peak with synth scaling: ~0.13
+
+**Use Cases:**
+- Complex distortion
+- Aggressive harmonic generation
+- Industrial/harsh timbres
+- Multi-stage waveshaping experiments
+
+---
+
+### 16. Frequency-Dependent Asymmetry (Novel 2)
+
+**Principle:** Asymmetric FM synthesis with frequency-band-specific asymmetry ratios. Different frequency ranges use different r values for spectral variation.
+
+**Formula:**
+```
+if frequency < 500 Hz:
+  r = 0.5 + param1 × 0.5  // low-band (0.5-1.0)
+else if frequency > 2000 Hz:
+  r = 1.0 + param2 × 1.0  // high-band (1.0-2.0)
+else:
+  alpha = (frequency - 500) / 1500
+  r = lowR × (1-alpha) + highR × alpha  // interpolate
+asym_fm = cos(ωc + k·sin(ωm)) × exp(k·(r-1/r)·cos(ωm)/2)
+s(t) = asym_fm × 0.5
+```
+
+**Parameters:**
+- **param1 (Low-Band r):** Asymmetry for bass (0.5-1.0)
+  - <500 Hz: downward spectral shift
+- **param2 (High-Band r):** Asymmetry for treble (1.0-2.0)
+  - >2000 Hz: upward spectral shift
+- **param3:** Not currently used
+
+**Implementation Notes:**
+- Frequency-dependent processing
+- Smooth interpolation in mid-band (500-2000 Hz)
+- Different spectral character across pitch range
+- Peak RMS: ~0.37
+- Effective peak with synth scaling: ~0.13
+
+**Use Cases:**
+- Pitch-dependent timbre variation
+- Frequency-split spectral processing
+- Natural instrument modeling (brighter high notes)
+- Dynamic spectral evolution
+
+---
+
+### 17. Cross-Algorithm Modulation (Novel 3)
+
+**Principle:** Circular modulation where DSF parameters modulate ModFM parameters and vice versa, creating interdependent spectral evolution.
+
+**Formula:**
+```
+dsfRatio = 1.5 + (param2 × 0.25 × 0.5)
+modfmIndex = 0.25 + (param1 × 0.7 × 1.0)
+dsf = (sin(ω) - a·sin(ω-θ)) / (1 - 2a·cos(θ) + a²)
+modfm = cos(ωc) × exp(k × (cos(ωm) - 1))
+s(t) = (dsf + modfm) × 0.35
+```
+
+**Parameters:**
+- **param1 (DSF→ModFM Depth):** DSF modulates ModFM index (0-1)
+  - Controls circular modulation strength
+- **param2 (ModFM→DSF Depth):** ModFM modulates DSF ratio (0-1)
+  - Creates feedback-like behavior
+- **param3:** Not currently used
+
+**Implementation Notes:**
+- Circular modulation creates complex interactions
+- Parameters influence each other
+- Subtle nonlinear spectral evolution
+- Peak RMS: ~0.21
+- Effective peak with synth scaling: ~0.09
+
+**Use Cases:**
+- Interactive spectral evolution
+- Complex modulation routing
+- Interdependent parameter control
+- Experimental synthesis
 
 ---
 

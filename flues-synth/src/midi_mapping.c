@@ -23,6 +23,7 @@ static const char* PARAMETER_NAMES[] = {
     [PARAM_DISYN_ALGORITHM]   = "Disyn Algorithm",
     [PARAM_DISYN_PARAM1]      = "Disyn Param1",
     [PARAM_DISYN_PARAM2]      = "Disyn Param2",
+    [PARAM_DISYN_PARAM3]      = "Disyn Param3",
     [PARAM_DISYN_LEVEL]       = "Disyn Level",
     [PARAM_NOISE_LEVEL]       = "Noise Level",
     [PARAM_DC_LEVEL]          = "DC Level",

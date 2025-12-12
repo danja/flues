@@ -14,9 +14,10 @@ DisynModule* disyn_create(float sample_rate);
 // Destroy Disyn module
 void disyn_destroy(DisynModule* disyn);
 
-// Set algorithm (0-6)
-// 0: Dirichlet Pulse, 1: DSF Single, 2: DSF Double
-// 3: Tanh Square, 4: Tanh Saw, 5: PAF, 6: Modified FM
+// Set algorithm (0-16)
+// 0-6: Primitive algorithms (Dirichlet, DSF Single/Double, Tanh Square/Saw, PAF, ModFM)
+// 7-13: Combination algorithms (Hybrid Formant, Cascaded, Parallel, Feedback, Morphing, Inharmonic, Adaptive)
+// 14-16: Novel extrapolations (Multi-Stage, Freq Asymmetry, Cross-Mod)
 void disyn_set_algorithm(DisynModule* disyn, int algorithm);
 
 // Set param1 (0-1, algorithm-specific meaning)
@@ -24,6 +25,9 @@ void disyn_set_param1(DisynModule* disyn, float value);
 
 // Set param2 (0-1, algorithm-specific meaning)
 void disyn_set_param2(DisynModule* disyn, float value);
+
+// Set param3 (0-1, algorithm-specific meaning, used by algorithms 7-16)
+void disyn_set_param3(DisynModule* disyn, float value);
 
 // Process one sample at given frequency
 float disyn_process(DisynModule* disyn, float frequency);

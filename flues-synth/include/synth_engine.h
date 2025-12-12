@@ -26,9 +26,10 @@ void synth_engine_reset(SynthEngine* engine);  // Reset all parameters to defaul
 // =============================================================================
 
 // Disyn Source
-void synth_engine_set_disyn_algorithm(SynthEngine* engine, int algorithm);  // 0-6
+void synth_engine_set_disyn_algorithm(SynthEngine* engine, int algorithm);  // 0-16 (updated)
 void synth_engine_set_disyn_param1(SynthEngine* engine, float value);  // 0-1
 void synth_engine_set_disyn_param2(SynthEngine* engine, float value);  // 0-1
+void synth_engine_set_disyn_param3(SynthEngine* engine, float value);  // 0-1 (new for algorithms 7-16)
 void synth_engine_set_disyn_level(SynthEngine* engine, float value);  // 0-1
 void synth_engine_set_noise_level(SynthEngine* engine, float value);  // 0-1
 void synth_engine_set_dc_level(SynthEngine* engine, float value);  // 0-1

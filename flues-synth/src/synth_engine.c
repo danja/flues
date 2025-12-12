@@ -633,6 +633,14 @@ void synth_engine_set_disyn_param2(SynthEngine *engine, float value)
     }
 }
 
+void synth_engine_set_disyn_param3(SynthEngine *engine, float value)
+{
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        disyn_set_param3(engine->voices[i].disyn, value);
+    }
+}
+
 void synth_engine_set_disyn_level(SynthEngine *engine, float value)
 {
     engine->disyn_level = value;
