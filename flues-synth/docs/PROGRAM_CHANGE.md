@@ -14,7 +14,7 @@ MIDI Program Change messages (0-28) configure the signal chain routing and dynam
 | 3 | Formant Voice | Noise → Formants | Active |
 | 4 | Hybrid Speech | Disyn + Noise → Formants | Active |
 | 5 | Physical Model | Noise → Interface → Delays → Filter | Active |
-| 6 | Full Hybrid | *DISABLED* (redirects to 5) | Disabled |
+| 6 | Full Hybrid | Disyn + Noise → Formants → Interface → Delays → Filter | Active |
 | 7 | Disyn Direct | Disyn → Output | Active |
 | 8 | ModFM Formant | ModFM → Formants → Output | Active |
 | 9 | DSF Inharmonic | DSF Single → Delays → Output | Active |
