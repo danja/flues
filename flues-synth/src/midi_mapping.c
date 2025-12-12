@@ -280,132 +280,132 @@ static const SynthParameter PROGRAM_17_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 18: Hybrid Formant Engine
+// Program 18: Hybrid Formant Engine (Algorithm 7)
 static const SynthParameter PROGRAM_18_MAP[9] = {
     PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → ModFM Ratio
-    PARAM_F1,               // Slider 3 (CC 28) → F1 Jaw
-    PARAM_F2,               // Slider 4 (CC 30) → F2 Tongue
-    PARAM_F3,               // Slider 5 (CC 74) → F3 Lips
-    PARAM_F4,               // Slider 6 (CC 71) → F4 Quality
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → PAF Bandwidth
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Formant Spacing
+    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30) → Disyn Level
+    PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
+    PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
     PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 19: Cascaded Spectral Sculptor
+// Program 19: Cascaded Spectral Sculptor (Algorithm 8)
 static const SynthParameter PROGRAM_19_MAP[9] = {
     PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
-    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
-    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
-    PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
-    PARAM_FILTER_FEEDBACK,  // Slider 6 (CC 71) → Filter Feedback
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
-    PARAM_ATTACK,           // Slider 8 (CC 27)
-    PARAM_RELEASE           // Slider 9 (CC 7)
-};
-
-// Program 20: Parallel Formant Bank
-static const SynthParameter PROGRAM_20_MAP[9] = {
-    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → ModFM Ratio
-    PARAM_F1,               // Slider 3 (CC 28) → F1 Jaw
-    PARAM_F2,               // Slider 4 (CC 30) → F2 Tongue
-    PARAM_F3,               // Slider 5 (CC 74) → F3 Lips
-    PARAM_F4,               // Slider 6 (CC 71) → F4 Quality
-    PARAM_NOISE_LEVEL,      // Slider 7 (CC 1) → Noise Level
-    PARAM_ATTACK,           // Slider 8 (CC 27)
-    PARAM_RELEASE           // Slider 9 (CC 7)
-};
-
-// Program 21: Feedback Loop Network
-static const SynthParameter PROGRAM_21_MAP[9] = {
-    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → ModFM Ratio
-    PARAM_DELAY1_FEEDBACK,  // Slider 3 (CC 28) → Delay1 Feedback
-    PARAM_DELAY2_FEEDBACK,  // Slider 4 (CC 30) → Delay2 Feedback
-    PARAM_FILTER_FEEDBACK,  // Slider 5 (CC 74) → Filter Feedback
-    PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
-    PARAM_FILTER_Q,         // Slider 7 (CC 1) → Filter Q
-    PARAM_ATTACK,           // Slider 8 (CC 27)
-    PARAM_RELEASE           // Slider 9 (CC 7)
-};
-
-// Program 22: Morphing Spectral Engine
-static const SynthParameter PROGRAM_22_MAP[9] = {
-    PARAM_DISYN_ALGORITHM,  // Slider 1 (CC 73) → Algorithm
-    PARAM_DISYN_PARAM1,     // Slider 2 (CC 72) → Param1
-    PARAM_DISYN_PARAM2,     // Slider 3 (CC 28) → Param2
-    PARAM_F1,               // Slider 4 (CC 30) → F1 Jaw
-    PARAM_F2,               // Slider 5 (CC 74) → F2 Tongue
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Asymmetric FM Ratio
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Tanh Drive
+    PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 5 (CC 74) → Filter Q
     PARAM_INTENSITY,        // Slider 6 (CC 71) → Intensity
     PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 23: Inharmonic Bell Resonator
-static const SynthParameter PROGRAM_23_MAP[9] = {
-    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
-    PARAM_F1,               // Slider 3 (CC 28) → F1
-    PARAM_F3,               // Slider 4 (CC 30) → F3
+// Program 20: Parallel Distortion Bank (Algorithm 9)
+static const SynthParameter PROGRAM_20_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index (shared)
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → PAF Bandwidth (shared)
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Mix Balance
+    PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
     PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
+    PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 21: Feedback Distortion Network (Algorithm 10)
+static const SynthParameter PROGRAM_21_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → ModFM Index
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Feedback Gain
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Feedback Lowpass
+    PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
+    PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
+    PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 22: Morphing Spectral Engine (Algorithm 11)
+static const SynthParameter PROGRAM_22_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Morph Position (0=DSF, 0.5=ModFM, 1=PAF)
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Shared Character
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Crossfade Curve
+    PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
+    PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
+    PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 23: Inharmonic Resonator (Algorithm 12)
+static const SynthParameter PROGRAM_23_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Inharmonicity
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → PAF Frequency Shift
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → PAF Formant Frequency
+    PARAM_TUNING,           // Slider 4 (CC 30) → Tuning
+    PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
     PARAM_DELAY1_FEEDBACK,  // Slider 6 (CC 71) → Delay1 Feedback
     PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 24: Filter Sweep Emulator
+// Program 24: Adaptive Filter Emulation (Algorithm 13)
 static const SynthParameter PROGRAM_24_MAP[9] = {
-    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Decay/Index
-    PARAM_DISYN_PARAM1,     // Slider 2 (CC 72) → Index (duplicate for sweep)
-    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
-    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
-    PARAM_LFO_FREQ,         // Slider 5 (CC 74) → LFO Frequency
-    PARAM_AM_FM_DEPTH,      // Slider 6 (CC 71) → AM↔FM Depth
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Filter Cutoff (DSF N)
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Filter Resonance (DSF a)
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Filter Character (ModFM k)
+    PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → SVF Frequency
+    PARAM_FILTER_Q,         // Slider 5 (CC 74) → SVF Q
+    PARAM_LFO_FREQ,         // Slider 6 (CC 71) → LFO Frequency
     PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 25: Multi-Stage Waveshaper
+// Program 25: Multi-Stage Waveshaping (Algorithm 14)
 static const SynthParameter PROGRAM_25_MAP[9] = {
     PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Tanh Drive
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Tanh Blend
-    PARAM_FILTER_FREQ,      // Slider 3 (CC 28) → Filter Frequency
-    PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
-    PARAM_F1,               // Slider 5 (CC 74) → F1
-    PARAM_F2,               // Slider 6 (CC 71) → F2
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Exponential Depth
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Ring Mod Carrier
+    PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 5 (CC 74) → Filter Q
+    PARAM_INTENSITY,        // Slider 6 (CC 71) → Intensity
     PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 26: Spectral Animator
+// Program 26: Frequency-Dependent Asymmetry (Algorithm 15)
 static const SynthParameter PROGRAM_26_MAP[9] = {
-    PARAM_DISYN_ALGORITHM,  // Slider 1 (CC 73) → Algorithm
-    PARAM_DISYN_PARAM1,     // Slider 2 (CC 72) → Param1
-    PARAM_F1,               // Slider 3 (CC 28) → F1
-    PARAM_F2,               // Slider 4 (CC 30) → F2
-    PARAM_LFO_FREQ,         // Slider 5 (CC 74) → LFO Frequency
-    PARAM_AM_FM_DEPTH,      // Slider 6 (CC 71) → AM↔FM Depth
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → Low-Band r (downward shift)
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → High-Band r (upward shift)
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Crossover Frequency
+    PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → Filter Frequency
+    PARAM_FILTER_Q,         // Slider 5 (CC 74) → Filter Q
+    PARAM_LFO_FREQ,         // Slider 6 (CC 71) → LFO Frequency
     PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 27: Feedback Chaos Engine
+// Program 27: Cross-Algorithm Modulation (Algorithm 16)
 static const SynthParameter PROGRAM_27_MAP[9] = {
-    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF Decay
-    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → DSF Ratio
-    PARAM_INTERFACE_TYPE,   // Slider 3 (CC 28) → Interface Type
-    PARAM_DELAY1_FEEDBACK,  // Slider 4 (CC 30) → Delay1 Feedback
-    PARAM_DELAY2_FEEDBACK,  // Slider 5 (CC 74) → Delay2 Feedback
-    PARAM_FILTER_FEEDBACK,  // Slider 6 (CC 71) → Filter Feedback
-    PARAM_INTENSITY,        // Slider 7 (CC 1) → Intensity
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → DSF→ModFM Mod Depth
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → PAF→AsymFM Mod Depth
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → ModFM→DSF Mod Depth
+    PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
+    PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
+    PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
+    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
