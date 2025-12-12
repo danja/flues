@@ -197,12 +197,24 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_interface_type(synth, 2);  // Reed
             break;
 
-        case 6:  // Full Hybrid - All modules enabled (DISABLED - causes segfault)
-            printf("Program 6: Full Hybrid (DISABLED)\n");
-            printf("  - This program is temporarily disabled due to stability issues\n");
-            printf("  - Using Program 5 instead\n");
-            handle_program_change(5, synth);
-            return;
+        case 6:  // Full Hybrid - All modules enabled
+            printf("Program 6: Full Hybrid\n");
+            printf("  - Signal chain: Disyn + Noise → Formants → Interface → Delays → Filter\n");
+            printf("  - All DSP modules active for maximum flexibility\n");
+            printf("  - Sliders: FB1(73→28), FB2(72→29), FBFilt(28→30), IntType(30→24), Intensity(74→1), Tuning(71→26), Ratio(1→27), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_level(synth, 0.3f);
+            synth_engine_set_noise_level(synth, 0.2f);
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.3f);
+            synth_engine_set_filter_feedback(synth, 0.2f);
+            synth_engine_set_interface_type(synth, 2);  // Reed
+            synth_engine_set_master_gain(synth, 0.6f);
+            break;
 
         case 7:  // Disyn Direct - Raw distortion synth straight to output
             printf("Program 7: Disyn Direct\n");

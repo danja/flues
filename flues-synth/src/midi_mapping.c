@@ -131,10 +131,17 @@ static const SynthParameter PROGRAM_5_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 6: Full Hybrid (DISABLED - redirects to Program 5)
+// Program 6: Full Hybrid - All modules enabled
 static const SynthParameter PROGRAM_6_MAP[9] = {
-    PARAM_NONE, PARAM_NONE, PARAM_NONE, PARAM_NONE, PARAM_NONE,
-    PARAM_NONE, PARAM_NONE, PARAM_NONE, PARAM_NONE
+    PARAM_DELAY1_FEEDBACK,  // Slider 1 (CC 73)
+    PARAM_DELAY2_FEEDBACK,  // Slider 2 (CC 72)
+    PARAM_FILTER_FEEDBACK,  // Slider 3 (CC 28)
+    PARAM_INTERFACE_TYPE,   // Slider 4 (CC 30)
+    PARAM_INTENSITY,        // Slider 5 (CC 74)
+    PARAM_TUNING,           // Slider 6 (CC 71)
+    PARAM_RATIO,            // Slider 7 (CC 1)
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
 // Program 7: Disyn Direct

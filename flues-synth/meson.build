@@ -121,3 +121,11 @@ polyphony_smoke = executable('polyphony-smoke',
                              dependencies: [math_dep],
                              link_with: core_lib)
 test('polyphony-smoke', polyphony_smoke)
+
+# Program 6 stability test (Full Hybrid after race condition fix)
+program6_test = executable('program6-test',
+                           ['tests/program6_test.c'],
+                           include_directories: inc,
+                           dependencies: [math_dep],
+                           link_with: core_lib)
+test('program6-test', program6_test)

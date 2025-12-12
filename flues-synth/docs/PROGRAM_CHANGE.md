@@ -175,14 +175,25 @@ The MIDI controller has 9 sliders sending these CC numbers:
 
 ---
 
-### Program 6: Full Hybrid (DISABLED)
-**Status**: This program is temporarily disabled due to stability issues (segfaults). Selecting program 6 will redirect to program 5.
-
+### Program 6: Full Hybrid
 **Signal Chain**: Disyn + Noise → Formants → Interface → Delay Lines → Filter
 
-**Use Case**: All modules active (maximum flexibility) - currently disabled
+**Use Case**: All DSP modules active for maximum sonic flexibility. Ideal for complex timbres combining distortion synthesis, formant filtering, physical modeling, and effects processing.
 
-**Note**: Slider mappings and default settings are not active. Program 5 settings will be used instead.
+**Slider Mappings**:
+- Slider 1: **Delay1 Feedback** (73→28) - Delay line 1 return level
+- Slider 2: **Delay2 Feedback** (72→29) - Delay line 2 return level
+- Slider 3: **Filter Feedback** (28→30) - SVF output return level
+- Slider 4: **Interface Type** (30→24) - Physical model type (0-11)
+- Slider 5: **Intensity** (74→1) - Interface excitation strength
+- Slider 6: **Tuning** (71→26) - Pitch offset (-12 to +12 semitones)
+- Slider 7: **Ratio** (1→27) - Delay line 2 frequency ratio
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Disyn 0.3, Noise 0.2, all feedback 0.2-0.3, Interface=Reed, Master 0.6
+
+**Note**: Re-enabled after race condition fix in interface_module.c (commit 50bb5c0). Tested stable with all modules active simultaneously.
 
 ---
 

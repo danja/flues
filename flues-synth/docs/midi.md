@@ -29,10 +29,8 @@ Program Changes dynamically reconfigure the signal chain and remap hardware slid
 | 3 | Formant Voice | Noise → Formants | Pure vocal synthesis |
 | 4 | Hybrid Speech | Disyn + Noise → Formants | Voiced speech |
 | 5 | Physical Model | Noise → Interface → Delays → Filter | Classic PM |
-| 6 | Full Hybrid | *DISABLED* | (Redirects to 5) |
+| 6 | Full Hybrid | Disyn + Noise → Formants → Interface → Delays → Filter | Maximum flexibility |
 | 7 | Disyn Echo | Disyn → Delay1 | Simple delay effect |
-
-**Note**: Program 6 is temporarily disabled due to stability issues (segfaults) and redirects to Program 5.
 
 ### Hardware Slider Remapping
 
