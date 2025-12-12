@@ -14,7 +14,7 @@
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
 
-    rdfs:comment "MIDI CC controller for flues-synth with 29 programs and 9 parameter sliders" ;
+    rdfs:comment "MIDI CC controller for flues-synth with 29 programs (0-28) and 9 parameter sliders" ;
 
     lv2:port [
         # Port 0: MIDI Input
@@ -99,34 +99,34 @@
             rdfs:label "Spectral Sculptor" ;
             rdf:value 17
         ] , [
-            rdfs:label "Hybrid Formant" ;
+            rdfs:label "Hybrid Formant (Alg 7)" ;
             rdf:value 18
         ] , [
-            rdfs:label "Cascaded Spectral" ;
+            rdfs:label "Cascaded (Alg 8)" ;
             rdf:value 19
         ] , [
-            rdfs:label "Parallel Formant" ;
+            rdfs:label "Parallel Bank (Alg 9)" ;
             rdf:value 20
         ] , [
-            rdfs:label "Feedback Network" ;
+            rdfs:label "Feedback (Alg 10)" ;
             rdf:value 21
         ] , [
-            rdfs:label "Morphing Spectral" ;
+            rdfs:label "Morphing (Alg 11)" ;
             rdf:value 22
         ] , [
-            rdfs:label "Inharmonic Bell" ;
+            rdfs:label "Inharmonic (Alg 12)" ;
             rdf:value 23
         ] , [
-            rdfs:label "Filter Sweep" ;
+            rdfs:label "Adaptive Filter (Alg 13)" ;
             rdf:value 24
         ] , [
-            rdfs:label "Multi-Waveshaper" ;
+            rdfs:label "Multi-Stage (Alg 14)" ;
             rdf:value 25
         ] , [
-            rdfs:label "Spectral Animator" ;
+            rdfs:label "Freq Asymmetry (Alg 15)" ;
             rdf:value 26
         ] , [
-            rdfs:label "Feedback Chaos" ;
+            rdfs:label "Cross-Mod (Alg 16)" ;
             rdf:value 27
         ] , [
             rdfs:label "Vocal Morph" ;
