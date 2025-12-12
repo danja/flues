@@ -2,7 +2,7 @@
 
 ## Overview
 
-MIDI Program Change messages (0-17) configure the signal chain routing and dynamically remap the 9 hardware sliders to the most relevant parameters for each program.
+MIDI Program Change messages (0-28) configure the signal chain routing and dynamically remap the 9 hardware sliders to the most relevant parameters for each program.
 
 ### Program Summary
 
@@ -26,6 +26,17 @@ MIDI Program Change messages (0-17) configure the signal chain routing and dynam
 | 15 | Dirichlet Explorer | Dirichlet → Filter → Output | Active |
 | 16 | Multi-Algorithm | Disyn (any) → Output | Active |
 | 17 | Spectral Sculptor | DSF Double → Filter → Feedback → Output | Active |
+| 18 | Hybrid Formant Engine | ModFM → Formants (F1-F4) → Output | Active |
+| 19 | Cascaded Spectral Sculptor | DSF Single → Filter → Feedback → Output | Active |
+| 20 | Parallel Formant Bank | ModFM + Noise → Formants → Output | Active |
+| 21 | Feedback Loop Network | ModFM → Delays → Filter → Heavy Feedback | Active |
+| 22 | Morphing Spectral Engine | Algorithm Morph + Formants → Output | Active |
+| 23 | Inharmonic Bell Resonator | DSF (golden ratio) → Formants → Delays | Active |
+| 24 | Filter Sweep Emulator | ModFM → Filter → LFO Mod → Output | Active |
+| 25 | Multi-Stage Waveshaper | Tanh → Filter → Formants → Output | Active |
+| 26 | Spectral Animator | Algorithm + Formants → LFO Mod → Output | Active |
+| 27 | Feedback Chaos Engine | DSF → Interface → Delays → Filter → Max FB | Active |
+| 28 | Vocal Morph Matrix | ModFM → Formants + Vocal Modes → Output | Active |
 
 ## Hardware Slider Mapping
 
@@ -395,6 +406,226 @@ The MIDI controller has 9 sliders sending these CC numbers:
 
 ---
 
+### Program 18: Hybrid Formant Engine
+**Signal Chain**: ModFM (algo 6) → Formants (F1-F4) → Output
+
+**Use Case**: Voice-like lead synth with natural FM evolution and formant resonance. Based on Combination 1 from distortion synthesis research. Excellent for vocal pads, evolving leads, and speech-like textures.
+
+**Slider Mappings**:
+- Slider 1: **ModFM Index** (73→17) - Brightness/spectral complexity
+- Slider 2: **ModFM Ratio** (72→18) - C:M ratio (harmonic relationship)
+- Slider 3: **F1 (Jaw)** (28→71) - Formant 1 (200-1000 Hz)
+- Slider 4: **F2 (Tongue)** (30→10) - Formant 2 (500-3000 Hz)
+- Slider 5: **F3 (Lips)** (74→74) - Formant 3 (1500-4000 Hz)
+- Slider 6: **F4 (Quality)** (71→75) - Formant 4 (2500-4500 Hz)
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn level 0.5, F1=800Hz F2=1200Hz F3=2400Hz F4=3500Hz, Master 0.7
+
+---
+
+### Program 19: Cascaded Spectral Sculptor
+**Signal Chain**: DSF Single (algo 1) → Filter (SVF) → Feedback → Output
+
+**Use Case**: Animated morphing leads with DSF harmonic control + filter shaping. Based on Combination 2. Creates extremely animated timbres for modern synthesis and sound design.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Spectral rolloff (sparse to dense)
+- Slider 2: **DSF Ratio** (72→18) - Harmonic/inharmonic character
+- Slider 3: **Filter Frequency** (28→32) - Cutoff sweep
+- Slider 4: **Filter Q** (30→33) - Resonance
+- Slider 5: **Filter Shape** (74→34) - LP→BP→HP morph
+- Slider 6: **Filter Feedback** (71→30) - Filter return
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Single (algo 1), Disyn level 0.6, Filter 3kHz Q=3.0, Filter FB 0.4, Master 0.7
+
+---
+
+### Program 20: Parallel Formant Bank
+**Signal Chain**: ModFM + Noise → Formants (F1-F4) → Output
+
+**Use Case**: Rich organic complexity with chorused thick timbres. Based on Combination 3 parallel distortion bank. Excellent for polysynth-quality voices, pads, and strings.
+
+**Slider Mappings**:
+- Slider 1: **ModFM Index** (73→17) - Brightness control
+- Slider 2: **ModFM Ratio** (72→18) - C:M ratio
+- Slider 3: **F1 (Jaw)** (28→71) - Formant 1
+- Slider 4: **F2 (Tongue)** (30→10) - Formant 2
+- Slider 5: **F3 (Lips)** (74→74) - Formant 3
+- Slider 6: **F4 (Quality)** (71→75) - Formant 4
+- Slider 7: **Noise Level** (1→20) - Breathiness/texture
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn 0.4, Noise 0.2, F1=800Hz F2=1500Hz F3=2400Hz F4=3200Hz, Master 0.7
+
+---
+
+### Program 21: Feedback Loop Network
+**Signal Chain**: ModFM → Delays → Filter → Heavy Feedback → Output
+
+**Use Case**: Metallic bell-like timbres with chaotic evolution. Based on Combination 4 feedback distortion network. Creates FM-style metallic percussion and aggressive distorted leads.
+
+**Slider Mappings**:
+- Slider 1: **ModFM Index** (73→17) - FM depth
+- Slider 2: **ModFM Ratio** (72→18) - C:M ratio
+- Slider 3: **Delay1 Feedback** (28→28) - First delay return
+- Slider 4: **Delay2 Feedback** (30→29) - Second delay return
+- Slider 5: **Filter Feedback** (74→30) - Filter return (chaos control)
+- Slider 6: **Filter Frequency** (71→32) - Cutoff
+- Slider 7: **Filter Q** (1→33) - Resonance
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn 0.5, Delay1 0.5, Delay2 0.45, Filter FB 0.5, Filter 2kHz Q=2.0, Master 0.65
+
+---
+
+### Program 22: Morphing Spectral Engine
+**Signal Chain**: Algorithm morphing (via slider) + Formants → Output
+
+**Use Case**: Live performance control for exploring timbral space. Based on Combination 5. Allows continuous morphing between all 7 Disyn algorithms with formant coloration.
+
+**Slider Mappings**:
+- Slider 1: **Algorithm** (73→16) - Select from 7 algorithms
+- Slider 2: **Param1** (72→17) - Algorithm parameter 1
+- Slider 3: **Param2** (28→18) - Algorithm parameter 2
+- Slider 4: **F1 (Jaw)** (30→71) - Formant 1
+- Slider 5: **F2 (Tongue)** (74→10) - Formant 2
+- Slider 6: **Intensity** (71→1) - Interface intensity
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Disyn level 0.5, F1=600Hz F2=1400Hz, Master 0.7
+
+---
+
+### Program 23: Inharmonic Bell Resonator
+**Signal Chain**: DSF Single (golden ratio) → Formants → Delays → Output
+
+**Use Case**: Bell synthesis with gong-like metallic percussion. Based on Combination 6. Creates struck/plucked instrument modeling and cinematic metallic textures.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Spectral rolloff
+- Slider 2: **DSF Ratio** (72→18) - Set to √2 or φ for inharmonicity
+- Slider 3: **F1** (28→71) - Low formant (warmth)
+- Slider 4: **F3** (30→74) - High formant (brightness)
+- Slider 5: **Tuning** (74→26) - Delay pitch offset (-12 to +12)
+- Slider 6: **Delay1 Feedback** (71→28) - Sustain/resonance
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Single (algo 1), Disyn 0.5, F1=800Hz F3=2800Hz, Delay1 0.35, Master 0.7
+
+---
+
+### Program 24: Filter Sweep Emulator
+**Signal Chain**: ModFM → Filter → LFO Modulation → Output
+
+**Use Case**: Acid-style sounds with CPU-efficient filtered synthesis. Based on Combination 7 adaptive filter emulation. Replaces actual filter sweeps with spectral distortion.
+
+**Slider Mappings**:
+- Slider 1: **Decay/Index** (73→17) - Spectral control
+- Slider 2: **Index** (72→17) - Additional brightness (duplicate for sweep)
+- Slider 3: **Filter Frequency** (28→32) - Cutoff
+- Slider 4: **Filter Q** (30→33) - Resonance
+- Slider 5: **LFO Frequency** (74→36) - Modulation rate (0.1-20 Hz)
+- Slider 6: **AM↔FM Depth** (71→37) - Bipolar modulation (-1 to +1)
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn 0.6, Filter 1.5kHz Q=4.0, LFO 2Hz, AM↔FM 0.3, Master 0.7
+
+---
+
+### Program 25: Multi-Stage Waveshaper
+**Signal Chain**: Tanh Saw → Filter (cascade) → Formants (exponential shape) → Output
+
+**Use Case**: Each stage adds different spectral characteristics. Based on Novel Extrapolation 1. Tanh smooths/reduces aliasing, filter shapes, formants add exponential character.
+
+**Slider Mappings**:
+- Slider 1: **Tanh Drive** (73→17) - Saturation (0.05-4.5)
+- Slider 2: **Tanh Blend** (72→18) - Square/Saw mix (0-1)
+- Slider 3: **Filter Frequency** (28→32) - Cascade cutoff
+- Slider 4: **Filter Q** (30→33) - Resonance
+- Slider 5: **F1** (74→71) - Formant 1 (exponential shaping)
+- Slider 6: **F2** (71→10) - Formant 2
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Tanh Saw (algo 4), Disyn 0.6, Filter 2.5kHz Q=2.0, F1=1000Hz F2=2000Hz, Master 0.7
+
+---
+
+### Program 26: Spectral Animator
+**Signal Chain**: Algorithm selection → Formants → LFO Modulation → Output
+
+**Use Case**: Cross-algorithm parameter animation with coupled evolution. Based on Novel Extrapolation 3. Creates organic spectral evolution with related parameter movement.
+
+**Slider Mappings**:
+- Slider 1: **Algorithm** (73→16) - Select from 7 algorithms
+- Slider 2: **Param1** (72→17) - Algorithm parameter 1
+- Slider 3: **F1** (28→71) - Formant 1
+- Slider 4: **F2** (30→10) - Formant 2
+- Slider 5: **LFO Frequency** (74→36) - Modulation rate
+- Slider 6: **AM↔FM Depth** (71→37) - Modulation type/depth
+- Slider 7: **Master Gain** (1→7) - Output level
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Disyn 0.5, F1=700Hz F2=1600Hz, LFO 3Hz, AM↔FM 0.4, Master 0.7
+
+---
+
+### Program 27: Feedback Chaos Engine
+**Signal Chain**: DSF → Interface → Delays → Filter → Maximum Feedback → Output
+
+**Use Case**: Unpredictable organic evolution with physical modeling. Experimental program combining distortion synthesis with physical interface and extreme feedback. Creates evolving chaotic textures.
+
+**Slider Mappings**:
+- Slider 1: **DSF Decay** (73→17) - Spectral density
+- Slider 2: **DSF Ratio** (72→18) - Harmonic character
+- Slider 3: **Interface Type** (28→24) - Physical model (0-11)
+- Slider 4: **Delay1 Feedback** (30→28) - First delay return
+- Slider 5: **Delay2 Feedback** (74→29) - Second delay return
+- Slider 6: **Filter Feedback** (71→30) - Filter return (chaos)
+- Slider 7: **Intensity** (1→1) - Interface intensity
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: DSF Double (algo 2), Noise 0.15, Interface Reed, Disyn 0.4, Delay1 0.6, Delay2 0.55, Filter FB 0.5, Filter 1.8kHz Q=3.5, Intensity 0.6, Master 0.65
+
+---
+
+### Program 28: Vocal Morph Matrix
+**Signal Chain**: ModFM → All 4 Formants + Vocal Modes → Output
+
+**Use Case**: Complete vocal synthesis with singing and expression. Experimental program combining ModFM with full formant cascade and vocal mode toggles (Nasal, Sing, Shout).
+
+**Slider Mappings**:
+- Slider 1: **ModFM Index** (73→17) - Vocal brightness
+- Slider 2: **ModFM Ratio** (72→18) - Voice character
+- Slider 3: **F1 (Jaw)** (28→71) - Vowel height
+- Slider 4: **F2 (Tongue)** (30→10) - Vowel frontness
+- Slider 5: **Nasal** (74→80) - Nasal resonance (toggle ≥64)
+- Slider 6: **Sing** (71→81) - Vibrato (toggle ≥64)
+- Slider 7: **Shout** (1→82) - 15% formant boost (toggle ≥64)
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: ModFM (algo 6), Disyn 0.5, F1=700Hz F2=1220Hz F3=2600Hz F4=3500Hz, Vocal modes off, Master 0.7
+
+---
+
 ## Implementation Details
 
 ### Program Change Handler
@@ -465,7 +696,7 @@ Since slider mappings change per program, you can save controller snapshots:
 - Program changes are **immediate** (no crossfade)
 - All notes are **not** silenced on program change (voices continue)
 - Slider values are **not** queried on program change (set sliders after switching)
-- Unknown programs (>7) fallback to Program 0
+- Unknown programs (>28) fallback to Program 0
 - Console output includes full slider mapping legend for each program
 
 ---

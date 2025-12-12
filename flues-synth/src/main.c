@@ -389,6 +389,219 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_filter_q(synth, 2.5f);
             break;
 
+        case 18:  // Hybrid Formant Engine - Combination 1
+            printf("Program 18: Hybrid Formant Engine\n");
+            printf("  - ModFM → Formants (F1-F4) → Output\n");
+            printf("  - Voice-like lead with natural FM evolution and formant resonance\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 800.0f);
+            synth_engine_set_f2(synth, 1200.0f);
+            synth_engine_set_f3(synth, 2400.0f);
+            synth_engine_set_f4(synth, 3500.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 19:  // Cascaded Spectral Sculptor - Combination 2
+            printf("Program 19: Cascaded Spectral Sculptor\n");
+            printf("  - DSF Single → Filter (SVF) → Feedback → Output\n");
+            printf("  - Animated morphing leads with DSF harmonic control + filter shaping\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), Freq(28→32), Q(30→33), Shape(74→34), FiltFB(71→30), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 1);  // DSF Single
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_filter_frequency(synth, 3000.0f);
+            synth_engine_set_filter_q(synth, 3.0f);
+            synth_engine_set_filter_feedback(synth, 0.4f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 20:  // Parallel Formant Bank - Combination 3
+            printf("Program 20: Parallel Formant Bank\n");
+            printf("  - ModFM + Noise → Formants (F1-F4) → Output\n");
+            printf("  - Rich organic complexity with chorused thick timbres\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Noise(1→20), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM
+            synth_engine_set_disyn_level(synth, 0.4f);
+            synth_engine_set_noise_level(synth, 0.2f);
+            synth_engine_set_f1(synth, 800.0f);
+            synth_engine_set_f2(synth, 1500.0f);
+            synth_engine_set_f3(synth, 2400.0f);
+            synth_engine_set_f4(synth, 3200.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 21:  // Feedback Loop Network - Combination 4
+            printf("Program 21: Feedback Loop Network\n");
+            printf("  - ModFM → Delays → Filter → Heavy Feedback → Output\n");
+            printf("  - Metallic bell-like timbres with chaotic evolution\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), Dly1FB(28→28), Dly2FB(30→29), FiltFB(74→30), Freq(71→32), Q(1→33), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_delay1_feedback(synth, 0.5f);
+            synth_engine_set_delay2_feedback(synth, 0.45f);
+            synth_engine_set_filter_feedback(synth, 0.5f);
+            synth_engine_set_filter_frequency(synth, 2000.0f);
+            synth_engine_set_filter_q(synth, 2.0f);
+            synth_engine_set_master_gain(synth, 0.65f);
+            break;
+
+        case 22:  // Morphing Spectral - Combination 5
+            printf("Program 22: Morphing Spectral Engine\n");
+            printf("  - Algorithm morphing (via slider) + Formants → Output\n");
+            printf("  - Live performance control for exploring timbral space\n");
+            printf("  - Sliders: Algorithm(73→16), P1(72→17), P2(28→18), F1(30→71), F2(74→10), Intensity(71→1), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 600.0f);
+            synth_engine_set_f2(synth, 1400.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 23:  // Inharmonic Bell Resonator - Combination 6
+            printf("Program 23: Inharmonic Bell Resonator\n");
+            printf("  - DSF (golden ratio) → Formants → Delays → Output\n");
+            printf("  - Bell synthesis with gong-like metallic percussion\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F3(30→74), Tuning(74→26), Dly1FB(71→28), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 1);  // DSF Single
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 800.0f);
+            synth_engine_set_f3(synth, 2800.0f);
+            synth_engine_set_delay1_feedback(synth, 0.35f);
+            synth_engine_set_tuning(synth, 0.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 24:  // Filter Sweep Emulator - Combination 7
+            printf("Program 24: Filter Sweep Emulator\n");
+            printf("  - DSF + ModFM (mixed) → Filter → LFO Mod → Output\n");
+            printf("  - Acid-style sounds with CPU-efficient filtered synthesis\n");
+            printf("  - Sliders: Decay(73→17), Index(72→17), Freq(28→32), Q(30→33), LFO(74→36), AM↔FM(71→37), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM (we'll use P1 for DSF-like control)
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_filter_frequency(synth, 1500.0f);
+            synth_engine_set_filter_q(synth, 4.0f);
+            synth_engine_set_lfo_frequency(synth, 2.0f);
+            synth_engine_set_am_fm_depth(synth, 0.3f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 25:  // Multi-Stage Waveshaper - Novel Extrapolation 1
+            printf("Program 25: Multi-Stage Waveshaper\n");
+            printf("  - Tanh Saw → Filter (cascade) → Formants (exponential shape) → Output\n");
+            printf("  - Each stage adds different spectral characteristics\n");
+            printf("  - Sliders: Drive(73→17), Blend(72→18), Freq(28→32), Q(30→33), F1(74→71), F2(71→10), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 4);  // Tanh Saw
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_filter_frequency(synth, 2500.0f);
+            synth_engine_set_filter_q(synth, 2.0f);
+            synth_engine_set_f1(synth, 1000.0f);
+            synth_engine_set_f2(synth, 2000.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 26:  // Spectral Animator - Novel Extrapolation 3
+            printf("Program 26: Spectral Animator\n");
+            printf("  - Algorithm selection → Formants → LFO Modulation → Output\n");
+            printf("  - Cross-algorithm parameter animation with coupled evolution\n");
+            printf("  - Sliders: Algorithm(73→16), P1(72→17), F1(28→71), F2(30→10), LFO(74→36), AM↔FM(71→37), Master(1→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 700.0f);
+            synth_engine_set_f2(synth, 1600.0f);
+            synth_engine_set_lfo_frequency(synth, 3.0f);
+            synth_engine_set_am_fm_depth(synth, 0.4f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
+        case 27:  // Feedback Chaos Engine - Experimental
+            printf("Program 27: Feedback Chaos Engine\n");
+            printf("  - DSF → Interface → Delays → Filter → Maximum Feedback → Output\n");
+            printf("  - Unpredictable organic evolution with physical modeling\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), Interface(28→24), Dly1FB(30→28), Dly2FB(74→29), FiltFB(71→30), Intensity(1→1), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, true);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, true);
+            synth_engine_set_disyn_algorithm(synth, 2);  // DSF Double
+            synth_engine_set_disyn_level(synth, 0.4f);
+            synth_engine_set_noise_level(synth, 0.15f);
+            synth_engine_set_interface_type(synth, 2);  // Reed
+            synth_engine_set_delay1_feedback(synth, 0.6f);
+            synth_engine_set_delay2_feedback(synth, 0.55f);
+            synth_engine_set_filter_feedback(synth, 0.5f);
+            synth_engine_set_filter_frequency(synth, 1800.0f);
+            synth_engine_set_filter_q(synth, 3.5f);
+            synth_engine_set_intensity(synth, 0.6f);
+            synth_engine_set_master_gain(synth, 0.65f);
+            break;
+
+        case 28:  // Vocal Morph Matrix - Experimental
+            printf("Program 28: Vocal Morph Matrix\n");
+            printf("  - ModFM → All 4 Formants + Vocal Modes → Output\n");
+            printf("  - Complete vocal synthesis with singing and expression\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), F1(28→71), F2(30→10), Nasal(74→80), Sing(71→81), Shout(1→82), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, true);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 6);  // ModFM
+            synth_engine_set_disyn_level(synth, 0.5f);
+            synth_engine_set_f1(synth, 700.0f);
+            synth_engine_set_f2(synth, 1220.0f);
+            synth_engine_set_f3(synth, 2600.0f);
+            synth_engine_set_f4(synth, 3500.0f);
+            synth_engine_set_nasal(synth, 0.0f);
+            synth_engine_set_sing(synth, 0.0f);
+            synth_engine_set_shout(synth, 0.0f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
         default:
             printf("Program %d: Unknown (using program 0)\n", program);
             handle_program_change(0, synth);

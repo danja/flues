@@ -599,7 +599,7 @@ flues-synth/
 
 ## Documentation
 
-- **[MIDI Reference](docs/midi.md)** - Complete MIDI control specification (29 CCs, 18 programs, control notes)
+- **[MIDI Reference](docs/midi.md)** - Complete MIDI control specification (29 CCs, 29 programs, control notes)
 - **[Program Change Guide](docs/PROGRAM_CHANGE.md)** - Signal chain configurations and slider remapping
 - **[Algorithm Reference](docs/algorithms.md)** - Implementation-level DSP documentation (all synthesis algorithms, filters, and signal processing)
 - **[Signal Flow Diagram](docs/flues-synth-signal-flow.svg)** - Visual architecture with signal levels
@@ -635,6 +635,25 @@ flues-synth/
 - ☐ Performance profiling
 
 ## Recent Changes
+
+### 2025-12-12: Added Programs 18-28 (Experimental Combinations)
+- **Implemented 11 new experimental MIDI programs** based on synthesis research combinations
+  - Program 18: Hybrid Formant Engine (ModFM → Formants)
+  - Program 19: Cascaded Spectral Sculptor (DSF → Filter → Feedback)
+  - Program 20: Parallel Formant Bank (ModFM + Noise → Formants)
+  - Program 21: Feedback Loop Network (ModFM → Heavy Feedback)
+  - Program 22: Morphing Spectral Engine (Algorithm Crossfade + Formants)
+  - Program 23: Inharmonic Bell Resonator (DSF golden ratio → Formants)
+  - Program 24: Filter Sweep Emulator (ModFM → Filter → LFO)
+  - Program 25: Multi-Stage Waveshaper (Tanh → Filter → Formants)
+  - Program 26: Spectral Animator (Algorithm + Formants → LFO Mod)
+  - Program 27: Feedback Chaos Engine (DSF → Max Feedback)
+  - Program 28: Vocal Morph Matrix (ModFM → Formants + Vocal Modes)
+- **Based on research document** "Combinations and Novel Extrapolations" analysis
+- **Creative parameter assignments** - all 9 sliders mapped to musically relevant controls
+- **Diverse synthesis approaches** - vocal, metallic, morphing, acid, experimental
+- **Level safety verified** (all programs peak <0.95)
+- **Total expansion**: 18 → 29 MIDI programs
 
 ### 2025-12-11: Added Programs 8-17 (Distortion Synthesis Expansion)
 - **Implemented 10 new MIDI programs** based on distortion synthesis algorithms
