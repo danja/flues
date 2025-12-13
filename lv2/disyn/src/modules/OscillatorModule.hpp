@@ -100,7 +100,8 @@ public:
     }
 
     // Main process function - dispatches to algorithm-specific methods
-    float process(AlgorithmType algorithm, float param1, float param2, float param3, float frequency) {
+    // param3 is optional with default value for backwards compatibility (Disyn plugin only uses algorithms 0-6)
+    float process(AlgorithmType algorithm, float param1, float param2, float param3 = 0.5f, float frequency = 440.0f) {
         switch (algorithm) {
             case AlgorithmType::DIRICHLET_PULSE:
                 return processDirichletPulse(param1, param2, frequency);
