@@ -6,7 +6,7 @@ Unified **polyphonic (4-voice default)** synthesizer combining Disyn distortion 
 
 ## Features
 
-- **Disyn Oscillators**: 7 distortion synthesis algorithms (Dirichlet Pulse, DSF, Tanh, PAF, Modified FM)
+- **Disyn Oscillators**: 17 distortion synthesis algorithms (7 original + 10 extended with param3 control: Dirichlet Pulse, DSF Single/Double, Tanh Square/Saw, PAF, Modified FM, plus extended variants)
 - **Chatterbox Formants**: 4-formant cascade (F1-F4) with nasal resonance and vocal modes (Sing, Shout, Nasal, Fry)
 - **PM-Synth Physical Modeling**: 12 interface strategies (Pluck, Hit, Reed, Flute, Brass, Bow, Bell, Drum, Crystal, Vapor, Quantum, Plasma)
 - **Dual DC Blocking**: Prevents feedback latching with -60dB DC rejection
@@ -76,12 +76,31 @@ sudo apt install build-essential meson ninja-build libasound2-dev
 
 ## Build Instructions
 
-### Basic Build
+### Download Pre-Built Release (Recommended)
+
+Pre-built binaries optimized for Raspberry Pi 4 (aarch64) are available:
+
+**[Download Latest Release](https://github.com/danja/flues/releases/latest)**
+
+Download `flues-synth-v*.tar.gz`, extract, and install:
+```bash
+tar xzf flues-synth-v0.1.0-aarch64.tar.gz
+cd flues-synth-v0.1.0
+sudo cp flues-synth/flues-synth /usr/local/bin/
+sudo chmod +x /usr/local/bin/flues-synth
+flues-synth  # Run
+```
+
+### Build From Source
+
+**On Raspberry Pi** (recommended for optimal performance):
 ```bash
 cd flues-synth
 meson setup builddir
 meson compile -C builddir
 ```
+
+**For multi-platform releases** (desktop + Pi builds), see [../scripts/MULTI_PLATFORM_BUILD.md](../scripts/MULTI_PLATFORM_BUILD.md) for the complete workflow.
 
 ### Configuration Options
 
@@ -312,7 +331,11 @@ rate: 48000 (48000/1)
 
 ## MIDI Control
 
-**Full MIDI specification**: See **[docs/midi.md](docs/midi.md)** for complete reference including program changes, CC mapping details, and exponential/bipolar scaling formulas.
+**Full MIDI specification**: See **[docs/midi.md](docs/midi.md)** for complete reference including:
+- **29 MIDI Programs** (0-28) with signal chain configurations
+- **29 MIDI CCs** with exponential/bipolar scaling formulas
+- **6 Control Notes** (36-41) for debug toggles
+- Complete parameter mapping and ranges
 
 **Quick reference** for common controls:
 
@@ -415,6 +438,8 @@ Ctl Note 37: Disyn DISABLED
 
 ## Disyn Algorithms
 
+**17 Total Algorithms** (7 original + 10 extended with param3 control):
+
 | ID  | Name              | Description                              |
 |-----|-------------------|------------------------------------------|
 | 0   | Dirichlet Pulse   | Sum of harmonics (Param1: harmonics)     |
@@ -424,6 +449,9 @@ Ctl Note 37: Disyn DISABLED
 | 4   | Tanh Saw          | Waveshaped sawtooth wave                 |
 | 5   | PAF               | Phase-aligned formant                    |
 | 6   | Modified FM       | Phase-modulated FM synthesis             |
+| 7-16 | Extended Variants | Enhanced algorithms with param3 control  |
+
+**Note**: Algorithms 7-16 are extended variants that use param3 for additional spectral control. See [docs/algorithms.md](docs/algorithms.md) for complete algorithm documentation.
 
 ## Troubleshooting
 
@@ -636,42 +664,32 @@ flues-synth/
 
 ## Recent Changes
 
-### 2025-12-12: Added Programs 18-28 (Experimental Combinations)
-- **Implemented 11 new experimental MIDI programs** based on synthesis research combinations
-  - Program 18: Hybrid Formant Engine (ModFM → Formants)
-  - Program 19: Cascaded Spectral Sculptor (DSF → Filter → Feedback)
-  - Program 20: Parallel Formant Bank (ModFM + Noise → Formants)
-  - Program 21: Feedback Loop Network (ModFM → Heavy Feedback)
-  - Program 22: Morphing Spectral Engine (Algorithm Crossfade + Formants)
-  - Program 23: Inharmonic Bell Resonator (DSF golden ratio → Formants)
-  - Program 24: Filter Sweep Emulator (ModFM → Filter → LFO)
-  - Program 25: Multi-Stage Waveshaper (Tanh → Filter → Formants)
-  - Program 26: Spectral Animator (Algorithm + Formants → LFO Mod)
-  - Program 27: Feedback Chaos Engine (DSF → Max Feedback)
-  - Program 28: Vocal Morph Matrix (ModFM → Formants + Vocal Modes)
-- **Based on research document** "Combinations and Novel Extrapolations" analysis
-- **Creative parameter assignments** - all 9 sliders mapped to musically relevant controls
-- **Diverse synthesis approaches** - vocal, metallic, morphing, acid, experimental
-- **Level safety verified** (all programs peak <0.95)
-- **Total expansion**: 18 → 29 MIDI programs
+### v0.1.0 Release (December 2025)
 
-### 2025-12-11: Added Programs 8-17 (Distortion Synthesis Expansion)
-- **Implemented 10 new MIDI programs** based on distortion synthesis algorithms
-  - Program 8: ModFM Formant (voice-like synthesis)
-  - Program 9: DSF Inharmonic Explorer (bells/gongs)
-  - Program 10: PAF Direct (vowel synthesis)
-  - Program 11: Cascaded DSF+PAF (inharmonic resonator)
-  - Program 12: Tanh Spectral (acid synthesis)
-  - Program 13: Hybrid DSF→Formant (vocal synthesis)
-  - Program 14: Feedback ModFM (FM bells)
-  - Program 15: Dirichlet Explorer (harmonic synthesis)
-  - Program 16: Multi-Algorithm Demo (algorithm comparison)
-  - Program 17: Spectral Sculptor (adaptive filtering)
-- **Leverages existing 7 Disyn algorithms** through different signal chain routing
-- **Each program has optimized slider mappings** (9 sliders per program)
-- **Level safety verified** (all programs peak <0.95)
-- **No new C++ code required** - uses proven algorithm implementations
-- **Total expansion**: 8 → 18 MIDI programs
+**First official release** with 29 MIDI programs (expanded from 8), 17 Disyn algorithms (expanded from 7), and multi-platform build support.
+
+**Download**: [GitHub Releases](https://github.com/danja/flues/releases)
+
+**Key Features:**
+- **29 MIDI Programs**: Comprehensive preset library covering physical modeling, distortion synthesis, hybrid chains, and experimental combinations
+- **17 Disyn Algorithms**: 7 original algorithms + 10 extended variants with param3 control for enhanced spectral manipulation
+- **Program 6 Re-Enabled**: Full Hybrid mode now working (race condition fixed in December 2025)
+- **Backwards Compatibility**: All existing code works without modification; param3 is optional with default value
+- **Multi-Platform Builds**: Optimized binaries for Ubuntu desktop (x86_64) and Raspberry Pi (aarch64)
+- **Complete Documentation**: Algorithm reference, MIDI spec, program guide, signal flow diagrams
+
+**Program Categories:**
+- **Programs 0-7**: Original physical modeling presets (Classic Reed, Pluck, Brass, etc.)
+- **Programs 8-17**: Distortion synthesis explorations (ModFM Formant, DSF Bells, PAF Vowels, Hybrid chains)
+- **Programs 18-28**: Experimental combinations (Morphing engines, feedback networks, spectral animators)
+
+Each program includes optimized 9-slider mappings and level safety verification. See [docs/PROGRAM_CHANGE.md](docs/PROGRAM_CHANGE.md) for complete program guide.
+
+**Technical Improvements:**
+- Dual DC blocking (R=0.999) prevents feedback latching
+- Calibrated signal levels (0.81 peak, optimized for S16_LE)
+- TPDF dithering for clean 16-bit output
+- Test suite: engine-smoke, envelope-test, disyn-levels (all passing)
 
 ### 2025-12-11: S16_LE Audio Quality Improvements
 - **Increased signal levels** for better bit depth usage (56% → 81% of full scale)
