@@ -46,11 +46,16 @@ build_lv2_plugin() {
 
     cmake --build build --config Release
 
-    # Find the .lv2 bundle in build directory
-    local bundle=$(find build -name "*.lv2" -type d | head -1)
+    # Install to temporary staging directory to create .lv2 bundle
+    local staging_dir="$plugin_dir/build/staging"
+    rm -rf "$staging_dir"
+    cmake --install build --prefix "$staging_dir"
+
+    # Find the .lv2 bundle in staging directory
+    local bundle=$(find "$staging_dir" -name "*.lv2" -type d | head -1)
 
     if [ -z "$bundle" ]; then
-        echo "  ERROR: No .lv2 bundle found after build"
+        echo "  ERROR: No .lv2 bundle found after install"
         return 1
     fi
 
