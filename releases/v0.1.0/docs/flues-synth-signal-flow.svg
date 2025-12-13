@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="1200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .module { fill: #e8f4f8; stroke: #2c5aa0; stroke-width: 2; }
+      .source { fill: #d4edda; stroke: #28a745; stroke-width: 2; }
+      .process { fill: #fff3cd; stroke: #ffc107; stroke-width: 2; }
+      .output { fill: #f8d7da; stroke: #dc3545; stroke-width: 2; }
+      .dc-blocker { fill: #f5f5f5; stroke: #6c757d; stroke-width: 1; stroke-dasharray: 3,3; }
+      .text { font-family: Arial, sans-serif; font-size: 12px; fill: #333; }
+      .label { font-family: Arial, sans-serif; font-size: 11px; fill: #666; }
+      .title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #000; }
+      .arrow { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .feedback-arrow { stroke: #dc3545; stroke-width: 2; fill: none; marker-end: url(#arrowhead-red); stroke-dasharray: 5,5; }
+      .signal { font-family: monospace; font-size: 10px; fill: #0066cc; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+    <marker id="arrowhead-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#dc3545" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="25" class="title" text-anchor="middle">Flues Synth Signal Flow</text>
+  <text x="400" y="42" class="label" text-anchor="middle">Hybrid Disyn + Chatterbox + PM-Synth Architecture</text>
+
+  <!-- MIDI Input -->
+  <rect x="20" y="60" width="120" height="40" class="source" rx="5"/>
+  <text x="80" y="85" class="text" text-anchor="middle">MIDI Input</text>
+  <text x="80" y="95" class="label" text-anchor="middle">Note, Velocity, CC</text>
+
+  <!-- 1. Disyn Oscillator -->
+  <rect x="20" y="130" width="140" height="50" class="module" rx="5"/>
+  <text x="90" y="152" class="text" text-anchor="middle">Disyn Oscillator</text>
+  <text x="90" y="165" class="label" text-anchor="middle">7 algorithms</text>
+  <text x="90" y="175" class="signal" text-anchor="middle">×0.8 level</text>
+
+  <!-- DC Blocker 1 -->
+  <rect x="30" y="190" width="120" height="25" class="dc-blocker" rx="3"/>
+  <text x="90" y="206" class="label" text-anchor="middle">DC Blocker (R=0.999)</text>
+
+  <!-- 2. Sources Module -->
+  <rect x="190" y="130" width="120" height="50" class="module" rx="5"/>
+  <text x="250" y="152" class="text" text-anchor="middle">Sources</text>
+  <text x="250" y="165" class="label" text-anchor="middle">Noise + DC</text>
+  <text x="250" y="175" class="signal" text-anchor="middle">noise: 0.15</text>
+
+  <!-- Mix point -->
+  <circle cx="250" cy="240" r="8" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="250" y="244" class="text" text-anchor="middle" font-size="16">+</text>
+  <text x="260" y="260" class="label">Mix</text>
+
+  <!-- 3. Envelope -->
+  <rect x="190" y="280" width="120" height="50" class="process" rx="5"/>
+  <text x="250" y="302" class="text" text-anchor="middle">Envelope (AR)</text>
+  <text x="250" y="315" class="label" text-anchor="middle">Attack/Release</text>
+  <text x="250" y="325" class="signal" text-anchor="middle">Gate-driven</text>
+
+  <!-- 4. Formant Bank -->
+  <rect x="190" y="360" width="120" height="70" class="module" rx="5"/>
+  <text x="250" y="380" class="text" text-anchor="middle">Formant Cascade</text>
+  <text x="250" y="395" class="label" text-anchor="middle">F1→F2→F3→F4</text>
+  <text x="250" y="407" class="label" text-anchor="middle">Biquad bandpass</text>
+  <text x="250" y="420" class="signal" text-anchor="middle">makeup: ×2.0</text>
+
+  <!-- Feedback sum point -->
+  <circle cx="250" cy="470" r="8" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="250" y="474" class="text" text-anchor="middle" font-size="16">+</text>
+  <text x="215" y="465" class="label">Feedback</text>
+
+  <!-- 5. Interface Module -->
+  <rect x="190" y="500" width="120" height="60" class="process" rx="5"/>
+  <text x="250" y="522" class="text" text-anchor="middle">Interface Module</text>
+  <text x="250" y="535" class="label" text-anchor="middle">Reed/Pluck/etc</text>
+  <text x="250" y="548" class="label" text-anchor="middle">Nonlinear model</text>
+
+  <!-- 6. Delay Lines -->
+  <rect x="190" y="585" width="120" height="50" class="module" rx="5"/>
+  <text x="250" y="607" class="text" text-anchor="middle">Dual Delays</text>
+  <text x="250" y="620" class="label" text-anchor="middle">Tuning + Ratio</text>
+
+  <!-- 7. Filter -->
+  <rect x="190" y="660" width="120" height="50" class="module" rx="5"/>
+  <text x="250" y="682" class="text" text-anchor="middle">SVF Filter</text>
+  <text x="250" y="695" class="label" text-anchor="middle">LP/BP/HP morph</text>
+
+  <!-- Feedback DC Blocker -->
+  <rect x="420" y="670" width="140" height="25" class="dc-blocker" rx="3"/>
+  <text x="490" y="686" class="label" text-anchor="middle">DC Blocker (R=0.999)</text>
+
+  <!-- Feedback Module -->
+  <rect x="420" y="580" width="140" height="70" class="process" rx="5"/>
+  <text x="490" y="605" class="text" text-anchor="middle">Feedback Mix</text>
+  <text x="490" y="618" class="label" text-anchor="middle">Delay1 + Delay2</text>
+  <text x="490" y="631" class="label" text-anchor="middle">+ Filter returns</text>
+
+  <!-- 8. Modulation -->
+  <rect x="50" y="760" width="100" height="50" class="module" rx="5"/>
+  <text x="100" y="782" class="text" text-anchor="middle">LFO</text>
+  <text x="100" y="795" class="label" text-anchor="middle">AM ↔ FM</text>
+
+  <!-- AM multiply -->
+  <circle cx="250" cy="785" r="8" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="250" y="789" class="text" text-anchor="middle" font-size="16">×</text>
+  <text x="260" y="800" class="label">AM</text>
+
+  <!-- 9. Global Processing -->
+  <rect x="190" y="830" width="120" height="70" class="process" rx="5"/>
+  <text x="250" y="852" class="text" text-anchor="middle">Global Processing</text>
+  <text x="250" y="865" class="signal" text-anchor="middle">×0.7 pad</text>
+  <text x="250" y="878" class="signal" text-anchor="middle">tanh(x) clip</text>
+  <text x="250" y="891" class="signal" text-anchor="middle">×0.5 master</text>
+
+  <!-- Output -->
+  <rect x="190" y="930" width="120" height="40" class="output" rx="5"/>
+  <text x="250" y="955" class="text" text-anchor="middle">Audio Output</text>
+
+  <!-- Control Notes -->
+  <rect x="580" y="60" width="200" height="160" fill="#f8f9fa" stroke="#6c757d" stroke-width="1" rx="5"/>
+  <text x="680" y="80" class="title" text-anchor="middle">Control Notes</text>
+  <text x="590" y="100" class="label">Note 36: Toggle Noise</text>
+  <text x="590" y="115" class="label">Note 37: Toggle Disyn</text>
+  <text x="590" y="130" class="label">Note 38: Toggle Feedback</text>
+  <text x="590" y="145" class="label">Note 39: Toggle Formants</text>
+  <text x="590" y="160" class="label">Note 40: Toggle Filter</text>
+  <text x="590" y="175" class="label">Note 41: Hard Mute</text>
+  <text x="590" y="200" class="label">Note 48+: Musical notes</text>
+
+  <!-- MIDI CCs -->
+  <rect x="580" y="240" width="200" height="230" fill="#f8f9fa" stroke="#6c757d" stroke-width="1" rx="5"/>
+  <text x="680" y="260" class="title" text-anchor="middle">Key MIDI CCs</text>
+  <text x="590" y="280" class="label">CC 1: Intensity</text>
+  <text x="590" y="295" class="label">CC 7: Master Gain</text>
+  <text x="590" y="310" class="label">CC 16-19: Disyn params</text>
+  <text x="590" y="325" class="label">CC 20-21: Noise/DC level</text>
+  <text x="590" y="340" class="label">CC 24: Interface Type</text>
+  <text x="590" y="355" class="label">CC 71: F1 (Jaw)</text>
+  <text x="590" y="370" class="label">CC 10: F2 (Tongue)</text>
+  <text x="590" y="385" class="label">CC 74-75: F3-F4</text>
+  <text x="590" y="400" class="label">CC 73: Attack</text>
+  <text x="590" y="415" class="label">CC 72: Release</text>
+  <text x="590" y="430" class="label">CC 28-30: Feedback</text>
+  <text x="590" y="445" class="label">CC 32-34: Filter F/Q/Shape</text>
+  <text x="590" y="460" class="label">CC 80-83: Vocal modes</text>
+
+  <!-- Signal Flow Notes -->
+  <rect x="580" y="490" width="200" height="110" fill="#fff3cd" stroke="#ffc107" stroke-width="1" rx="5"/>
+  <text x="680" y="510" class="title" text-anchor="middle">Signal Levels</text>
+  <text x="590" y="530" class="label">Disyn: 0.8 (was 0.2)</text>
+  <text x="590" y="545" class="label">Formants: 2.0× makeup</text>
+  <text x="590" y="560" class="label">Global pad: 0.7×</text>
+  <text x="590" y="575" class="label">Master: 0.5×</text>
+  <text x="590" y="590" class="label">Peak: ~0.28 (safe)</text>
+
+  <!-- Arrows - Main signal path -->
+  <path d="M 80 100 L 80 130" class="arrow"/>
+  <path d="M 90 180 L 90 215 L 250 215 L 250 232" class="arrow"/>
+  <path d="M 250 180 L 250 232" class="arrow"/>
+  <path d="M 250 248 L 250 280" class="arrow"/>
+  <path d="M 250 330 L 250 360" class="arrow"/>
+  <path d="M 250 430 L 250 462" class="arrow"/>
+  <path d="M 250 478 L 250 500" class="arrow"/>
+  <path d="M 250 560 L 250 585" class="arrow"/>
+  <path d="M 250 635 L 250 660" class="arrow"/>
+  <path d="M 250 710 L 250 777" class="arrow"/>
+  <path d="M 250 793 L 250 830" class="arrow"/>
+  <path d="M 250 900 L 250 930" class="arrow"/>
+
+  <!-- LFO to AM -->
+  <path d="M 150 785 L 242 785" class="arrow"/>
+
+  <!-- Feedback path -->
+  <path d="M 310 610 L 350 610 L 350 685 L 420 685" class="feedback-arrow"/>
+  <path d="M 310 685 L 350 685" class="feedback-arrow"/>
+  <path d="M 490 670 L 490 650" class="feedback-arrow"/>
+  <path d="M 490 580 L 490 520 L 350 520 L 350 470 L 258 470" class="feedback-arrow"/>
+
+  <!-- Legend -->
+  <rect x="20" y="1000" width="760" height="180" fill="#f8f9fa" stroke="#6c757d" stroke-width="1" rx="5"/>
+  <text x="400" y="1020" class="title" text-anchor="middle">Implementation Notes</text>
+
+  <text x="30" y="1045" class="label" font-weight="bold">DC Blocking:</text>
+  <text x="30" y="1060" class="label">• Two-stage DC protection prevents feedback latching</text>
+  <text x="30" y="1075" class="label">• DC Blocker 1 (after Disyn): Catches DC at source, R=0.999 (-60dB @ DC)</text>
+  <text x="30" y="1090" class="label">• DC Blocker 2 (feedback loop): Prevents accumulation in delay/filter loop</text>
+
+  <text x="30" y="1110" class="label" font-weight="bold">Level Management:</text>
+  <text x="30" y="1125" class="label">• Disyn level increased to 0.8 (from 0.2) for better audibility</text>
+  <text x="30" y="1140" class="label">• Formant makeup gain reduced to 2.0× (from 3.0×) to prevent clipping</text>
+  <text x="30" y="1155" class="label">• Global pad (0.7×) + soft clip (tanh) + master gain (0.5×) provide safety margin</text>
+  <text x="30" y="1170" class="label">• Final peak output: ~0.28 (safe, no clipping with proper formant tuning)</text>
+</svg>
