@@ -43,11 +43,12 @@ echo ""
 cd "$PROJECT_ROOT/flues-synth"
 
 # Clean and build with Pi-optimized flags
+# Use -march=native to auto-detect Pi CPU features
 rm -rf builddir
 meson setup builddir \
     --buildtype=release \
-    -Dc_args="-O3 -mcpu=cortex-a72 -mfpu=neon-fp-armv8 -DNDEBUG" \
-    -Dcpp_args="-O3 -mcpu=cortex-a72 -mfpu=neon-fp-armv8 -DNDEBUG"
+    -Dc_args="-O3 -march=native -DNDEBUG" \
+    -Dcpp_args="-O3 -march=native -DNDEBUG"
 
 meson compile -C builddir
 
