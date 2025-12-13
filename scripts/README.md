@@ -4,33 +4,103 @@ This directory contains build, release, and utility scripts for the Flues Projec
 
 ## Release Scripts
 
-### build-release.sh
-**Purpose:** Build optimized release packages for GitHub distribution
+### Multi-Platform Build (Recommended)
+
+**NEW:** Flues now supports multi-platform builds - LV2 plugins on desktop, flues-synth on Raspberry Pi.
+
+#### build-plugins.sh
+**Purpose:** Build LV2 plugins on Ubuntu desktop
+
+**Usage:**
+```bash
+./scripts/build-plugins.sh [VERSION]
+```
+
+**Platform:** Ubuntu desktop (x86_64)
+
+**What it does:**
+- Builds all 7 LV2 plugins in release mode (-O3 -march=native)
+- Creates .lv2 bundles
+- Packages into tarball for transfer to Pi
+
+**Output:**
+- `build-output/plugins-v{VERSION}/` - Plugin bundles
+- `build-output/flues-plugins-v{VERSION}-linux-x86_64.tar.gz`
+
+---
+
+#### build-synth-pi.sh
+**Purpose:** Build flues-synth on Raspberry Pi
+
+**Usage:**
+```bash
+./scripts/build-synth-pi.sh [VERSION]
+```
+
+**Platform:** Raspberry Pi 4 (aarch64/armv7l)
+
+**What it does:**
+- Builds flues-synth with Pi-specific optimization (-mcpu=cortex-a72)
+- Runs all tests on Pi hardware
+- Strips debug symbols
+- Packages into tarball for transfer back to desktop
+
+**Output:**
+- `build-output/synth-v{VERSION}/` - Binary + docs
+- `build-output/flues-synth-v{VERSION}-linux-aarch64.tar.gz`
+
+---
+
+#### assemble-release.sh
+**Purpose:** Combine desktop and Pi builds into final release
+
+**Usage:**
+```bash
+./scripts/assemble-release.sh [VERSION]
+```
+
+**Platform:** Ubuntu desktop (after receiving Pi build)
+
+**What it does:**
+- Combines plugin build (desktop) + synth build (Pi)
+- Creates unified release directory
+- Generates 3 tarballs: full, plugins-only, synth-only
+- Creates install/uninstall scripts
+- Generates checksums
+
+**Output:**
+- `releases/v{VERSION}/` - Complete release directory
+- `releases/flues-v{VERSION}-multi-arch.tar.gz` - Full release
+- `releases/flues-plugins-v{VERSION}-x86_64.tar.gz` - Plugins only
+- `releases/flues-synth-v{VERSION}-aarch64.tar.gz` - Synth only
+- Checksums for all tarballs
+
+**See:** `MULTI_PLATFORM_BUILD.md` for complete workflow.
+
+---
+
+### Single-Platform Build (Legacy)
+
+#### build-release.sh
+**Purpose:** Build everything on one machine (desktop or Pi)
 
 **Usage:**
 ```bash
 ./scripts/build-release.sh [VERSION]
 ```
 
-**Example:**
-```bash
-./scripts/build-release.sh 0.1.0
-```
+**Note:** This builds both plugins and synth on the same machine. Not recommended for production releases since it doesn't optimize for each platform.
 
 **What it does:**
-- Builds all 7 LV2 plugins in release mode (-O3 -march=native)
-- Builds flues-synth in release mode
-- Runs all tests to verify build
-- Creates release directory structure
-- Packages everything into tarball
-- Generates checksums (SHA256 + MD5)
-- Creates install/uninstall scripts
+- Builds all 7 LV2 plugins
+- Builds flues-synth
+- Runs all tests
+- Creates single tarball
 
 **Output:**
 - `releases/v{VERSION}/` - Release directory
 - `releases/flues-v{VERSION}-{OS}-{ARCH}.tar.gz` - Distribution tarball
-- `releases/flues-v{VERSION}-{OS}-{ARCH}.tar.gz.sha256` - SHA256 checksum
-- `releases/flues-v{VERSION}-{OS}-{ARCH}.tar.gz.md5` - MD5 checksum
+- Checksums
 
 ---
 

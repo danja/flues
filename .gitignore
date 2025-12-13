@@ -1,4 +1,5 @@
 # Build outputs (Meson/CMake)
+build-output
 flues-synth/builddir/
 gtk-synth/builddir/
 lv2/*/build/
