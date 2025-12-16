@@ -35,8 +35,9 @@ public:
             return input;  // Bypass if amount is negligible
         }
 
-        // Map amount to bit depth: 0.0→16-bit, 0.33→12-bit, 0.66→8-bit, 1.0→4-bit
-        const float bitDepth = 16.0f - (amount * 12.0f);  // 16 to 4 bits
+        // Shape curve for a steeper crush and allow down to ~2 bits
+        const float shaped = std::pow(amount, 0.7f);      // front-load aggression
+        const float bitDepth = std::max(2.0f, 16.0f - (shaped * 14.0f));  // 16 → 2 bits
         const float levels = std::pow(2.0f, bitDepth);    // Quantization levels
 
         // Quantize the signal (handles negative values correctly)

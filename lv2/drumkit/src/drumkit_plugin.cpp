@@ -1,6 +1,6 @@
 // drumkit_plugin.cpp
 // LV2 plugin wrapper for hardcore industrial drumkit
-// MIDI channel 10 only, 8 voices, 18 parameters
+// MIDI channel 10 only, 9 voices, 24 parameters
 
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
@@ -35,6 +35,12 @@ enum PortIndex : uint32_t {
     PORT_HH_DECAY,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
+    PORT_BASH_SIZE,
+    PORT_BASH_SPREAD,
+    PORT_BASH_DECAY,
+    PORT_BASH_DRIVE,
+    PORT_BASH_NOISE,
+    PORT_BASH_EDGE,
     PORT_BIT_CRUSH,
     PORT_MASTER_DRIVE,
     PORT_MASTER_REVERB,
@@ -51,7 +57,7 @@ struct DrumkitLV2 {
     const LV2_Atom_Sequence* midiIn;
     float* audioOut;
 
-    // Parameter port pointers (18 params)
+    // Parameter port pointers (24 params)
     const float* kickPitch;
     const float* kickDecay;
     const float* kickDrive;
@@ -66,6 +72,12 @@ struct DrumkitLV2 {
     const float* hhDecay;
     const float* crashBrightness;
     const float* crashDecay;
+    const float* bashSize;
+    const float* bashSpread;
+    const float* bashDecay;
+    const float* bashDrive;
+    const float* bashNoise;
+    const float* bashEdge;
     const float* bitCrush;
     const float* masterDrive;
     const float* masterReverb;
@@ -108,6 +120,14 @@ static void apply_parameters(DrumkitLV2* self) {
     // Crash (2 params)
     if (self->crashBrightness) self->engine->setCrashBrightness(*self->crashBrightness);
     if (self->crashDecay) self->engine->setCrashDecay(*self->crashDecay);
+
+    // Bash (6 params)
+    if (self->bashSize) self->engine->setBashSize(*self->bashSize);
+    if (self->bashSpread) self->engine->setBashSpread(*self->bashSpread);
+    if (self->bashDecay) self->engine->setBashDecay(*self->bashDecay);
+    if (self->bashDrive) self->engine->setBashDrive(*self->bashDrive);
+    if (self->bashNoise) self->engine->setBashNoise(*self->bashNoise);
+    if (self->bashEdge) self->engine->setBashEdge(*self->bashEdge);
 
     // Master (4 params)
     if (self->bitCrush) self->engine->setBitCrush(*self->bitCrush);
@@ -175,6 +195,12 @@ static LV2_Handle instantiate(
     self->hhDecay = nullptr;
     self->crashBrightness = nullptr;
     self->crashDecay = nullptr;
+    self->bashSize = nullptr;
+    self->bashSpread = nullptr;
+    self->bashDecay = nullptr;
+    self->bashDrive = nullptr;
+    self->bashNoise = nullptr;
+    self->bashEdge = nullptr;
     self->bitCrush = nullptr;
     self->masterDrive = nullptr;
     self->masterReverb = nullptr;
@@ -220,6 +246,12 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_HH_DECAY: self->hhDecay = static_cast<const float*>(data); break;
         case PORT_CRASH_BRIGHTNESS: self->crashBrightness = static_cast<const float*>(data); break;
         case PORT_CRASH_DECAY: self->crashDecay = static_cast<const float*>(data); break;
+        case PORT_BASH_SIZE: self->bashSize = static_cast<const float*>(data); break;
+        case PORT_BASH_SPREAD: self->bashSpread = static_cast<const float*>(data); break;
+        case PORT_BASH_DECAY: self->bashDecay = static_cast<const float*>(data); break;
+        case PORT_BASH_DRIVE: self->bashDrive = static_cast<const float*>(data); break;
+        case PORT_BASH_NOISE: self->bashNoise = static_cast<const float*>(data); break;
+        case PORT_BASH_EDGE: self->bashEdge = static_cast<const float*>(data); break;
         case PORT_BIT_CRUSH: self->bitCrush = static_cast<const float*>(data); break;
         case PORT_MASTER_DRIVE: self->masterDrive = static_cast<const float*>(data); break;
         case PORT_MASTER_REVERB: self->masterReverb = static_cast<const float*>(data); break;

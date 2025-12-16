@@ -41,6 +41,7 @@ target_sources(drumkit
         src/voices/TomVoice.hpp
         src/voices/HiHatVoice.hpp
         src/voices/CrashVoice.hpp
+        src/voices/BashVoice.hpp
 )
 
 target_compile_definitions(drumkit PRIVATE LV2_EXPORT_SHARED)

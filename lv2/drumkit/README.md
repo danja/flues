@@ -1,11 +1,11 @@
 # Flues Drumkit - Hardcore Industrial TR-909
 
-A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
+A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
 
 ## Features
 
-- **8 Synthesized Drum Voices** (not samples!)
-- **18 Parameters** with X11/Cairo GUI
+- **9 Synthesized Drum Voices** (not samples!)
+- **24 Parameters** with X11/Cairo GUI
 - **Velocity Sensitivity** on kick, snare, and toms
 - **Hi-Hat Choke Group** (closed kills open)
 - **Master FX Chain**: Bit Crusher, Distortion, Reverb
@@ -21,6 +21,7 @@ A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the 
 | 42 | F#2 | Closed Hi-Hat | No (fixed level) |
 | 45 | A2 | Lo Tom | Yes |
 | 46 | A#2 | Open Hi-Hat | No (fixed level) |
+| 47 | B2 | Bash (Metal) | Yes |
 | 49 | C#3 | Crash | No (fixed level) |
 | 50 | D3 | Hi Tom | Yes |
 
@@ -66,6 +67,16 @@ A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the 
 
 **Synthesis**: White noise → 3× bandpass cascade → Soft clipping
 
+### Bash (6 Parameters)
+- **Size**: Base plate/pipe frequency (180-1200 Hz)
+- **Spread**: Inharmonic overtone spread for clang and beating
+- **Decay**: Ring-out time 120-1600 ms
+- **Drive**: Per-voice tanh saturation 1-10×
+- **Noise**: Strike noise burst level
+- **Edge**: Highpass lift 800-8000 Hz for metallic bite
+
+**Synthesis**: Dual detuned sine/ring-mod core → highpass strike + noise burst → dual bandpass resonators → tanh saturation
+
 ### Master FX (4 Parameters)
 - **Bit Crush**: Bit depth reduction 0=off, 1=4-bit (lo-fi grunge)
 - **Drive**: Master distortion 1.0-5.0× tanh saturation
@@ -110,7 +121,7 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 ### In a DAW (Reaper, Ardour, Carla, etc.)
 
 1. Load "Flues Drumkit" as an instrument track
-2. Send MIDI notes in the range C2-D3 (notes 36-50)
+2. Send MIDI notes in the range C2-D3 (notes 36-50, with B2/47 triggering Bash)
 3. Adjust parameters via the GUI or DAW automation
 4. **Tip**: Use MIDI velocity on kick/snare/toms for dynamics
 
@@ -129,6 +140,10 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 **Snappy Clap**:
 - Density: 0.7-0.9 (7 impulses, tight spacing, longer bursts)
 - Tone: 0.5-0.8 (bright, cutting, high Q resonance)
+
+**Bash Metal Hits**:
+- Size: 0.3-0.5 (mid-sized plate), Spread: 0.6-0.9 for harsh beating
+- Drive: 0.6-0.8, Noise: 0.6-0.8, Edge: 0.7-1.0 for serrated attack
 
 **Harsh Hi-Hats**:
 - Brightness: 0.7-1.0 (8-12kHz, very bright)
@@ -150,7 +165,7 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 
 - **Sample Rate**: 48kHz (native)
 - **Latency**: Zero (real-time synthesis)
-- **Polyphony**: 8 voices (one per drum, monophonic)
+- **Polyphony**: 9 voices (one per drum, monophonic)
 - **CPU Usage**: ~5-8% (single core, all voices active)
 - **Output Level**: Calibrated to ~-6dB peak with all drums
 
@@ -165,15 +180,16 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 - Bitcrusher.hpp - Bit depth reduction
 - DCBlocker.hpp - DC offset removal
 
-**Drum Voices** (6 types, 8 instances):
+**Drum Voices** (7 types, 9 instances):
 - KickVoice.hpp - 4 parameters
 - SnareVoice.hpp - 2 parameters
 - ClapVoice.hpp - 2 parameters
 - TomVoice.hpp - 2 parameters (shared between lo/hi)
 - HiHatVoice.hpp - 2 parameters (shared between closed/open)
 - CrashVoice.hpp - 2 parameters
+- BashVoice.hpp - 6 parameters
 
-**UI**: X11/Cairo with 18 rotary knobs organized in 4 rows by function
+**UI**: X11/Cairo with 24 rotary knobs organized in 5 rows by function
 
 ## References
 

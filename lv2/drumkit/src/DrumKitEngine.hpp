@@ -1,5 +1,5 @@
 // DrumKitEngine.hpp
-// Main drum kit coordinator managing 8 voices and master FX chain
+// Main drum kit coordinator managing 9 voices and master FX chain
 // Handles MIDI channel 10 routing, voice management, and signal processing
 
 #ifndef DRUMKIT_ENGINE_HPP
@@ -11,6 +11,7 @@
 #include "voices/TomVoice.hpp"
 #include "voices/HiHatVoice.hpp"
 #include "voices/CrashVoice.hpp"
+#include "voices/BashVoice.hpp"
 #include "modules/Bitcrusher.hpp"
 #include "modules/Distortion.hpp"
 #include "modules/ReverbModule.hpp"
@@ -24,7 +25,7 @@ class DrumKitEngine {
 private:
     float sampleRate;
 
-    // 8 Voice instances
+    // 9 Voice instances
     std::unique_ptr<KickVoice> kick;
     std::unique_ptr<SnareVoice> snare;
     std::unique_ptr<ClapVoice> clap;
@@ -33,6 +34,7 @@ private:
     std::unique_ptr<HiHatVoice> closedHH;
     std::unique_ptr<HiHatVoice> openHH;
     std::unique_ptr<CrashVoice> crash;
+    std::unique_ptr<BashVoice> bash;
 
     // Master FX
     Bitcrusher bitcrusher;
@@ -54,6 +56,7 @@ public:
         , closedHH(std::make_unique<HiHatVoice>(sampleRate, true))   // Closed
         , openHH(std::make_unique<HiHatVoice>(sampleRate, false))    // Open
         , crash(std::make_unique<CrashVoice>(sampleRate))
+        , bash(std::make_unique<BashVoice>(sampleRate))
         , bitcrusher()
         , distortion()
         , reverb(sampleRate)
@@ -107,6 +110,10 @@ public:
                 crash->trigger(1.0f);  // Fixed level
                 break;
 
+            case 47:  // B2 - Bash (metal strike)
+                bash->trigger(vel);
+                break;
+
             default:
                 // Ignore unsupported notes
                 break;
@@ -127,6 +134,7 @@ public:
         sum += closedHH->process();
         sum += openHH->process();
         sum += crash->process();
+        sum += bash->process();
 
         // Master FX chain
         sum = bitcrusher.process(sum);
@@ -201,6 +209,14 @@ public:
         masterGain = std::clamp(value, 0.0f, 1.0f);
     }
 
+    // Bash (6 params)
+    void setBashSize(float value) { bash->setSize(value); }
+    void setBashSpread(float value) { bash->setSpread(value); }
+    void setBashDecay(float value) { bash->setDecay(value); }
+    void setBashDrive(float value) { bash->setDrive(value); }
+    void setBashNoise(float value) { bash->setNoise(value); }
+    void setBashEdge(float value) { bash->setEdge(value); }
+
     /**
      * Reset all voices (for All Notes Off / panic)
      */
@@ -213,6 +229,7 @@ public:
         closedHH->reset();
         openHH->reset();
         crash->reset();
+        bash->reset();
 
         reverb.reset();
         dcBlocker.reset();

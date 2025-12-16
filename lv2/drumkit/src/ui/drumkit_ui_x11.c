@@ -1,6 +1,6 @@
 // drumkit_ui_x11.c
 // X11/Cairo UI for hardcore industrial drumkit
-// 4 rows: Kick+Snare, Toms+HiHats, Clap+Crash, Master
+// 5 rows: Kick+Snare, Toms+HiHats, Clap+Crash, Bash, Master
 
 #include <lv2/ui/ui.h>
 #include <lv2/core/lv2.h>
@@ -36,6 +36,12 @@ typedef enum {
     PORT_HH_DECAY,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
+    PORT_BASH_SIZE,
+    PORT_BASH_SPREAD,
+    PORT_BASH_DECAY,
+    PORT_BASH_DRIVE,
+    PORT_BASH_NOISE,
+    PORT_BASH_EDGE,
     PORT_BIT_CRUSH,
     PORT_MASTER_DRIVE,
     PORT_MASTER_REVERB,
@@ -49,6 +55,7 @@ typedef enum {
     GROUP_SNARE,
     GROUP_CLAP,
     GROUP_CRASH,
+    GROUP_BASH,
     GROUP_TOMS,
     GROUP_HIHATS,
     GROUP_MASTER,
@@ -121,7 +128,7 @@ typedef struct {
     float drag_start_value;
 } DrumkitUI;
 
-// Control definitions (18 parameters)
+// Control definitions (24 parameters)
 static const ControlDesc kControls[] = {
     // Kick (4 params)
     { GROUP_KICK, "PITCH", PORT_KICK_PITCH, 0.0f, 1.0f, 0.35f },
@@ -149,6 +156,14 @@ static const ControlDesc kControls[] = {
     { GROUP_HIHATS, "BRIGHT", PORT_HH_BRIGHTNESS, 0.0f, 1.0f, 0.6f },
     { GROUP_HIHATS, "DECAY", PORT_HH_DECAY, 0.0f, 1.0f, 0.35f },
 
+    // Bash (6 params)
+    { GROUP_BASH, "SIZE", PORT_BASH_SIZE, 0.0f, 1.0f, 0.45f },
+    { GROUP_BASH, "SPREAD", PORT_BASH_SPREAD, 0.0f, 1.0f, 0.55f },
+    { GROUP_BASH, "DECAY", PORT_BASH_DECAY, 0.0f, 1.0f, 0.70f },
+    { GROUP_BASH, "DRIVE", PORT_BASH_DRIVE, 0.0f, 1.0f, 0.65f },
+    { GROUP_BASH, "NOISE", PORT_BASH_NOISE, 0.0f, 1.0f, 0.60f },
+    { GROUP_BASH, "EDGE", PORT_BASH_EDGE, 0.0f, 1.0f, 0.70f },
+
     // Master (4 params)
     { GROUP_MASTER, "CRUSH", PORT_BIT_CRUSH, 0.0f, 1.0f, 0.0f },
     { GROUP_MASTER, "DRIVE", PORT_MASTER_DRIVE, 0.0f, 1.0f, 0.25f },
@@ -160,7 +175,7 @@ static const int kControlCount = sizeof(kControls) / sizeof(kControls[0]);
 
 // Group names
 static const char* kGroupNames[GROUP_COUNT] = {
-    "KICK", "SNARE", "CLAP", "CRASH", "TOMS", "HI-HATS", "MASTER"
+    "KICK", "SNARE", "CLAP", "CRASH", "BASH", "TOMS", "HI-HATS", "MASTER"
 };
 
 // Row layout (which groups in which row)
@@ -168,7 +183,8 @@ static const GroupIndex kRowGroups[][3] = {
     { GROUP_KICK, GROUP_SNARE, GROUP_COUNT },              // Row 0
     { GROUP_TOMS, GROUP_HIHATS, GROUP_COUNT },             // Row 1
     { GROUP_CLAP, GROUP_CRASH, GROUP_COUNT },              // Row 2
-    { GROUP_MASTER, GROUP_COUNT, GROUP_COUNT }             // Row 3
+    { GROUP_BASH, GROUP_COUNT, GROUP_COUNT },              // Row 3
+    { GROUP_MASTER, GROUP_COUNT, GROUP_COUNT }             // Row 4
 };
 
 static const int kRowCount = sizeof(kRowGroups) / sizeof(kRowGroups[0]);
@@ -179,6 +195,7 @@ static const int kGroupColumns[GROUP_COUNT] = {
     2,  // Snare: 2 columns
     2,  // Clap: 2 columns
     2,  // Crash: 2 columns
+    6,  // Bash: 6 columns
     2,  // Toms: 2 columns
     2,  // Hi-Hats: 2 columns
     4   // Master: 4 columns
@@ -350,7 +367,10 @@ static void setup_layout(DrumkitUI* ui, int available_width) {
     }
 
     // Set columns per group and calculate dimensions
-    int row_heights[4] = {0, 0, 0, 0};
+    int row_heights[kRowCount];
+    for (int i = 0; i < kRowCount; ++i) {
+        row_heights[i] = 0;
+    }
 
     for (int g = 0; g < GROUP_COUNT; ++g) {
         GroupState* group = &ui->groups[g];
@@ -366,7 +386,7 @@ static void setup_layout(DrumkitUI* ui, int available_width) {
                         (group->rows - 1) * KNOB_SPACING_Y + GROUP_PADDING;
 
         // Track max height for this group's row
-        for (int r = 0; r < 4; ++r) {
+        for (int r = 0; r < kRowCount; ++r) {
             for (int gi = 0; gi < 3 && kRowGroups[r][gi] != GROUP_COUNT; ++gi) {
                 if (kRowGroups[r][gi] == g) {
                     if (group->height > row_heights[r]) {
@@ -379,7 +399,7 @@ static void setup_layout(DrumkitUI* ui, int available_width) {
 
     // Position groups
     int current_y = 20;
-    for (int r = 0; r < 4; ++r) {
+    for (int r = 0; r < kRowCount; ++r) {
         int row_width = 0;
         int group_count = 0;
 
