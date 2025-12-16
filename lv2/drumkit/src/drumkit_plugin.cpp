@@ -1,6 +1,6 @@
 // drumkit_plugin.cpp
 // LV2 plugin wrapper for hardcore industrial drumkit
-// MIDI channel 10 only, 9 voices, 24 parameters
+// MIDI channel 10 only, 9 voices, 28 parameters
 
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
@@ -29,10 +29,14 @@ enum PortIndex : uint32_t {
     PORT_SNARE_SNAP,
     PORT_CLAP_DENSITY,
     PORT_CLAP_TONE,
-    PORT_TOM_PITCH,
-    PORT_TOM_DECAY,
-    PORT_HH_BRIGHTNESS,
-    PORT_HH_DECAY,
+    PORT_TOM1_PITCH,
+    PORT_TOM1_DECAY,
+    PORT_TOM2_PITCH,
+    PORT_TOM2_DECAY,
+    PORT_HH_CLOSED_BRIGHTNESS,
+    PORT_HH_CLOSED_DECAY,
+    PORT_HH_OPEN_BRIGHTNESS,
+    PORT_HH_OPEN_DECAY,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
     PORT_BASH_SIZE,
@@ -57,7 +61,7 @@ struct DrumkitLV2 {
     const LV2_Atom_Sequence* midiIn;
     float* audioOut;
 
-    // Parameter port pointers (24 params)
+    // Parameter port pointers (28 params)
     const float* kickPitch;
     const float* kickDecay;
     const float* kickDrive;
@@ -66,10 +70,14 @@ struct DrumkitLV2 {
     const float* snareSnap;
     const float* clapDensity;
     const float* clapTone;
-    const float* tomPitch;
-    const float* tomDecay;
-    const float* hhBrightness;
-    const float* hhDecay;
+    const float* tom1Pitch;
+    const float* tom1Decay;
+    const float* tom2Pitch;
+    const float* tom2Decay;
+    const float* hhClosedBrightness;
+    const float* hhClosedDecay;
+    const float* hhOpenBrightness;
+    const float* hhOpenDecay;
     const float* crashBrightness;
     const float* crashDecay;
     const float* bashSize;
@@ -109,13 +117,17 @@ static void apply_parameters(DrumkitLV2* self) {
     if (self->clapDensity) self->engine->setClapDensity(*self->clapDensity);
     if (self->clapTone) self->engine->setClapTone(*self->clapTone);
 
-    // Toms (2 params shared)
-    if (self->tomPitch) self->engine->setTomPitch(*self->tomPitch);
-    if (self->tomDecay) self->engine->setTomDecay(*self->tomDecay);
+    // Toms (independent)
+    if (self->tom1Pitch) self->engine->setTom1Pitch(*self->tom1Pitch);
+    if (self->tom1Decay) self->engine->setTom1Decay(*self->tom1Decay);
+    if (self->tom2Pitch) self->engine->setTom2Pitch(*self->tom2Pitch);
+    if (self->tom2Decay) self->engine->setTom2Decay(*self->tom2Decay);
 
-    // Hi-Hats (2 params shared)
-    if (self->hhBrightness) self->engine->setHHBrightness(*self->hhBrightness);
-    if (self->hhDecay) self->engine->setHHDecay(*self->hhDecay);
+    // Hi-Hats (independent)
+    if (self->hhClosedBrightness) self->engine->setClosedHHBrightness(*self->hhClosedBrightness);
+    if (self->hhClosedDecay) self->engine->setClosedHHDecay(*self->hhClosedDecay);
+    if (self->hhOpenBrightness) self->engine->setOpenHHBrightness(*self->hhOpenBrightness);
+    if (self->hhOpenDecay) self->engine->setOpenHHDecay(*self->hhOpenDecay);
 
     // Crash (2 params)
     if (self->crashBrightness) self->engine->setCrashBrightness(*self->crashBrightness);
@@ -189,10 +201,14 @@ static LV2_Handle instantiate(
     self->snareSnap = nullptr;
     self->clapDensity = nullptr;
     self->clapTone = nullptr;
-    self->tomPitch = nullptr;
-    self->tomDecay = nullptr;
-    self->hhBrightness = nullptr;
-    self->hhDecay = nullptr;
+    self->tom1Pitch = nullptr;
+    self->tom1Decay = nullptr;
+    self->tom2Pitch = nullptr;
+    self->tom2Decay = nullptr;
+    self->hhClosedBrightness = nullptr;
+    self->hhClosedDecay = nullptr;
+    self->hhOpenBrightness = nullptr;
+    self->hhOpenDecay = nullptr;
     self->crashBrightness = nullptr;
     self->crashDecay = nullptr;
     self->bashSize = nullptr;
@@ -240,10 +256,14 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_SNARE_SNAP: self->snareSnap = static_cast<const float*>(data); break;
         case PORT_CLAP_DENSITY: self->clapDensity = static_cast<const float*>(data); break;
         case PORT_CLAP_TONE: self->clapTone = static_cast<const float*>(data); break;
-        case PORT_TOM_PITCH: self->tomPitch = static_cast<const float*>(data); break;
-        case PORT_TOM_DECAY: self->tomDecay = static_cast<const float*>(data); break;
-        case PORT_HH_BRIGHTNESS: self->hhBrightness = static_cast<const float*>(data); break;
-        case PORT_HH_DECAY: self->hhDecay = static_cast<const float*>(data); break;
+        case PORT_TOM1_PITCH: self->tom1Pitch = static_cast<const float*>(data); break;
+        case PORT_TOM1_DECAY: self->tom1Decay = static_cast<const float*>(data); break;
+        case PORT_TOM2_PITCH: self->tom2Pitch = static_cast<const float*>(data); break;
+        case PORT_TOM2_DECAY: self->tom2Decay = static_cast<const float*>(data); break;
+        case PORT_HH_CLOSED_BRIGHTNESS: self->hhClosedBrightness = static_cast<const float*>(data); break;
+        case PORT_HH_CLOSED_DECAY: self->hhClosedDecay = static_cast<const float*>(data); break;
+        case PORT_HH_OPEN_BRIGHTNESS: self->hhOpenBrightness = static_cast<const float*>(data); break;
+        case PORT_HH_OPEN_DECAY: self->hhOpenDecay = static_cast<const float*>(data); break;
         case PORT_CRASH_BRIGHTNESS: self->crashBrightness = static_cast<const float*>(data); break;
         case PORT_CRASH_DECAY: self->crashDecay = static_cast<const float*>(data); break;
         case PORT_BASH_SIZE: self->bashSize = static_cast<const float*>(data); break;

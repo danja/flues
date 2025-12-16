@@ -81,20 +81,12 @@ public:
                 kick->trigger(vel);
                 break;
 
-            case 38:  // D2 - Snare
-                snare->trigger(vel);
-                break;
-
             case 39:  // Eb2 - Clap
                 clap->trigger(1.0f);  // Fixed level
                 break;
 
-            case 45:  // A2 - Lo Tom
-                loTom->trigger(vel);
-                break;
-
-            case 50:  // D3 - Hi Tom
-                hiTom->trigger(vel);
+            case 40:  // E2 - Snare
+                snare->trigger(vel);
                 break;
 
             case 42:  // F#2 - Closed Hi-Hat
@@ -102,16 +94,24 @@ public:
                 closedHH->trigger(1.0f);  // Fixed level
                 break;
 
+            case 45:  // A2 - Lo Tom
+                loTom->trigger(vel);
+                break;
+
             case 46:  // A#2 - Open Hi-Hat
                 openHH->trigger(1.0f);  // Fixed level
                 break;
 
-            case 49:  // C#3 - Crash
-                crash->trigger(1.0f);  // Fixed level
+            case 50:  // D3 - Hi Tom
+                hiTom->trigger(vel);
                 break;
 
-            case 47:  // B2 - Bash (metal strike)
+            case 51:  // Eb3 - Bash (metal strike)
                 bash->trigger(vel);
+                break;
+
+            case 41:  // F2 - Crash
+                crash->trigger(1.0f);  // Fixed level
                 break;
 
             default:
@@ -164,27 +164,17 @@ public:
     void setClapDensity(float value) { clap->setDensity(value); }
     void setClapTone(float value) { clap->setTone(value); }
 
-    // Toms (2 params, shared)
-    void setTomPitch(float value) {
-        loTom->setPitch(value);
-        hiTom->setPitch(value);
-    }
+    // Toms (independent)
+    void setTom1Pitch(float value) { loTom->setPitch(value); }
+    void setTom1Decay(float value) { loTom->setDecay(value); }
+    void setTom2Pitch(float value) { hiTom->setPitch(value); }
+    void setTom2Decay(float value) { hiTom->setDecay(value); }
 
-    void setTomDecay(float value) {
-        loTom->setDecay(value);
-        hiTom->setDecay(value);
-    }
-
-    // Hi-Hats (2 params, shared)
-    void setHHBrightness(float value) {
-        closedHH->setBrightness(value);
-        openHH->setBrightness(value);
-    }
-
-    void setHHDecay(float value) {
-        closedHH->setDecay(value);
-        openHH->setDecay(value);
-    }
+    // Hi-Hats (independent)
+    void setClosedHHBrightness(float value) { closedHH->setBrightness(value); }
+    void setClosedHHDecay(float value) { closedHH->setDecay(value); }
+    void setOpenHHBrightness(float value) { openHH->setBrightness(value); }
+    void setOpenHHDecay(float value) { openHH->setDecay(value); }
 
     // Crash (2 params)
     void setCrashBrightness(float value) { crash->setBrightness(value); }

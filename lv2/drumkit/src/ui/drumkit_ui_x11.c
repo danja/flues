@@ -1,6 +1,6 @@
 // drumkit_ui_x11.c
 // X11/Cairo UI for hardcore industrial drumkit
-// 5 rows: Kick+Snare, Toms+HiHats, Clap+Crash, Bash, Master
+// 6 rows: Kick+Snare, Toms, Hi-Hats (C/O), Clap+Crash, Bash, Master
 
 #include <lv2/ui/ui.h>
 #include <lv2/core/lv2.h>
@@ -30,10 +30,14 @@ typedef enum {
     PORT_SNARE_SNAP,
     PORT_CLAP_DENSITY,
     PORT_CLAP_TONE,
-    PORT_TOM_PITCH,
-    PORT_TOM_DECAY,
-    PORT_HH_BRIGHTNESS,
-    PORT_HH_DECAY,
+    PORT_TOM1_PITCH,
+    PORT_TOM1_DECAY,
+    PORT_TOM2_PITCH,
+    PORT_TOM2_DECAY,
+    PORT_HH_CLOSED_BRIGHTNESS,
+    PORT_HH_CLOSED_DECAY,
+    PORT_HH_OPEN_BRIGHTNESS,
+    PORT_HH_OPEN_DECAY,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
     PORT_BASH_SIZE,
@@ -56,23 +60,25 @@ typedef enum {
     GROUP_CLAP,
     GROUP_CRASH,
     GROUP_BASH,
-    GROUP_TOMS,
-    GROUP_HIHATS,
+    GROUP_TOM1,
+    GROUP_TOM2,
+    GROUP_HH_CLOSED,
+    GROUP_HH_OPEN,
     GROUP_MASTER,
     GROUP_COUNT
 } GroupIndex;
 
 // Layout constants
-#define GROUP_PADDING 16
-#define GROUP_GAP_X 18
-#define GROUP_GAP_Y 26
-#define TITLE_HEIGHT 20
-#define KNOB_DIAMETER 70
-#define KNOB_LABEL_HEIGHT 30
-#define KNOB_SIZE 92
-#define KNOB_HEIGHT 108
-#define KNOB_SPACING_X 16
-#define KNOB_SPACING_Y 18
+#define GROUP_PADDING 8
+#define GROUP_GAP_X 9
+#define GROUP_GAP_Y 13
+#define TITLE_HEIGHT 10
+#define KNOB_DIAMETER 35
+#define KNOB_LABEL_HEIGHT 15
+#define KNOB_SIZE 46
+#define KNOB_HEIGHT 54
+#define KNOB_SPACING_X 8
+#define KNOB_SPACING_Y 9
 
 // Control descriptor
 typedef struct {
@@ -128,7 +134,7 @@ typedef struct {
     float drag_start_value;
 } DrumkitUI;
 
-// Control definitions (24 parameters)
+// Control definitions (28 parameters)
 static const ControlDesc kControls[] = {
     // Kick (4 params)
     { GROUP_KICK, "PITCH", PORT_KICK_PITCH, 0.0f, 1.0f, 0.35f },
@@ -148,13 +154,17 @@ static const ControlDesc kControls[] = {
     { GROUP_CRASH, "BRIGHT", PORT_CRASH_BRIGHTNESS, 0.0f, 1.0f, 0.65f },
     { GROUP_CRASH, "DECAY", PORT_CRASH_DECAY, 0.0f, 1.0f, 0.5f },
 
-    // Toms (2 params)
-    { GROUP_TOMS, "PITCH", PORT_TOM_PITCH, 0.0f, 1.0f, 0.4f },
-    { GROUP_TOMS, "DECAY", PORT_TOM_DECAY, 0.0f, 1.0f, 0.45f },
+    // Toms (independent)
+    { GROUP_TOM1, "LO PITCH", PORT_TOM1_PITCH, 0.0f, 1.0f, 0.40f },
+    { GROUP_TOM1, "LO DECAY", PORT_TOM1_DECAY, 0.0f, 1.0f, 0.45f },
+    { GROUP_TOM2, "HI PITCH", PORT_TOM2_PITCH, 0.0f, 1.0f, 0.55f },
+    { GROUP_TOM2, "HI DECAY", PORT_TOM2_DECAY, 0.0f, 1.0f, 0.45f },
 
-    // Hi-Hats (2 params)
-    { GROUP_HIHATS, "BRIGHT", PORT_HH_BRIGHTNESS, 0.0f, 1.0f, 0.6f },
-    { GROUP_HIHATS, "DECAY", PORT_HH_DECAY, 0.0f, 1.0f, 0.35f },
+    // Hi-Hats (independent)
+    { GROUP_HH_CLOSED, "C BRIGHT", PORT_HH_CLOSED_BRIGHTNESS, 0.0f, 1.0f, 0.60f },
+    { GROUP_HH_CLOSED, "C DECAY", PORT_HH_CLOSED_DECAY, 0.0f, 1.0f, 0.30f },
+    { GROUP_HH_OPEN, "O BRIGHT", PORT_HH_OPEN_BRIGHTNESS, 0.0f, 1.0f, 0.70f },
+    { GROUP_HH_OPEN, "O DECAY", PORT_HH_OPEN_DECAY, 0.0f, 1.0f, 0.55f },
 
     // Bash (6 params)
     { GROUP_BASH, "SIZE", PORT_BASH_SIZE, 0.0f, 1.0f, 0.45f },
@@ -175,16 +185,17 @@ static const int kControlCount = sizeof(kControls) / sizeof(kControls[0]);
 
 // Group names
 static const char* kGroupNames[GROUP_COUNT] = {
-    "KICK", "SNARE", "CLAP", "CRASH", "BASH", "TOMS", "HI-HATS", "MASTER"
+    "KICK", "SNARE", "CLAP", "CRASH", "BASH", "TOM 1", "TOM 2", "CLOSED HH", "OPEN HH", "MASTER"
 };
 
 // Row layout (which groups in which row)
 static const GroupIndex kRowGroups[][3] = {
     { GROUP_KICK, GROUP_SNARE, GROUP_COUNT },              // Row 0
-    { GROUP_TOMS, GROUP_HIHATS, GROUP_COUNT },             // Row 1
-    { GROUP_CLAP, GROUP_CRASH, GROUP_COUNT },              // Row 2
-    { GROUP_BASH, GROUP_COUNT, GROUP_COUNT },              // Row 3
-    { GROUP_MASTER, GROUP_COUNT, GROUP_COUNT }             // Row 4
+    { GROUP_TOM1, GROUP_TOM2, GROUP_COUNT },               // Row 1
+    { GROUP_HH_CLOSED, GROUP_HH_OPEN, GROUP_COUNT },       // Row 2
+    { GROUP_CLAP, GROUP_CRASH, GROUP_COUNT },              // Row 3
+    { GROUP_BASH, GROUP_COUNT, GROUP_COUNT },              // Row 4
+    { GROUP_MASTER, GROUP_COUNT, GROUP_COUNT }             // Row 5
 };
 
 static const int kRowCount = sizeof(kRowGroups) / sizeof(kRowGroups[0]);
@@ -196,8 +207,10 @@ static const int kGroupColumns[GROUP_COUNT] = {
     2,  // Clap: 2 columns
     2,  // Crash: 2 columns
     6,  // Bash: 6 columns
-    2,  // Toms: 2 columns
-    2,  // Hi-Hats: 2 columns
+    2,  // Tom1: 2 columns
+    2,  // Tom2: 2 columns
+    2,  // Closed HH: 2 columns
+    2,  // Open HH: 2 columns
     4   // Master: 4 columns
 };
 

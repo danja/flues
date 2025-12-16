@@ -5,7 +5,7 @@ A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the 
 ## Features
 
 - **9 Synthesized Drum Voices** (not samples!)
-- **24 Parameters** with X11/Cairo GUI
+- **28 Parameters** with X11/Cairo GUI
 - **Velocity Sensitivity** on kick, snare, and toms
 - **Hi-Hat Choke Group** (closed kills open)
 - **Master FX Chain**: Bit Crusher, Distortion, Reverb
@@ -16,14 +16,14 @@ A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the 
 | MIDI Note | Note Name | Drum Voice | Velocity Sensitive |
 |-----------|-----------|------------|-------------------|
 | 36 | C2 | Kick | Yes |
-| 38 | D2 | Snare | Yes |
 | 39 | Eb2 | Clap | No (fixed level) |
+| 40 | E2 | Snare | Yes |
+| 41 | F2 | Crash | No (fixed level) |
 | 42 | F#2 | Closed Hi-Hat | No (fixed level) |
 | 45 | A2 | Lo Tom | Yes |
 | 46 | A#2 | Open Hi-Hat | No (fixed level) |
-| 47 | B2 | Bash (Metal) | Yes |
-| 49 | C#3 | Crash | No (fixed level) |
 | 50 | D3 | Hi Tom | Yes |
+| 51 | Eb3 | Bash (Metal) | Yes |
 
 **Note**: When Closed Hi-Hat (42) is triggered, it immediately silences Open Hi-Hat (46) for realistic behavior.
 
@@ -50,14 +50,14 @@ A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the 
 **Synthesis**: Multi-impulse noise bursts → Resonant bandpass filter (Q=4-8) → Envelope
 
 ### Toms (2 Parameters, Shared)
-- **Pitch**: Base frequency (Lo: 60-150Hz, Hi: 150-400Hz)
-- **Decay**: Envelope decay time 80-800ms
+- **Tom 1 Pitch/Decay**: Lo tom 60-150Hz, 80-800ms
+- **Tom 2 Pitch/Decay**: Hi tom 150-400Hz, 80-800ms
 
 **Synthesis**: Pitch envelope → Triangle wave → Resonant bandpass (Q=20)
 
-### Hi-Hats (2 Parameters, Shared)
-- **Brightness**: HPF cutoff 4kHz-12kHz (exponential)
-- **Decay**: Envelope decay (Closed: 50-200ms, Open: 200-1200ms)
+### Hi-Hats (4 Parameters, Split)
+- **Closed Brightness/Decay**: HPF 4-12kHz, 50-200ms
+- **Open Brightness/Decay**: HPF 4-12kHz, 200-1200ms
 
 **Synthesis**: 6× inharmonic square wave oscillators → Ring modulation → Noise mix → HPF
 
@@ -78,7 +78,7 @@ A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the 
 **Synthesis**: Dual detuned sine/ring-mod core → highpass strike + noise burst → dual bandpass resonators → tanh saturation
 
 ### Master FX (4 Parameters)
-- **Bit Crush**: Bit depth reduction 0=off, 1=4-bit (lo-fi grunge)
+- **Bit Crush**: Bit depth reduction 0=off, 1=2-bit (lo-fi destruction)
 - **Drive**: Master distortion 1.0-5.0× tanh saturation
 - **Reverb**: Schroeder reverb level 0-60% (fixed room size)
 - **Gain**: Master output level 0-100%
@@ -189,7 +189,7 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 - CrashVoice.hpp - 2 parameters
 - BashVoice.hpp - 6 parameters
 
-**UI**: X11/Cairo with 24 rotary knobs organized in 5 rows by function
+**UI**: X11/Cairo with 28 rotary knobs organized in 6 rows by function
 
 ## References
 
