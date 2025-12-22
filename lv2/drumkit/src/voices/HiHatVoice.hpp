@@ -99,10 +99,10 @@ public:
         }
 
         // Ring modulation (multiply oscillators)
-        float sample = oscSum * 0.2f;
+        float sample = oscSum * 0.25f;
 
         // Add noise
-        sample += noise.process() * 0.6f;
+        sample += noise.process() * 0.7f;
 
         // High-pass filter
         sample = hpf.process(sample);
@@ -110,7 +110,7 @@ public:
         // Envelope
         sample *= env.process();
 
-        return sample * 0.4f;
+        return sample * 0.5f;
     }
 
     bool isActive() const { return env.isActive(); }
