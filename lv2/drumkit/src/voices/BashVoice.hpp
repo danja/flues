@@ -40,6 +40,7 @@ private:
     float noiseAmount;
     float edgeFreq;
     float velocity;
+    float level;
 
     float oscFreqA;
     float oscFreqB;
@@ -82,6 +83,7 @@ public:
         , noiseAmount(0.6f)
         , edgeFreq(4000.0f)
         , velocity(1.0f)
+        , level(1.0f)
         , oscFreqA(420.0f)
         , oscFreqB(780.0f)
     {
@@ -121,6 +123,10 @@ public:
     void setEdge(float value) {
         edgeFreq = expoMap(value, 800.0f, 8000.0f);
         hp.setParameters(edgeFreq, 0.8f);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     void trigger(float vel = 1.0f) {
@@ -178,7 +184,7 @@ public:
         sample = saturator.process(sample * 0.85f);
 
         // Apply envelope and velocity
-        return sample * envValue * velocity * 0.7f;
+        return sample * envValue * velocity * 0.7f * level;
     }
 
     bool isActive() const { return env.isActive(); }

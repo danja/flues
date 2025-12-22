@@ -39,6 +39,7 @@ private:
     float decayTime;     // Envelope decay time (seconds)
     float driveAmount;   // Distortion drive
     float punchAmount;   // Click enhancement amount
+    float level;         // Output level
 
     // Velocity
     float velocity;
@@ -66,6 +67,7 @@ public:
         , decayTime(0.3f)
         , driveAmount(1.0f)
         , punchAmount(0.15f)
+        , level(1.0f)
         , velocity(1.0f)
     {
         // Configure click filter (8kHz HPF for punch)
@@ -115,6 +117,10 @@ public:
      */
     void setPunch(float value) {
         punchAmount = std::clamp(value, 0.0f, 1.0f);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     /**
@@ -167,7 +173,7 @@ public:
         // Remove DC offset
         sample = dcBlocker.process(sample);
 
-        return sample * 0.8f;  // Output scaling
+        return sample * 0.8f * level;  // Output scaling
     }
 
     /**

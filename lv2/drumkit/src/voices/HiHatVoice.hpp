@@ -30,6 +30,7 @@ private:
     float brightnessParam;
     float decayTime;
     bool isClosed;
+    float level;
 
     static float expoMap(float value, float min, float max) {
         return min * std::pow(max / min, std::clamp(value, 0.0f, 1.0f));
@@ -44,6 +45,7 @@ public:
         , brightnessParam(0.6f)
         , decayTime(0.1f)
         , isClosed(closed)
+        , level(1.0f)
     {
         for (int i = 0; i < 6; ++i) {
             phases[i] = 0.0f;
@@ -71,6 +73,10 @@ public:
         const float maxDecay = isClosed ? 0.2f : 1.2f;
         decayTime = expoMap(value, minDecay, maxDecay);
         env.setDecayTime(decayTime);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     void trigger(float vel = 1.0f) {
@@ -110,7 +116,7 @@ public:
         // Envelope
         sample *= env.process();
 
-        return sample * 0.5f;
+        return sample * 0.5f * level;
     }
 
     bool isActive() const { return env.isActive(); }

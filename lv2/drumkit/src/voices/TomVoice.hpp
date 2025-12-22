@@ -27,6 +27,7 @@ private:
     float phase;
     float basePitch;     // Note-dependent base frequency
     float velocity;
+    float level;
 
     static float expoMap(float value, float min, float max) {
         return min * std::pow(max / min, std::clamp(value, 0.0f, 1.0f));
@@ -42,6 +43,7 @@ public:
         , phase(0.0f)
         , basePitch(baseFreq)
         , velocity(1.0f)
+        , level(1.0f)
     {
         resonator.setQ(20.0f);  // High Q for metallic ring
         ampEnv.setAttackTime(0.0005f);
@@ -61,6 +63,10 @@ public:
     void setDecay(float value) {
         const float decayTime = expoMap(value, 0.08f, 0.8f);
         ampEnv.setDecayTime(decayTime);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     void trigger(float vel = 1.0f) {
@@ -94,7 +100,7 @@ public:
         sample = resonator.process(sample);
 
         sample *= ampEnv.process() * velocity;
-        return sample * 0.7f;
+        return sample * 0.7f * level;
     }
 
     bool isActive() const { return ampEnv.isActive(); }

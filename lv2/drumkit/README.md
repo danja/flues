@@ -5,7 +5,7 @@ A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the
 ## Features
 
 - **11 Synthesized Drum Voices** (not samples!)
-- **32 Parameters** with X11/Cairo GUI
+- **43 Parameters** with X11/Cairo GUI
 - **Velocity Sensitivity** on kick, snare, and toms
 - **Hi-Hat Choke Group** (closed kills open)
 - **Master FX Chain**: Bit Crusher, Distortion, Reverb
@@ -31,63 +31,70 @@ A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the
 
 ## Synthesis Methods
 
-### Kick Drum (4 Parameters)
+### Kick Drum (5 Parameters)
 - **Pitch**: Starting frequency 60-250 Hz (exponential pitch envelope sweep)
 - **Decay**: Envelope decay time 50-1500ms
 - **Drive**: Tanh saturation 1.0-10× (adds harmonics)
 - **Punch**: High-frequency click enhancement 0-100%
+- **Level**: Per-voice output gain
 
 **Synthesis**: Pitch envelope → Sine oscillator → Distortion → HPF noise burst → DC blocker
 
-### Snare Drum (2 Parameters)
+### Snare Drum (3 Parameters)
 - **Tone**: Body/shell resonator mix + Q factor (4-20) - 0=body, 1=shell
 - **Snap**: Noise level + HPF cutoff 500Hz-4kHz
+- **Level**: Per-voice output gain
 
 **Synthesis**: Dual bandpass resonators (180Hz + 330Hz) + filtered noise burst
 
-### Clap (2 Parameters)
+### Clap (3 Parameters)
 - **Density**: Impulse count (3-7) + spacing tightness (25-10ms) + burst length (3-7ms)
 - **Tone**: Bandpass center frequency 1000Hz-4500Hz + Q factor (4-8)
+- **Level**: Per-voice output gain
 
 **Synthesis**: Multi-impulse noise bursts → Resonant bandpass filter (Q=4-8) → Envelope
 
-### Toms (2 Parameters, Shared)
-- **Tom 1 Pitch/Decay**: Lo tom 60-150Hz, 80-800ms
-- **Tom 2 Pitch/Decay**: Hi tom 150-400Hz, 80-800ms
+### Toms (3 Parameters, Shared)
+- **Tom 1 Pitch/Decay/Level**: Lo tom 60-150Hz, 80-800ms
+- **Tom 2 Pitch/Decay/Level**: Hi tom 150-400Hz, 80-800ms
 
 **Synthesis**: Pitch envelope → Triangle wave → Resonant bandpass (Q=20)
 
-### Hi-Hats (4 Parameters, Split)
-- **Closed Brightness/Decay**: HPF 4-12kHz, 50-200ms
-- **Open Brightness/Decay**: HPF 4-12kHz, 200-1200ms
+### Hi-Hats (6 Parameters, Split)
+- **Closed Brightness/Decay/Level**: HPF 4-12kHz, 50-200ms
+- **Open Brightness/Decay/Level**: HPF 4-12kHz, 200-1200ms
 
 **Synthesis**: 6× inharmonic square wave oscillators → Ring modulation → Noise mix → HPF
 
-### Crash (2 Parameters)
+### Crash (3 Parameters)
 - **Brightness**: Bandpass center shift 1.5kHz-10kHz
 - **Decay**: Envelope decay 300-2500ms
+- **Level**: Per-voice output gain
 
 **Synthesis**: White noise → 3× bandpass cascade → Soft clipping
 
-### Cowbell (2 Parameters)
+### Cowbell (3 Parameters)
 - **Tone**: Dual oscillator pitch 380-1400 Hz
 - **Decay**: Envelope decay 50-1000 ms
+- **Level**: Per-voice output gain
 
 **Synthesis**: Dual square/sine oscillators → bandpass → saturation
 
-### Clave (2 Parameters)
+### Clave (3 Parameters)
 - **Tone**: Resonant click pitch 900-4200 Hz
 - **Decay**: Envelope decay 20-400 ms
+- **Level**: Per-voice output gain
 
 **Synthesis**: Noise burst → resonant bandpass → envelope
 
-### Bash (6 Parameters)
+### Bash (7 Parameters)
 - **Size**: Base plate/pipe frequency (180-1200 Hz)
 - **Spread**: Inharmonic overtone spread for clang and beating
 - **Decay**: Ring-out time 120-1600 ms
 - **Drive**: Per-voice tanh saturation 1-10×
 - **Noise**: Strike noise burst level
 - **Edge**: Highpass lift 800-8000 Hz for metallic bite
+- **Level**: Per-voice output gain
 
 **Synthesis**: Dual detuned sine/ring-mod core → highpass strike + noise burst → dual bandpass resonators → tanh saturation
 

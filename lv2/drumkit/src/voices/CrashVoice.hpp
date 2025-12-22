@@ -24,6 +24,7 @@ private:
     Distortion softClipper;
 
     float brightnessParam;
+    float level;
 
     static float expoMap(float value, float min, float max) {
         return min * std::pow(max / min, std::clamp(value, 0.0f, 1.0f));
@@ -39,6 +40,7 @@ public:
         , env(sampleRate)
         , softClipper()
         , brightnessParam(0.65f)
+        , level(1.0f)
     {
         // Initial bandpass cascade (2.5kHz, 5kHz, 8kHz)
         bp1.setParameters(2500.0f, 2.0f);
@@ -66,6 +68,10 @@ public:
         env.setDecayTime(decayTime);
     }
 
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
+    }
+
     void trigger(float vel = 1.0f) {
         env.trigger();
         bp1.reset();
@@ -90,7 +96,7 @@ public:
         // Envelope
         sample *= env.process();
 
-        return sample * 0.5f;
+        return sample * 0.5f * level;
     }
 
     bool isActive() const { return env.isActive(); }

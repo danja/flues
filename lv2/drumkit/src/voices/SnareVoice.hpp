@@ -28,6 +28,7 @@ private:
     // Parameters
     float toneParam;       // Body/shell mix and Q
     float snapParam;       // Noise level and filter frequency
+    float level;           // Output level
     float velocity;
 
     /**
@@ -49,6 +50,7 @@ public:
         , noiseEnv(sampleRate)
         , toneParam(0.5f)
         , snapParam(0.6f)
+        , level(1.0f)
         , velocity(1.0f)
     {
         // Configure resonators (fixed frequencies)
@@ -90,6 +92,10 @@ public:
         // HPF cutoff: 500Hz - 4kHz (exponential)
         const float cutoff = expoMap(snapParam, 500.0f, 4000.0f);
         noiseFilter.setFrequency(cutoff);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     /**
@@ -140,7 +146,7 @@ public:
         // Apply velocity
         sample *= velocity;
 
-        return sample * 0.6f;  // Output scaling
+        return sample * 0.6f * level;  // Output scaling
     }
 
     /**

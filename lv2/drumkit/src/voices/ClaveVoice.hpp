@@ -24,6 +24,7 @@ private:
     float toneFreq;
     float decayTime;
     float velocity;
+    float level;
 
     static float expoMap(float value, float min, float max) {
         const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -39,6 +40,7 @@ public:
         , toneFreq(1800.0f)
         , decayTime(0.08f)
         , velocity(1.0f)
+        , level(1.0f)
     {
         env.setAttackTime(0.0008f);
         setTone(0.5f);
@@ -53,6 +55,10 @@ public:
     void setDecay(float value) {
         decayTime = expoMap(value, 0.02f, 0.4f);
         env.setDecayTime(decayTime);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     void trigger(float vel = 1.0f) {
@@ -70,7 +76,7 @@ public:
         float sample = noise.process() * (0.8f + envValue * 0.4f);
         sample = bandpass.process(sample);
 
-        return sample * envValue * velocity * 0.5f;
+        return sample * envValue * velocity * 0.5f * level;
     }
 
     bool isActive() const { return env.isActive(); }

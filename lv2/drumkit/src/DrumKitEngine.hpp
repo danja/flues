@@ -171,38 +171,48 @@ public:
     void setKickDecay(float value) { kick->setDecay(value); }
     void setKickDrive(float value) { kick->setDrive(value); }
     void setKickPunch(float value) { kick->setPunch(value); }
+    void setKickLevel(float value) { kick->setLevel(value); }
 
     // Snare (2 params)
     void setSnareTone(float value) { snare->setTone(value); }
     void setSnareSnap(float value) { snare->setSnap(value); }
+    void setSnareLevel(float value) { snare->setLevel(value); }
 
     // Clap (2 params)
     void setClapDensity(float value) { clap->setDensity(value); }
     void setClapTone(float value) { clap->setTone(value); }
+    void setClapLevel(float value) { clap->setLevel(value); }
 
     // Toms (independent)
     void setTom1Pitch(float value) { loTom->setPitch(value); }
     void setTom1Decay(float value) { loTom->setDecay(value); }
+    void setTom1Level(float value) { loTom->setLevel(value); }
     void setTom2Pitch(float value) { hiTom->setPitch(value); }
     void setTom2Decay(float value) { hiTom->setDecay(value); }
+    void setTom2Level(float value) { hiTom->setLevel(value); }
 
     // Hi-Hats (independent)
     void setClosedHHBrightness(float value) { closedHH->setBrightness(value); }
     void setClosedHHDecay(float value) { closedHH->setDecay(value); }
+    void setClosedHHLevel(float value) { closedHH->setLevel(value); }
     void setOpenHHBrightness(float value) { openHH->setBrightness(value); }
     void setOpenHHDecay(float value) { openHH->setDecay(value); }
+    void setOpenHHLevel(float value) { openHH->setLevel(value); }
 
     // Crash (2 params)
     void setCrashBrightness(float value) { crash->setBrightness(value); }
     void setCrashDecay(float value) { crash->setDecay(value); }
+    void setCrashLevel(float value) { crash->setLevel(value); }
 
     // Cowbell (2 params)
     void setCowbellTone(float value) { cowbell->setTone(value); }
     void setCowbellDecay(float value) { cowbell->setDecay(value); }
+    void setCowbellLevel(float value) { cowbell->setLevel(value); }
 
     // Clave (2 params)
     void setClaveTone(float value) { clave->setTone(value); }
     void setClaveDecay(float value) { clave->setDecay(value); }
+    void setClaveLevel(float value) { clave->setLevel(value); }
 
     // Master (4 params)
     void setBitCrush(float value) { bitcrusher.setAmount(value); }
@@ -230,6 +240,7 @@ public:
     void setBashDrive(float value) { bash->setDrive(value); }
     void setBashNoise(float value) { bash->setNoise(value); }
     void setBashEdge(float value) { bash->setEdge(value); }
+    void setBashLevel(float value) { bash->setLevel(value); }
 
     /**
      * Reset all voices (for All Notes Off / panic)

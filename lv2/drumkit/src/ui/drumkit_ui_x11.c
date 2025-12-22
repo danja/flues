@@ -27,30 +27,41 @@ typedef enum {
     PORT_KICK_DECAY,
     PORT_KICK_DRIVE,
     PORT_KICK_PUNCH,
+    PORT_KICK_LEVEL,
     PORT_SNARE_TONE,
     PORT_SNARE_SNAP,
+    PORT_SNARE_LEVEL,
     PORT_CLAP_DENSITY,
     PORT_CLAP_TONE,
+    PORT_CLAP_LEVEL,
     PORT_TOM1_PITCH,
     PORT_TOM1_DECAY,
+    PORT_TOM1_LEVEL,
     PORT_TOM2_PITCH,
     PORT_TOM2_DECAY,
+    PORT_TOM2_LEVEL,
     PORT_HH_CLOSED_BRIGHTNESS,
     PORT_HH_CLOSED_DECAY,
+    PORT_HH_CLOSED_LEVEL,
     PORT_HH_OPEN_BRIGHTNESS,
     PORT_HH_OPEN_DECAY,
+    PORT_HH_OPEN_LEVEL,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
+    PORT_CRASH_LEVEL,
     PORT_COWBELL_TONE,
     PORT_COWBELL_DECAY,
+    PORT_COWBELL_LEVEL,
     PORT_CLAVE_TONE,
     PORT_CLAVE_DECAY,
+    PORT_CLAVE_LEVEL,
     PORT_BASH_SIZE,
     PORT_BASH_SPREAD,
     PORT_BASH_DECAY,
     PORT_BASH_DRIVE,
     PORT_BASH_NOISE,
     PORT_BASH_EDGE,
+    PORT_BASH_LEVEL,
     PORT_BIT_CRUSH,
     PORT_MASTER_DRIVE,
     PORT_MASTER_REVERB,
@@ -141,45 +152,55 @@ typedef struct {
     float drag_start_value;
 } DrumkitUI;
 
-// Control definitions (32 parameters)
+// Control definitions (43 parameters)
 static const ControlDesc kControls[] = {
     // Kick (4 params)
     { GROUP_KICK, "PITCH", PORT_KICK_PITCH, 0.0f, 1.0f, 0.35f },
     { GROUP_KICK, "DECAY", PORT_KICK_DECAY, 0.0f, 1.0f, 0.4f },
     { GROUP_KICK, "DRIVE", PORT_KICK_DRIVE, 0.0f, 1.0f, 0.3f },
     { GROUP_KICK, "PUNCH", PORT_KICK_PUNCH, 0.0f, 1.0f, 0.15f },
+    { GROUP_KICK, "LEVEL", PORT_KICK_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Snare (2 params)
     { GROUP_SNARE, "TONE", PORT_SNARE_TONE, 0.0f, 1.0f, 0.5f },
     { GROUP_SNARE, "SNAP", PORT_SNARE_SNAP, 0.0f, 1.0f, 0.6f },
+    { GROUP_SNARE, "LEVEL", PORT_SNARE_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Clap (2 params)
     { GROUP_CLAP, "DENSITY", PORT_CLAP_DENSITY, 0.0f, 1.0f, 0.55f },
     { GROUP_CLAP, "TONE", PORT_CLAP_TONE, 0.0f, 1.0f, 0.45f },
+    { GROUP_CLAP, "LEVEL", PORT_CLAP_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Crash (2 params)
     { GROUP_CRASH, "BRIGHT", PORT_CRASH_BRIGHTNESS, 0.0f, 1.0f, 0.65f },
     { GROUP_CRASH, "DECAY", PORT_CRASH_DECAY, 0.0f, 1.0f, 0.5f },
+    { GROUP_CRASH, "LEVEL", PORT_CRASH_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Cowbell (2 params)
     { GROUP_COWBELL, "TONE", PORT_COWBELL_TONE, 0.0f, 1.0f, 0.45f },
     { GROUP_COWBELL, "DECAY", PORT_COWBELL_DECAY, 0.0f, 1.0f, 0.35f },
+    { GROUP_COWBELL, "LEVEL", PORT_COWBELL_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Clave (2 params)
     { GROUP_CLAVE, "TONE", PORT_CLAVE_TONE, 0.0f, 1.0f, 0.5f },
     { GROUP_CLAVE, "DECAY", PORT_CLAVE_DECAY, 0.0f, 1.0f, 0.25f },
+    { GROUP_CLAVE, "LEVEL", PORT_CLAVE_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Toms (independent)
     { GROUP_TOM1, "LO PITCH", PORT_TOM1_PITCH, 0.0f, 1.0f, 0.40f },
     { GROUP_TOM1, "LO DECAY", PORT_TOM1_DECAY, 0.0f, 1.0f, 0.45f },
+    { GROUP_TOM1, "LO LVL", PORT_TOM1_LEVEL, 0.0f, 1.5f, 1.0f },
     { GROUP_TOM2, "HI PITCH", PORT_TOM2_PITCH, 0.0f, 1.0f, 0.55f },
     { GROUP_TOM2, "HI DECAY", PORT_TOM2_DECAY, 0.0f, 1.0f, 0.45f },
+    { GROUP_TOM2, "HI LVL", PORT_TOM2_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Hi-Hats (independent)
     { GROUP_HH_CLOSED, "C BRIGHT", PORT_HH_CLOSED_BRIGHTNESS, 0.0f, 1.0f, 0.60f },
     { GROUP_HH_CLOSED, "C DECAY", PORT_HH_CLOSED_DECAY, 0.0f, 1.0f, 0.30f },
+    { GROUP_HH_CLOSED, "C LEVEL", PORT_HH_CLOSED_LEVEL, 0.0f, 1.5f, 1.0f },
     { GROUP_HH_OPEN, "O BRIGHT", PORT_HH_OPEN_BRIGHTNESS, 0.0f, 1.0f, 0.70f },
     { GROUP_HH_OPEN, "O DECAY", PORT_HH_OPEN_DECAY, 0.0f, 1.0f, 0.55f },
+    { GROUP_HH_OPEN, "O LEVEL", PORT_HH_OPEN_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Bash (6 params)
     { GROUP_BASH, "SIZE", PORT_BASH_SIZE, 0.0f, 1.0f, 0.45f },
@@ -188,6 +209,7 @@ static const ControlDesc kControls[] = {
     { GROUP_BASH, "DRIVE", PORT_BASH_DRIVE, 0.0f, 1.0f, 0.65f },
     { GROUP_BASH, "NOISE", PORT_BASH_NOISE, 0.0f, 1.0f, 0.60f },
     { GROUP_BASH, "EDGE", PORT_BASH_EDGE, 0.0f, 1.0f, 0.70f },
+    { GROUP_BASH, "LEVEL", PORT_BASH_LEVEL, 0.0f, 1.5f, 1.0f },
 
     // Master (4 params)
     { GROUP_MASTER, "CRUSH", PORT_BIT_CRUSH, 0.0f, 1.0f, 0.0f },
@@ -217,17 +239,17 @@ static const int kRowCount = sizeof(kRowGroups) / sizeof(kRowGroups[0]);
 
 // Group columns
 static const int kGroupColumns[GROUP_COUNT] = {
-    4,  // Kick: 4 columns
-    2,  // Snare: 2 columns
-    2,  // Clap: 2 columns
-    2,  // Crash: 2 columns
-    6,  // Bash: 6 columns
-    2,  // Cowbell: 2 columns
-    2,  // Clave: 2 columns
-    2,  // Tom1: 2 columns
-    2,  // Tom2: 2 columns
-    2,  // Closed HH: 2 columns
-    2,  // Open HH: 2 columns
+    5,  // Kick: 5 columns
+    3,  // Snare: 3 columns
+    3,  // Clap: 3 columns
+    3,  // Crash: 3 columns
+    7,  // Bash: 7 columns
+    3,  // Cowbell: 3 columns
+    3,  // Clave: 3 columns
+    3,  // Tom1: 3 columns
+    3,  // Tom2: 3 columns
+    3,  // Closed HH: 3 columns
+    3,  // Open HH: 3 columns
     4   // Master: 4 columns
 };
 

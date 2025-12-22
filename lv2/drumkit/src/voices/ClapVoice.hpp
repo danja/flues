@@ -23,6 +23,7 @@ private:
 
     float densityParam;
     float toneParam;
+    float level;
 
     // Multi-impulse state
     int impulseCount;
@@ -44,6 +45,7 @@ public:
         , env(sampleRate)
         , densityParam(0.55f)
         , toneParam(0.45f)
+        , level(1.0f)
         , impulseCount(5)
         , currentImpulse(0)
         , samplesUntilNext(0)
@@ -68,6 +70,10 @@ public:
         const float freq = expoMap(toneParam, 1000.0f, 4500.0f);  // Higher frequency range
         const float q = 4.0f + toneParam * 4.0f;  // Q from 4-8 (more resonance at high tone)
         bandpass.setParameters(freq, q);
+    }
+
+    void setLevel(float value) {
+        level = std::clamp(value, 0.0f, 1.5f);
     }
 
     void trigger(float vel = 1.0f) {
@@ -106,7 +112,7 @@ public:
         sample = bandpass.process(sample);
         sample *= env.process();
 
-        return sample * 0.8f;  // Higher output level
+        return sample * 0.8f * level;  // Higher output level
     }
 
     bool isActive() const { return env.isActive(); }

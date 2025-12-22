@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <cstdio>
 
 #define EUCLID_URI "https://danja.github.io/flues/plugins/euclid"
 
@@ -153,6 +154,7 @@ struct EuclidLV2 {
     LV2_URID timeSpeedUrid;
     LV2_URID timeBeatsPerBarUrid;
     LV2_URID timeBeatUnitUrid;
+    LV2_URID atomObjectUrid;
     LV2_URID atomFloatUrid;
 
     double sampleRate;
@@ -385,11 +387,12 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate, const char*, c
     self->timeSpeedUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#speed");
     self->timeBeatsPerBarUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#beatsPerBar");
     self->timeBeatUnitUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#beatUnit");
+    self->atomObjectUrid = self->map->map(self->map->handle, LV2_ATOM__Object);
     self->atomFloatUrid = self->map->map(self->map->handle, LV2_ATOM__Float);
 
     self->sampleRate = rate;
     self->hostBPM = 120.0f;
-    self->transportPlaying = true;
+    self->transportPlaying = false;
     self->beatsPerBar = 4.0f;
     self->beatUnit = 4.0f;
     self->stepsPerBar = kDefaultStepsPerBar;
@@ -578,7 +581,7 @@ static void activate(LV2_Handle instance) {
     EuclidLV2* self = static_cast<EuclidLV2*>(instance);
     self->stepFrameCounter = 0.0;
     self->stepIndex = 0;
-    self->transportPlaying = true;
+    self->transportPlaying = false;
     self->midiClockPhase = 0.0;
     self->midiClockRunning = false;
     self->rng.seed(self->seed);
@@ -612,13 +615,23 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     self->midiOut->body.pad = 0;
 
     float bpm = self->hostBPM > 0.0f ? self->hostBPM : 120.0f;
-    bool transportPlaying = self->transportPlaying;
+    bool transportPlaying = false;
 
     bool midiClockSeen = false;
+    bool timePositionSeen = false;
     if (self->control && self->control->atom.type == self->atomSequenceUrid) {
         LV2_ATOM_SEQUENCE_FOREACH(self->control, ev) {
+            const LV2_Atom_Object* obj = nullptr;
             if (ev->body.type == self->timePositionUrid) {
-                const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object*>(&ev->body);
+                obj = reinterpret_cast<const LV2_Atom_Object*>(&ev->body);
+            } else if (ev->body.type == self->atomObjectUrid) {
+                const LV2_Atom_Object* cand = reinterpret_cast<const LV2_Atom_Object*>(&ev->body);
+                if (cand->body.otype == self->timePositionUrid) {
+                    obj = cand;
+                }
+            }
+            if (obj) {
+                timePositionSeen = true;
                 const LV2_Atom_Float* bpmAtom = nullptr;
                 lv2_atom_object_get(obj, self->timeBeatsPerMinuteUrid, &bpmAtom, 0);
                 if (bpmAtom && bpmAtom->atom.type == self->atomFloatUrid) {
@@ -677,9 +690,18 @@ static void run(LV2_Handle instance, uint32_t nframes) {
 
     self->baseFramesPerStep = self->sampleRate * 60.0 / bpm * (beatsPerBar / static_cast<float>(stepsPerBar));
 
-    if (!transportPlaying && !midiClockSeen) {
+    bool shouldPlay = false;
+    if (timePositionSeen) {
+        shouldPlay = transportPlaying;
+    } else if (midiClockSeen) {
+        shouldPlay = self->midiClockRunning;
+    }
+
+    if (!shouldPlay) {
         self->stepFrameCounter = 0.0;
         self->stepIndex = 0;
+        self->midiClockPhase = 0.0;
+        self->midiClockRunning = false;
         return;
     }
 
@@ -701,7 +723,12 @@ static void run(LV2_Handle instance, uint32_t nframes) {
         self->stepIndex = 0;
     }
 
-    if (midiClockSeen && self->control && self->control->atom.type == self->atomSequenceUrid) {
+    const bool midiClockEnabled = !timePositionSeen;
+    if (midiClockSeen && midiClockEnabled && self->control && self->control->atom.type == self->atomSequenceUrid) {
+        if (timePositionSeen && !transportPlaying) {
+            self->midiClockPhase = 0.0;
+            return;
+        }
         const float quartersPerBar = beatsPerBar / (beatUnit / 4.0f);
         const double clocksPerBar = 24.0 * quartersPerBar;
         const double baseClocksPerStep = clocksPerBar / static_cast<double>(stepsPerBar);

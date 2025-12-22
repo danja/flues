@@ -125,6 +125,7 @@ typedef struct {
     int height;
 } Slider;
 
+
 // Group layout state
 typedef struct {
     int row;
@@ -477,6 +478,7 @@ static void setup_layout(EuclidUI* ui) {
         ui->slider_used[desc->port] = true;
         ui->slider_by_port[desc->port] = desc->port;
     }
+
 }
 
 // ===== Event Thread =====
