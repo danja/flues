@@ -1,0 +1,380 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/euclid>
+    a lv2:UtilityPlugin ;
+    doap:name "Flues Euclid" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    ui:ui <https://danja.github.io/flues/plugins/euclid#ui> ;
+    rdfs:comment "Euclidean/stochastic MIDI rhythm generator for Drumkit. 8-24 step grid locked to host tempo with swing and per-track length." ;
+
+    lv2:port [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "control" ;
+        lv2:name "Control" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports <http://lv2plug.in/ns/ext/time#Position> ,
+                     <http://lv2plug.in/ns/ext/midi#MidiEvent> ;
+        rdfs:comment "Host transport/tempo input and optional MIDI CC control" ;
+    ] , [
+        a atom:AtomPort, lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports <http://lv2plug.in/ns/ext/midi#MidiEvent> ;
+        rdfs:comment "Note-on triggers for Drumkit (channel 10)" ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "steps_per_bar" ;
+        lv2:name "Steps" ;
+        lv2:default 16 ;
+        lv2:minimum 8 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+        rdfs:comment "Global step grid (8-24)" ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "swing" ;
+        lv2:name "Swing" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Swing amount (odd steps longer)" ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "seed" ;
+        lv2:name "Seed" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 65535 ;
+        lv2:portProperty lv2:integer ;
+        rdfs:comment "Random seed (reseed on transport start)" ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "kick_beats" ;
+        lv2:name "Kick Beats" ;
+        lv2:default 4 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "kick_offset" ;
+        lv2:name "Kick Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "kick_length" ;
+        lv2:name "Kick Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "kick_random" ;
+        lv2:name "Kick Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "snare_beats" ;
+        lv2:name "Snare Beats" ;
+        lv2:default 2 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "snare_offset" ;
+        lv2:name "Snare Offset" ;
+        lv2:default 8 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "snare_length" ;
+        lv2:name "Snare Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "snare_random" ;
+        lv2:name "Snare Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "clap_beats" ;
+        lv2:name "Clap Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "clap_offset" ;
+        lv2:name "Clap Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "clap_length" ;
+        lv2:name "Clap Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "clap_random" ;
+        lv2:name "Clap Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "hh_closed_beats" ;
+        lv2:name "Closed HH Beats" ;
+        lv2:default 8 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "hh_closed_offset" ;
+        lv2:name "Closed HH Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "hh_closed_length" ;
+        lv2:name "Closed HH Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:symbol "hh_closed_random" ;
+        lv2:name "Closed HH Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:symbol "hh_open_beats" ;
+        lv2:name "Open HH Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:symbol "hh_open_offset" ;
+        lv2:name "Open HH Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:symbol "hh_open_length" ;
+        lv2:name "Open HH Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 24 ;
+        lv2:symbol "hh_open_random" ;
+        lv2:name "Open HH Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 25 ;
+        lv2:symbol "tom_lo_beats" ;
+        lv2:name "Lo Tom Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 26 ;
+        lv2:symbol "tom_lo_offset" ;
+        lv2:name "Lo Tom Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 27 ;
+        lv2:symbol "tom_lo_length" ;
+        lv2:name "Lo Tom Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 28 ;
+        lv2:symbol "tom_lo_random" ;
+        lv2:name "Lo Tom Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 29 ;
+        lv2:symbol "tom_hi_beats" ;
+        lv2:name "Hi Tom Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 30 ;
+        lv2:symbol "tom_hi_offset" ;
+        lv2:name "Hi Tom Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 31 ;
+        lv2:symbol "tom_hi_length" ;
+        lv2:name "Hi Tom Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 32 ;
+        lv2:symbol "tom_hi_random" ;
+        lv2:name "Hi Tom Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 33 ;
+        lv2:symbol "crash_beats" ;
+        lv2:name "Crash Beats" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 34 ;
+        lv2:symbol "crash_offset" ;
+        lv2:name "Crash Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 35 ;
+        lv2:symbol "crash_length" ;
+        lv2:name "Crash Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 36 ;
+        lv2:symbol "crash_random" ;
+        lv2:name "Crash Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 37 ;
+        lv2:symbol "bash_beats" ;
+        lv2:name "Bash Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 38 ;
+        lv2:symbol "bash_offset" ;
+        lv2:name "Bash Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 39 ;
+        lv2:symbol "bash_length" ;
+        lv2:name "Bash Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 40 ;
+        lv2:symbol "bash_random" ;
+        lv2:name "Bash Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] .

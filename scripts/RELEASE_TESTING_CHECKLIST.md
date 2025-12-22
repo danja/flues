@@ -6,7 +6,7 @@ Use this checklist to verify a release build before publishing to GitHub.
 
 - [ ] Clean build completed without errors
 - [ ] All tests passed (6/6 for flues-synth)
-- [ ] All LV2 plugins built successfully (7 plugins)
+- [ ] All LV2 plugins built successfully (8 plugins)
 - [ ] Tarball created with correct version number
 - [ ] Checksums generated (SHA256 + MD5)
 - [ ] Release directory structure is correct
@@ -17,7 +17,7 @@ Use this checklist to verify a release build before publishing to GitHub.
 - [ ] `sudo ./install.sh` completes without errors
 - [ ] LV2 plugins installed to `/usr/local/lib/lv2/`
 - [ ] flues-synth installed to `/usr/local/bin/`
-- [ ] `lv2ls | grep flues` shows all 7 plugins
+- [ ] `lv2ls | grep flues` shows all 8 plugins
 - [ ] `which flues-synth` returns path
 - [ ] `sudo ./uninstall.sh` removes everything cleanly
 

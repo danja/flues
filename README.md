@@ -95,6 +95,7 @@ Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjourna
 
 **Available as:**
 - 🔌 **LV2 plugin** - 8 voices, 18 parameters, General MIDI mapping ([lv2/drumkit/](lv2/drumkit/))
+- 🔌 **LV2 plugin** - Euclidean rhythm generator for Drumkit ([lv2/euclid/](lv2/euclid/))
 
 ---
 
@@ -175,6 +176,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/floozy/README.md](lv2/floozy/README.md) - Hybrid mono
 - [lv2/floozy-poly/README.md](lv2/floozy-poly/README.md) - Hybrid poly
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
+- [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
 
 ### Build Native Apps
 
@@ -211,7 +213,8 @@ flues/
 │   ├── disyn/            # Distortion synthesis plugin
 │   ├── floozy/           # Hybrid mono plugin
 │   ├── floozy-poly/      # Hybrid polyphonic plugin
-│   └── drumkit/          # Drum synthesizer plugin
+│   ├── drumkit/          # Drum synthesizer plugin
+│   └── euclid/           # Euclidean rhythm generator
 ├── gtk-synth/            # GTK4 native desktop app (Stove)
 ├── flues-synth/          # Headless Raspberry Pi synthesizer
 ├── www/                  # Built static site (GitHub Pages)

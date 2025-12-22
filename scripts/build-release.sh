@@ -107,6 +107,7 @@ build_lv2_plugin "floozy"
 build_lv2_plugin "chatterbox"
 build_lv2_plugin "chatgen"
 build_lv2_plugin "drumkit"
+build_lv2_plugin "euclid"
 build_lv2_plugin "pm-synth"
 build_lv2_plugin "flues-control"
 
@@ -186,6 +187,7 @@ rm -rf /usr/local/lib/lv2/floozy.lv2
 rm -rf /usr/local/lib/lv2/chatterbox.lv2
 rm -rf /usr/local/lib/lv2/chatgen.lv2
 rm -rf /usr/local/lib/lv2/drumkit.lv2
+rm -rf /usr/local/lib/lv2/euclid.lv2
 rm -rf /usr/local/lib/lv2/pm-synth.lv2
 rm -rf /usr/local/lib/lv2/flues-control.lv2
 
@@ -205,12 +207,13 @@ Binary distribution for $OS-$ARCH.
 
 ## Contents
 
-- **lv2-plugins/** - Seven LV2 instrument plugins
+- **lv2-plugins/** - Eight LV2 instrument plugins
   - disyn.lv2 - Distortion synthesis (7 algorithms)
   - floozy.lv2 - Hybrid distortion + physical modeling
   - chatterbox.lv2 - Formant speech synthesizer
   - chatgen.lv2 - Text-to-speech MIDI generator
   - drumkit.lv2 - Industrial drum synthesizer (8 voices)
+  - euclid.lv2 - Euclidean rhythm generator
   - pm-synth.lv2 - Physical modeling synthesizer
   - flues-control.lv2 - MIDI CC controller with 29 programs
 

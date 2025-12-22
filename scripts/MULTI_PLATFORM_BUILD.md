@@ -94,6 +94,7 @@ build-output/
 │   ├── chatterbox.lv2/
 │   ├── chatgen.lv2/
 │   ├── drumkit.lv2/
+│   ├── euclid.lv2/
 │   ├── pm-synth.lv2/
 │   └── flues-control.lv2/
 └── flues-plugins-v0.1.0-linux-x86_64.tar.gz
@@ -420,7 +421,7 @@ git pull origin main
 ## Testing Checklist
 
 **After desktop build:**
-- [ ] All 7 .lv2 bundles created
+- [ ] All 8 .lv2 bundles created
 - [ ] Each bundle has .so + _ui.so + .ttl files
 - [ ] Plugins load in jalv/Ardour
 

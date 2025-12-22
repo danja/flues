@@ -93,6 +93,7 @@ releases/
     │   ├── chatterbox.lv2/
     │   ├── chatgen.lv2/
     │   ├── drumkit.lv2/
+    │   ├── euclid.lv2/
     │   ├── pm-synth.lv2/
     │   └── flues-control.lv2/
     ├── flues-synth/

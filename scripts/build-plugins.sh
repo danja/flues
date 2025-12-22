@@ -77,6 +77,7 @@ build_lv2_plugin "floozy"
 build_lv2_plugin "chatterbox"
 build_lv2_plugin "chatgen"
 build_lv2_plugin "drumkit"
+build_lv2_plugin "euclid"
 build_lv2_plugin "pm-synth"
 build_lv2_plugin "flues-control"
 
