@@ -91,7 +91,7 @@ Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjourna
 
 **Concept**: Synthesized drum voices inspired by TR-909 but pushed into hardcore industrial territory.
 
-8 synthesized voices (kick, snare, clap, toms, hi-hats, crash) using pitch envelopes, resonant filters, noise bursts, and inharmonic oscillators. Master FX chain includes bit crushing, distortion, and reverb for aggressive, metallic tones.
+11 synthesized voices (kick, snare, clap, toms, hi-hats, crash, bash, cowbell, clave) using pitch envelopes, resonant filters, noise bursts, and inharmonic oscillators. The Euclid companion generates Euclidean/stochastic rhythms for Drumkit. Master FX chain includes bit crushing, distortion, and reverb for aggressive, metallic tones.
 
 **Available as:**
 - 🔌 **LV2 plugin** - 11 voices, 32 parameters, drum synth mapping ([lv2/drumkit/](lv2/drumkit/))

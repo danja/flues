@@ -5,6 +5,7 @@
 #include <lv2/ui/ui.h>
 #include <lv2/core/lv2.h>
 #include <X11/Xlib.h>
+#include <X11/cursorfont.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xlib.h>
 #include <pthread.h>
@@ -689,6 +690,9 @@ static LV2UI_Handle ui_instantiate(
     ui->window = XCreateWindow(ui->display, parent, 0, 0, ui->width, ui->height, 0,
                                CopyFromParent, InputOutput, CopyFromParent,
                                CWBackPixel | CWEventMask, &attrs);
+
+    Cursor handCursor = XCreateFontCursor(ui->display, XC_hand2);
+    XDefineCursor(ui->display, ui->window, handCursor);
 
     XMapWindow(ui->display, ui->window);
 
