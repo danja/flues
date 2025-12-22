@@ -15,11 +15,15 @@ Euclidean/stochastic rhythm generator LV2 plugin that outputs MIDI note-on event
 | Hi Tom | 50 |
 | Crash | 41 |
 | Bash | 51 |
+| Cowbell | 52 |
+| Clave | 53 |
 
 ## Timing
 
 - 8-24 step grid (default 16)
-- Locked to host tempo via `time:Position`
+- MIDI Clock (F8) takes priority when present (Start/Stop/Continue + Song Position Pointer supported)
+- Falls back to `time:Position` tempo when no MIDI clock
+- Time signature from `time:beatsPerBar`/`time:beatUnit` controls MIDI clock sync
 - Swing stretches odd steps (0-1)
 - Transport stop resets the pattern and reseeds
 
@@ -27,10 +31,10 @@ Euclidean/stochastic rhythm generator LV2 plugin that outputs MIDI note-on event
 
 The control port accepts MIDI CC messages. CC values are mapped to parameters and override the UI ports after first use:
 
-- Beats: CC 20-28 (Kick..Bash)
-- Offset: CC 30-38 (Kick..Bash)
-- Random: CC 40-48 (Kick..Bash)
-- Length: CC 50-58 (Kick..Bash)
+- Beats: CC 20-28 (Kick..Bash), Cowbell=90, Clave=91
+- Offset: CC 30-38 (Kick..Bash), Cowbell=92, Clave=93
+- Random: CC 40-48 (Kick..Bash), Cowbell=94, Clave=95
+- Length: CC 50-58 (Kick..Bash), Cowbell=96, Clave=97
 - Steps: CC 70
 - Swing: CC 71
 - Seed: CC 72 (scaled to 0-65535)

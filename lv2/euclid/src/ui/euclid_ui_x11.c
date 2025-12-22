@@ -60,6 +60,14 @@ typedef enum {
     PORT_BASH_OFFSET,
     PORT_BASH_LENGTH,
     PORT_BASH_RANDOM,
+    PORT_COWBELL_BEATS,
+    PORT_COWBELL_OFFSET,
+    PORT_COWBELL_LENGTH,
+    PORT_COWBELL_RANDOM,
+    PORT_CLAVE_BEATS,
+    PORT_CLAVE_OFFSET,
+    PORT_CLAVE_LENGTH,
+    PORT_CLAVE_RANDOM,
     PORT_TOTAL_COUNT
 } PortIndex;
 
@@ -75,6 +83,8 @@ typedef enum {
     GROUP_TOM_HI,
     GROUP_CRASH,
     GROUP_BASH,
+    GROUP_COWBELL,
+    GROUP_CLAVE,
     GROUP_COUNT
 } GroupIndex;
 
@@ -203,19 +213,29 @@ static const ControlDesc kControls[] = {
     { GROUP_BASH, "BEATS", PORT_BASH_BEATS, 0.0f, 24.0f, 0.0f, true },
     { GROUP_BASH, "OFFSET", PORT_BASH_OFFSET, 0.0f, 23.0f, 0.0f, true },
     { GROUP_BASH, "LENGTH", PORT_BASH_LENGTH, 1.0f, 24.0f, 16.0f, true },
-    { GROUP_BASH, "RAND", PORT_BASH_RANDOM, 0.0f, 1.0f, 0.0f, false }
+    { GROUP_BASH, "RAND", PORT_BASH_RANDOM, 0.0f, 1.0f, 0.0f, false },
+
+    { GROUP_COWBELL, "BEATS", PORT_COWBELL_BEATS, 0.0f, 24.0f, 0.0f, true },
+    { GROUP_COWBELL, "OFFSET", PORT_COWBELL_OFFSET, 0.0f, 23.0f, 0.0f, true },
+    { GROUP_COWBELL, "LENGTH", PORT_COWBELL_LENGTH, 1.0f, 24.0f, 16.0f, true },
+    { GROUP_COWBELL, "RAND", PORT_COWBELL_RANDOM, 0.0f, 1.0f, 0.0f, false },
+
+    { GROUP_CLAVE, "BEATS", PORT_CLAVE_BEATS, 0.0f, 24.0f, 0.0f, true },
+    { GROUP_CLAVE, "OFFSET", PORT_CLAVE_OFFSET, 0.0f, 23.0f, 0.0f, true },
+    { GROUP_CLAVE, "LENGTH", PORT_CLAVE_LENGTH, 1.0f, 24.0f, 16.0f, true },
+    { GROUP_CLAVE, "RAND", PORT_CLAVE_RANDOM, 0.0f, 1.0f, 0.0f, false }
 };
 
 static const int kControlCount = sizeof(kControls) / sizeof(kControls[0]);
 
 static const char* kGroupNames[GROUP_COUNT] = {
-    "GLOBAL", "KICK", "SNARE", "CLAP", "CLOSED HH", "OPEN HH", "LO TOM", "HI TOM", "CRASH", "BASH"
+    "GLOBAL", "KICK", "SNARE", "CLAP", "CLOSED HH", "OPEN HH", "LO TOM", "HI TOM", "CRASH", "BASH", "COWBELL", "CLAVE"
 };
 
 static const GroupIndex kRowGroups[][4] = {
     { GROUP_GLOBAL, GROUP_KICK, GROUP_SNARE, GROUP_CLAP },
     { GROUP_HH_CLOSED, GROUP_HH_OPEN, GROUP_TOM_LO, GROUP_TOM_HI },
-    { GROUP_CRASH, GROUP_BASH, GROUP_COUNT, GROUP_COUNT }
+    { GROUP_CRASH, GROUP_BASH, GROUP_COWBELL, GROUP_CLAVE }
 };
 
 static const int kRowCount = sizeof(kRowGroups) / sizeof(kRowGroups[0]);
@@ -230,7 +250,9 @@ static const int kGroupColumns[GROUP_COUNT] = {
     4, // Lo Tom
     4, // Hi Tom
     4, // Crash
-    4  // Bash
+    4, // Bash
+    4, // Cowbell
+    4  // Clave
 };
 
 // ===== XLib Threading Setup =====

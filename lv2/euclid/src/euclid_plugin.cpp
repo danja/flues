@@ -12,16 +12,12 @@
 
 #define EUCLID_URI "https://danja.github.io/flues/plugins/euclid"
 
-static constexpr int kInstrumentCount = 9;
+static constexpr int kInstrumentCount = 11;
 static constexpr int kMinStepsPerBar = 8;
 static constexpr int kMaxStepsPerBar = 24;
 static constexpr int kDefaultStepsPerBar = 16;
 static constexpr uint8_t kMidiChannel10 = 0x99; // Note On, channel 10
 
-static constexpr uint8_t kBeatsCCBase = 20;   // 20-28
-static constexpr uint8_t kOffsetCCBase = 30;  // 30-38
-static constexpr uint8_t kRandomCCBase = 40;  // 40-48
-static constexpr uint8_t kLengthCCBase = 50;  // 50-58
 static constexpr uint8_t kStepsCC = 70;
 static constexpr uint8_t kSwingCC = 71;
 static constexpr uint8_t kSeedCC = 72;
@@ -35,8 +31,15 @@ static const uint8_t kInstrumentNotes[kInstrumentCount] = {
     45, // Lo Tom
     50, // Hi Tom
     41, // Crash
-    51  // Bash
+    51, // Bash
+    52, // Cowbell
+    53  // Clave
 };
+
+static const uint8_t kBeatsCC[kInstrumentCount] = { 20, 21, 22, 23, 24, 25, 26, 27, 28, 90, 91 };
+static const uint8_t kOffsetCC[kInstrumentCount] = { 30, 31, 32, 33, 34, 35, 36, 37, 38, 92, 93 };
+static const uint8_t kRandomCC[kInstrumentCount] = { 40, 41, 42, 43, 44, 45, 46, 47, 48, 94, 95 };
+static const uint8_t kLengthCC[kInstrumentCount] = { 50, 51, 52, 53, 54, 55, 56, 57, 58, 96, 97 };
 
 enum PortIndex {
     PORT_CONTROL = 0,
@@ -80,7 +83,15 @@ enum PortIndex {
     PORT_BASH_OFFSET = 38,
     PORT_BASH_LENGTH = 39,
     PORT_BASH_RANDOM = 40,
-    PORT_TOTAL_COUNT = 41
+    PORT_COWBELL_BEATS = 41,
+    PORT_COWBELL_OFFSET = 42,
+    PORT_COWBELL_LENGTH = 43,
+    PORT_COWBELL_RANDOM = 44,
+    PORT_CLAVE_BEATS = 45,
+    PORT_CLAVE_OFFSET = 46,
+    PORT_CLAVE_LENGTH = 47,
+    PORT_CLAVE_RANDOM = 48,
+    PORT_TOTAL_COUNT = 49
 };
 
 struct InstrumentPorts {
@@ -140,11 +151,16 @@ struct EuclidLV2 {
     LV2_URID timePositionUrid;
     LV2_URID timeBeatsPerMinuteUrid;
     LV2_URID timeSpeedUrid;
+    LV2_URID timeBeatsPerBarUrid;
+    LV2_URID timeBeatUnitUrid;
     LV2_URID atomFloatUrid;
 
     double sampleRate;
     float hostBPM;
     bool transportPlaying;
+
+    float beatsPerBar;
+    float beatUnit;
 
     int stepsPerBar;
     float swing;
@@ -161,6 +177,9 @@ struct EuclidLV2 {
     double baseFramesPerStep;
     double stepFrameCounter;
     uint32_t stepIndex;
+
+    double midiClockPhase;
+    bool midiClockRunning;
 
     Rng rng;
 };
@@ -252,32 +271,27 @@ static float ccToFloat(uint8_t value) {
 }
 
 static void handle_cc(EuclidLV2* self, uint8_t cc, uint8_t value) {
-    if (cc >= kBeatsCCBase && cc < kBeatsCCBase + kInstrumentCount) {
-        int index = cc - kBeatsCCBase;
-        self->ccParams[index].beats = ccToInt(value, 0, kMaxStepsPerBar);
-        self->ccFlags[index].beats = true;
-        return;
-    }
-
-    if (cc >= kOffsetCCBase && cc < kOffsetCCBase + kInstrumentCount) {
-        int index = cc - kOffsetCCBase;
-        self->ccParams[index].offset = ccToInt(value, 0, kMaxStepsPerBar - 1);
-        self->ccFlags[index].offset = true;
-        return;
-    }
-
-    if (cc >= kRandomCCBase && cc < kRandomCCBase + kInstrumentCount) {
-        int index = cc - kRandomCCBase;
-        self->ccParams[index].random = ccToFloat(value);
-        self->ccFlags[index].random = true;
-        return;
-    }
-
-    if (cc >= kLengthCCBase && cc < kLengthCCBase + kInstrumentCount) {
-        int index = cc - kLengthCCBase;
-        self->ccParams[index].length = ccToInt(value, 1, kMaxStepsPerBar);
-        self->ccFlags[index].length = true;
-        return;
+    for (int i = 0; i < kInstrumentCount; ++i) {
+        if (cc == kBeatsCC[i]) {
+            self->ccParams[i].beats = ccToInt(value, 0, kMaxStepsPerBar);
+            self->ccFlags[i].beats = true;
+            return;
+        }
+        if (cc == kOffsetCC[i]) {
+            self->ccParams[i].offset = ccToInt(value, 0, kMaxStepsPerBar - 1);
+            self->ccFlags[i].offset = true;
+            return;
+        }
+        if (cc == kRandomCC[i]) {
+            self->ccParams[i].random = ccToFloat(value);
+            self->ccFlags[i].random = true;
+            return;
+        }
+        if (cc == kLengthCC[i]) {
+            self->ccParams[i].length = ccToInt(value, 1, kMaxStepsPerBar);
+            self->ccFlags[i].length = true;
+            return;
+        }
     }
 
     if (cc == kStepsCC) {
@@ -369,11 +383,15 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate, const char*, c
     self->timePositionUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#Position");
     self->timeBeatsPerMinuteUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#beatsPerMinute");
     self->timeSpeedUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#speed");
+    self->timeBeatsPerBarUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#beatsPerBar");
+    self->timeBeatUnitUrid = self->map->map(self->map->handle, "http://lv2plug.in/ns/ext/time#beatUnit");
     self->atomFloatUrid = self->map->map(self->map->handle, LV2_ATOM__Float);
 
     self->sampleRate = rate;
     self->hostBPM = 120.0f;
     self->transportPlaying = true;
+    self->beatsPerBar = 4.0f;
+    self->beatUnit = 4.0f;
     self->stepsPerBar = kDefaultStepsPerBar;
     self->swing = 0.0f;
     self->seed = 1;
@@ -385,6 +403,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate, const char*, c
     self->baseFramesPerStep = self->sampleRate * 60.0 * 4.0 / (self->hostBPM * self->stepsPerBar);
     self->stepFrameCounter = 0.0;
     self->stepIndex = 0;
+    self->midiClockPhase = 0.0;
+    self->midiClockRunning = false;
 
     self->rng.seed(self->seed);
 
@@ -525,6 +545,30 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_BASH_RANDOM:
             self->instruments[8].random = static_cast<const float*>(data);
             break;
+        case PORT_COWBELL_BEATS:
+            self->instruments[9].beats = static_cast<const float*>(data);
+            break;
+        case PORT_COWBELL_OFFSET:
+            self->instruments[9].offset = static_cast<const float*>(data);
+            break;
+        case PORT_COWBELL_LENGTH:
+            self->instruments[9].length = static_cast<const float*>(data);
+            break;
+        case PORT_COWBELL_RANDOM:
+            self->instruments[9].random = static_cast<const float*>(data);
+            break;
+        case PORT_CLAVE_BEATS:
+            self->instruments[10].beats = static_cast<const float*>(data);
+            break;
+        case PORT_CLAVE_OFFSET:
+            self->instruments[10].offset = static_cast<const float*>(data);
+            break;
+        case PORT_CLAVE_LENGTH:
+            self->instruments[10].length = static_cast<const float*>(data);
+            break;
+        case PORT_CLAVE_RANDOM:
+            self->instruments[10].random = static_cast<const float*>(data);
+            break;
         default:
             break;
     }
@@ -535,6 +579,8 @@ static void activate(LV2_Handle instance) {
     self->stepFrameCounter = 0.0;
     self->stepIndex = 0;
     self->transportPlaying = true;
+    self->midiClockPhase = 0.0;
+    self->midiClockRunning = false;
     self->rng.seed(self->seed);
 }
 
@@ -544,6 +590,14 @@ static double step_frames(double baseFrames, float swing, uint32_t stepIndex) {
         : (1.0 - swing * 0.5);
     const double clamped = swingFactor < 0.2 ? 0.2 : swingFactor;
     return baseFrames * clamped;
+}
+
+static double step_clocks(double baseClocks, float swing, uint32_t stepIndex) {
+    const double swingFactor = (stepIndex % 2 == 1)
+        ? (1.0 + swing * 0.5)
+        : (1.0 - swing * 0.5);
+    const double clamped = swingFactor < 0.2 ? 0.2 : swingFactor;
+    return baseClocks * clamped;
 }
 
 static void run(LV2_Handle instance, uint32_t nframes) {
@@ -560,6 +614,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     float bpm = self->hostBPM > 0.0f ? self->hostBPM : 120.0f;
     bool transportPlaying = self->transportPlaying;
 
+    bool midiClockSeen = false;
     if (self->control && self->control->atom.type == self->atomSequenceUrid) {
         LV2_ATOM_SEQUENCE_FOREACH(self->control, ev) {
             if (ev->body.type == self->timePositionUrid) {
@@ -568,6 +623,18 @@ static void run(LV2_Handle instance, uint32_t nframes) {
                 lv2_atom_object_get(obj, self->timeBeatsPerMinuteUrid, &bpmAtom, 0);
                 if (bpmAtom && bpmAtom->atom.type == self->atomFloatUrid) {
                     bpm = bpmAtom->body;
+                }
+
+                const LV2_Atom_Float* beatsPerBarAtom = nullptr;
+                lv2_atom_object_get(obj, self->timeBeatsPerBarUrid, &beatsPerBarAtom, 0);
+                if (beatsPerBarAtom && beatsPerBarAtom->atom.type == self->atomFloatUrid) {
+                    self->beatsPerBar = beatsPerBarAtom->body;
+                }
+
+                const LV2_Atom_Float* beatUnitAtom = nullptr;
+                lv2_atom_object_get(obj, self->timeBeatUnitUrid, &beatUnitAtom, 0);
+                if (beatUnitAtom && beatUnitAtom->atom.type == self->atomFloatUrid) {
+                    self->beatUnit = beatUnitAtom->body;
                 }
 
                 const LV2_Atom_Float* speedAtom = nullptr;
@@ -581,6 +648,12 @@ static void run(LV2_Handle instance, uint32_t nframes) {
                     const uint8_t status = midiMsg[0] & 0xF0;
                     if (status == 0xB0) {
                         handle_cc(self, midiMsg[1], midiMsg[2]);
+                    }
+                }
+                if (ev->body.size >= 1) {
+                    const uint8_t statusByte = midiMsg[0];
+                    if (statusByte == 0xF8 || statusByte == 0xFA || statusByte == 0xFB || statusByte == 0xFC) {
+                        midiClockSeen = true;
                     }
                 }
             }
@@ -599,16 +672,18 @@ static void run(LV2_Handle instance, uint32_t nframes) {
 
     const int stepsPerBar = clampi(self->stepsPerBar, kMinStepsPerBar, kMaxStepsPerBar);
     const float swing = clampf(self->swing, 0.0f, 1.0f);
+    const float beatsPerBar = self->beatsPerBar > 0.0f ? self->beatsPerBar : 4.0f;
+    const float beatUnit = self->beatUnit > 0.0f ? self->beatUnit : 4.0f;
 
-    self->baseFramesPerStep = self->sampleRate * 60.0 * 4.0 / (bpm * stepsPerBar);
+    self->baseFramesPerStep = self->sampleRate * 60.0 / bpm * (beatsPerBar / static_cast<float>(stepsPerBar));
 
-    if (!transportPlaying) {
+    if (!transportPlaying && !midiClockSeen) {
         self->stepFrameCounter = 0.0;
         self->stepIndex = 0;
         return;
     }
 
-    if (!wasPlaying && transportPlaying) {
+    if (!wasPlaying && transportPlaying && !midiClockSeen) {
         self->stepFrameCounter = 0.0;
         self->stepIndex = 0;
         self->rng.seed(self->seed);
@@ -626,43 +701,107 @@ static void run(LV2_Handle instance, uint32_t nframes) {
         self->stepIndex = 0;
     }
 
-    if (stepCounter <= 1e-9 && nframes > 0) {
-        emitStep(self, 0);
-        self->stepIndex = (self->stepIndex + 1) % static_cast<uint32_t>(stepsPerBar);
-    }
+    if (midiClockSeen && self->control && self->control->atom.type == self->atomSequenceUrid) {
+        const float quartersPerBar = beatsPerBar / (beatUnit / 4.0f);
+        const double clocksPerBar = 24.0 * quartersPerBar;
+        const double baseClocksPerStep = clocksPerBar / static_cast<double>(stepsPerBar);
 
-    while (framePosition < static_cast<double>(nframes)) {
-        double currentFrames = step_frames(self->baseFramesPerStep, swing, self->stepIndex);
-        if (currentFrames < 1.0) {
-            currentFrames = 1.0;
+        LV2_ATOM_SEQUENCE_FOREACH(self->control, ev) {
+            if (ev->body.type != self->midiEventUrid) {
+                continue;
+            }
+            const uint8_t* midiMsg = reinterpret_cast<const uint8_t*>(ev + 1);
+            if (ev->body.size < 1) {
+                continue;
+            }
+            const uint8_t statusByte = midiMsg[0];
+            if (statusByte == 0xF2 && ev->body.size >= 3) { // Song Position Pointer
+                const uint16_t spp = static_cast<uint16_t>(midiMsg[1] | (midiMsg[2] << 7));
+                const double sppClocks = static_cast<double>(spp) * 6.0; // 6 clocks per MIDI beat
+                const double barClocks = clocksPerBar > 0.0 ? clocksPerBar : 96.0;
+                const double stepClocks = baseClocksPerStep > 0.0 ? baseClocksPerStep : 6.0;
+
+                const double barPhase = std::fmod(sppClocks, barClocks);
+                uint32_t step = static_cast<uint32_t>(std::floor(barPhase / stepClocks));
+                if (step >= static_cast<uint32_t>(stepsPerBar)) {
+                    step = 0;
+                }
+                self->stepIndex = step;
+                self->midiClockPhase = std::fmod(barPhase, stepClocks);
+                continue;
+            }
+            if (statusByte == 0xFA) { // Start
+                self->midiClockRunning = true;
+                self->midiClockPhase = 0.0;
+                self->stepIndex = 0;
+                self->rng.seed(self->seed);
+                continue;
+            }
+            if (statusByte == 0xFB) { // Continue
+                self->midiClockRunning = true;
+                continue;
+            }
+            if (statusByte == 0xFC) { // Stop
+                self->midiClockRunning = false;
+                self->midiClockPhase = 0.0;
+                self->stepIndex = 0;
+                continue;
+            }
+            if (statusByte != 0xF8) {
+                continue;
+            }
+            if (!self->midiClockRunning) {
+                continue;
+            }
+
+            self->midiClockPhase += 1.0;
+            double targetClocks = step_clocks(baseClocksPerStep, swing, self->stepIndex);
+            while (self->midiClockPhase >= targetClocks) {
+                self->midiClockPhase -= targetClocks;
+                emitStep(self, ev->time.frames);
+                self->stepIndex = (self->stepIndex + 1) % static_cast<uint32_t>(stepsPerBar);
+                targetClocks = step_clocks(baseClocksPerStep, swing, self->stepIndex);
+            }
         }
-        if (stepCounter >= currentFrames) {
+    } else {
+        if (stepCounter <= 1e-9 && nframes > 0) {
+            emitStep(self, 0);
+            self->stepIndex = (self->stepIndex + 1) % static_cast<uint32_t>(stepsPerBar);
+        }
+
+        while (framePosition < static_cast<double>(nframes)) {
+            double currentFrames = step_frames(self->baseFramesPerStep, swing, self->stepIndex);
+            if (currentFrames < 1.0) {
+                currentFrames = 1.0;
+            }
+            if (stepCounter >= currentFrames) {
+                stepCounter = 0.0;
+            }
+
+            double framesLeftInStep = currentFrames - stepCounter;
+            if (framesLeftInStep <= 0.0) {
+                framesLeftInStep = currentFrames;
+                stepCounter = 0.0;
+            }
+
+            const double framesLeft = static_cast<double>(nframes) - framePosition;
+            if (framesLeftInStep > framesLeft) {
+                stepCounter += framesLeft;
+                framePosition = static_cast<double>(nframes);
+                break;
+            }
+
+            framePosition += framesLeftInStep;
+            uint32_t eventFrame = static_cast<uint32_t>(std::llround(framePosition));
+            if (eventFrame < nframes) {
+                emitStep(self, eventFrame);
+            }
+            self->stepIndex = (self->stepIndex + 1) % static_cast<uint32_t>(stepsPerBar);
             stepCounter = 0.0;
         }
 
-        double framesLeftInStep = currentFrames - stepCounter;
-        if (framesLeftInStep <= 0.0) {
-            framesLeftInStep = currentFrames;
-            stepCounter = 0.0;
-        }
-
-        const double framesLeft = static_cast<double>(nframes) - framePosition;
-        if (framesLeftInStep > framesLeft) {
-            stepCounter += framesLeft;
-            framePosition = static_cast<double>(nframes);
-            break;
-        }
-
-        framePosition += framesLeftInStep;
-        uint32_t eventFrame = static_cast<uint32_t>(std::llround(framePosition));
-        if (eventFrame < nframes) {
-            emitStep(self, eventFrame);
-        }
-        self->stepIndex = (self->stepIndex + 1) % static_cast<uint32_t>(stepsPerBar);
-        stepCounter = 0.0;
+        self->stepFrameCounter = stepCounter;
     }
-
-    self->stepFrameCounter = stepCounter;
 }
 
 static void deactivate(LV2_Handle) {}

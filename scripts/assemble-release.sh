@@ -155,7 +155,7 @@ Binary distribution for desktop ($DESKTOP_ARCH) + Raspberry Pi ($PI_ARCH).
   - floozy.lv2 - Hybrid distortion + physical modeling
   - chatterbox.lv2 - Formant speech synthesizer
   - chatgen.lv2 - Text-to-speech MIDI generator
-  - drumkit.lv2 - Industrial drum synthesizer (8 voices)
+  - drumkit.lv2 - Industrial drum synthesizer (11 voices)
   - euclid.lv2 - Euclidean rhythm generator
   - pm-synth.lv2 - Physical modeling synthesizer
   - flues-control.lv2 - MIDI CC controller with 29 programs

@@ -1,6 +1,6 @@
 // drumkit_plugin.cpp
 // LV2 plugin wrapper for hardcore industrial drumkit
-// MIDI channel 10 only, 9 voices, 28 parameters
+// MIDI channel 10 only, 11 voices, 32 parameters
 
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
@@ -39,6 +39,10 @@ enum PortIndex : uint32_t {
     PORT_HH_OPEN_DECAY,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
+    PORT_COWBELL_TONE,
+    PORT_COWBELL_DECAY,
+    PORT_CLAVE_TONE,
+    PORT_CLAVE_DECAY,
     PORT_BASH_SIZE,
     PORT_BASH_SPREAD,
     PORT_BASH_DECAY,
@@ -61,7 +65,7 @@ struct DrumkitLV2 {
     const LV2_Atom_Sequence* midiIn;
     float* audioOut;
 
-    // Parameter port pointers (28 params)
+    // Parameter port pointers (32 params)
     const float* kickPitch;
     const float* kickDecay;
     const float* kickDrive;
@@ -80,6 +84,10 @@ struct DrumkitLV2 {
     const float* hhOpenDecay;
     const float* crashBrightness;
     const float* crashDecay;
+    const float* cowbellTone;
+    const float* cowbellDecay;
+    const float* claveTone;
+    const float* claveDecay;
     const float* bashSize;
     const float* bashSpread;
     const float* bashDecay;
@@ -132,6 +140,14 @@ static void apply_parameters(DrumkitLV2* self) {
     // Crash (2 params)
     if (self->crashBrightness) self->engine->setCrashBrightness(*self->crashBrightness);
     if (self->crashDecay) self->engine->setCrashDecay(*self->crashDecay);
+
+    // Cowbell (2 params)
+    if (self->cowbellTone) self->engine->setCowbellTone(*self->cowbellTone);
+    if (self->cowbellDecay) self->engine->setCowbellDecay(*self->cowbellDecay);
+
+    // Clave (2 params)
+    if (self->claveTone) self->engine->setClaveTone(*self->claveTone);
+    if (self->claveDecay) self->engine->setClaveDecay(*self->claveDecay);
 
     // Bash (6 params)
     if (self->bashSize) self->engine->setBashSize(*self->bashSize);
@@ -211,6 +227,10 @@ static LV2_Handle instantiate(
     self->hhOpenDecay = nullptr;
     self->crashBrightness = nullptr;
     self->crashDecay = nullptr;
+    self->cowbellTone = nullptr;
+    self->cowbellDecay = nullptr;
+    self->claveTone = nullptr;
+    self->claveDecay = nullptr;
     self->bashSize = nullptr;
     self->bashSpread = nullptr;
     self->bashDecay = nullptr;
@@ -266,6 +286,10 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_HH_OPEN_DECAY: self->hhOpenDecay = static_cast<const float*>(data); break;
         case PORT_CRASH_BRIGHTNESS: self->crashBrightness = static_cast<const float*>(data); break;
         case PORT_CRASH_DECAY: self->crashDecay = static_cast<const float*>(data); break;
+        case PORT_COWBELL_TONE: self->cowbellTone = static_cast<const float*>(data); break;
+        case PORT_COWBELL_DECAY: self->cowbellDecay = static_cast<const float*>(data); break;
+        case PORT_CLAVE_TONE: self->claveTone = static_cast<const float*>(data); break;
+        case PORT_CLAVE_DECAY: self->claveDecay = static_cast<const float*>(data); break;
         case PORT_BASH_SIZE: self->bashSize = static_cast<const float*>(data); break;
         case PORT_BASH_SPREAD: self->bashSpread = static_cast<const float*>(data); break;
         case PORT_BASH_DECAY: self->bashDecay = static_cast<const float*>(data); break;

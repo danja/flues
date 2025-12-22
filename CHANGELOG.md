@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Floozy** - Hybrid Disyn + PM-Synth signal chain
 - **Chatterbox** - Formant speech synthesizer (4 formants, 4 vocal modes)
 - **ChatGen** - Text-to-speech MIDI generator (40+ phonemes)
-- **Drumkit** - Industrial drum synthesizer (8 voices)
+- **Drumkit** - Industrial drum synthesizer (11 voices)
 - **PM-Synth** - Physical modeling synth (12 interface types)
 - **Flues-Control** - MIDI CC controller (29 programs, 9 sliders)
 

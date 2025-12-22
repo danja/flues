@@ -1,6 +1,6 @@
 // drumkit_ui_x11.c
 // X11/Cairo UI for hardcore industrial drumkit
-// 6 rows: Kick+Snare, Toms, Hi-Hats (C/O), Clap+Crash, Bash, Master
+// 6 rows: Kick+Snare, Toms, Hi-Hats (C/O), Clap+Crash+Cowbell, Clave+Bash, Master
 
 #include <lv2/ui/ui.h>
 #include <lv2/core/lv2.h>
@@ -40,6 +40,10 @@ typedef enum {
     PORT_HH_OPEN_DECAY,
     PORT_CRASH_BRIGHTNESS,
     PORT_CRASH_DECAY,
+    PORT_COWBELL_TONE,
+    PORT_COWBELL_DECAY,
+    PORT_CLAVE_TONE,
+    PORT_CLAVE_DECAY,
     PORT_BASH_SIZE,
     PORT_BASH_SPREAD,
     PORT_BASH_DECAY,
@@ -60,6 +64,8 @@ typedef enum {
     GROUP_CLAP,
     GROUP_CRASH,
     GROUP_BASH,
+    GROUP_COWBELL,
+    GROUP_CLAVE,
     GROUP_TOM1,
     GROUP_TOM2,
     GROUP_HH_CLOSED,
@@ -134,7 +140,7 @@ typedef struct {
     float drag_start_value;
 } DrumkitUI;
 
-// Control definitions (28 parameters)
+// Control definitions (32 parameters)
 static const ControlDesc kControls[] = {
     // Kick (4 params)
     { GROUP_KICK, "PITCH", PORT_KICK_PITCH, 0.0f, 1.0f, 0.35f },
@@ -153,6 +159,14 @@ static const ControlDesc kControls[] = {
     // Crash (2 params)
     { GROUP_CRASH, "BRIGHT", PORT_CRASH_BRIGHTNESS, 0.0f, 1.0f, 0.65f },
     { GROUP_CRASH, "DECAY", PORT_CRASH_DECAY, 0.0f, 1.0f, 0.5f },
+
+    // Cowbell (2 params)
+    { GROUP_COWBELL, "TONE", PORT_COWBELL_TONE, 0.0f, 1.0f, 0.45f },
+    { GROUP_COWBELL, "DECAY", PORT_COWBELL_DECAY, 0.0f, 1.0f, 0.35f },
+
+    // Clave (2 params)
+    { GROUP_CLAVE, "TONE", PORT_CLAVE_TONE, 0.0f, 1.0f, 0.5f },
+    { GROUP_CLAVE, "DECAY", PORT_CLAVE_DECAY, 0.0f, 1.0f, 0.25f },
 
     // Toms (independent)
     { GROUP_TOM1, "LO PITCH", PORT_TOM1_PITCH, 0.0f, 1.0f, 0.40f },
@@ -185,7 +199,7 @@ static const int kControlCount = sizeof(kControls) / sizeof(kControls[0]);
 
 // Group names
 static const char* kGroupNames[GROUP_COUNT] = {
-    "KICK", "SNARE", "CLAP", "CRASH", "BASH", "TOM 1", "TOM 2", "CLOSED HH", "OPEN HH", "MASTER"
+    "KICK", "SNARE", "CLAP", "CRASH", "BASH", "COWBELL", "CLAVE", "TOM 1", "TOM 2", "CLOSED HH", "OPEN HH", "MASTER"
 };
 
 // Row layout (which groups in which row)
@@ -193,8 +207,8 @@ static const GroupIndex kRowGroups[][3] = {
     { GROUP_KICK, GROUP_SNARE, GROUP_COUNT },              // Row 0
     { GROUP_TOM1, GROUP_TOM2, GROUP_COUNT },               // Row 1
     { GROUP_HH_CLOSED, GROUP_HH_OPEN, GROUP_COUNT },       // Row 2
-    { GROUP_CLAP, GROUP_CRASH, GROUP_COUNT },              // Row 3
-    { GROUP_BASH, GROUP_COUNT, GROUP_COUNT },              // Row 4
+    { GROUP_CLAP, GROUP_CRASH, GROUP_COWBELL },            // Row 3
+    { GROUP_CLAVE, GROUP_BASH, GROUP_COUNT },              // Row 4
     { GROUP_MASTER, GROUP_COUNT, GROUP_COUNT }             // Row 5
 };
 
@@ -207,6 +221,8 @@ static const int kGroupColumns[GROUP_COUNT] = {
     2,  // Clap: 2 columns
     2,  // Crash: 2 columns
     6,  // Bash: 6 columns
+    2,  // Cowbell: 2 columns
+    2,  // Clave: 2 columns
     2,  // Tom1: 2 columns
     2,  // Tom2: 2 columns
     2,  // Closed HH: 2 columns

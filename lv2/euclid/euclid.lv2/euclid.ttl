@@ -377,4 +377,74 @@
         lv2:default 0.0 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 41 ;
+        lv2:symbol "cowbell_beats" ;
+        lv2:name "Cowbell Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 42 ;
+        lv2:symbol "cowbell_offset" ;
+        lv2:name "Cowbell Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 43 ;
+        lv2:symbol "cowbell_length" ;
+        lv2:name "Cowbell Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 44 ;
+        lv2:symbol "cowbell_random" ;
+        lv2:name "Cowbell Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 45 ;
+        lv2:symbol "clave_beats" ;
+        lv2:name "Clave Beats" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 46 ;
+        lv2:symbol "clave_offset" ;
+        lv2:name "Clave Offset" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 23 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 47 ;
+        lv2:symbol "clave_length" ;
+        lv2:name "Clave Length" ;
+        lv2:default 16 ;
+        lv2:minimum 1 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 48 ;
+        lv2:symbol "clave_random" ;
+        lv2:name "Clave Random" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
     ] .

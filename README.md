@@ -94,7 +94,7 @@ Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjourna
 8 synthesized voices (kick, snare, clap, toms, hi-hats, crash) using pitch envelopes, resonant filters, noise bursts, and inharmonic oscillators. Master FX chain includes bit crushing, distortion, and reverb for aggressive, metallic tones.
 
 **Available as:**
-- 🔌 **LV2 plugin** - 8 voices, 18 parameters, General MIDI mapping ([lv2/drumkit/](lv2/drumkit/))
+- 🔌 **LV2 plugin** - 11 voices, 32 parameters, drum synth mapping ([lv2/drumkit/](lv2/drumkit/))
 - 🔌 **LV2 plugin** - Euclidean rhythm generator for Drumkit ([lv2/euclid/](lv2/euclid/))
 
 ---

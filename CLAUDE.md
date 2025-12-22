@@ -556,7 +556,7 @@ See `lv2/chatgen/README.md` for detailed usage, phoneme tables, sound design tip
 
 **Location:** `lv2/drumkit/`
 
-A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
+A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
 
 **Key Features:**
 - Native C++ implementation with 8 synthesized drum voices
@@ -583,7 +583,7 @@ A hardcore industrial drum synthesizer LV2 plugin with 8 voices inspired by the 
   - `TomVoice.hpp` - Pitch env → resonant bandpass (2 params, shared Lo/Hi)
   - `HiHatVoice.hpp` - 6× inharmonic oscillators + ring mod (2 params, shared)
   - `CrashVoice.hpp` - Noise → 3× bandpass cascade (2 params)
-- `src/DrumKitEngine.hpp` - Main coordinator (8 voices + master FX)
+- `src/DrumKitEngine.hpp` - Main coordinator (11 voices + master FX)
 - `src/drumkit_plugin.cpp` - LV2 wrapper with sample-accurate MIDI
 - `src/ui/drumkit_ui_x11.c` - X11/Cairo UI (18 knobs, 4 rows)
 - `drumkit.lv2/*.ttl` - LV2 metadata and 20 port definitions

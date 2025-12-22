@@ -1,5 +1,5 @@
 // DrumKitEngine.hpp
-// Main drum kit coordinator managing 9 voices and master FX chain
+// Main drum kit coordinator managing 11 voices and master FX chain
 // Handles MIDI channel 10 routing, voice management, and signal processing
 
 #ifndef DRUMKIT_ENGINE_HPP
@@ -12,6 +12,8 @@
 #include "voices/HiHatVoice.hpp"
 #include "voices/CrashVoice.hpp"
 #include "voices/BashVoice.hpp"
+#include "voices/CowbellVoice.hpp"
+#include "voices/ClaveVoice.hpp"
 #include "modules/Bitcrusher.hpp"
 #include "modules/Distortion.hpp"
 #include "modules/ReverbModule.hpp"
@@ -25,7 +27,7 @@ class DrumKitEngine {
 private:
     float sampleRate;
 
-    // 9 Voice instances
+    // 11 Voice instances
     std::unique_ptr<KickVoice> kick;
     std::unique_ptr<SnareVoice> snare;
     std::unique_ptr<ClapVoice> clap;
@@ -35,6 +37,8 @@ private:
     std::unique_ptr<HiHatVoice> openHH;
     std::unique_ptr<CrashVoice> crash;
     std::unique_ptr<BashVoice> bash;
+    std::unique_ptr<CowbellVoice> cowbell;
+    std::unique_ptr<ClaveVoice> clave;
 
     // Master FX
     Bitcrusher bitcrusher;
@@ -57,6 +61,8 @@ public:
         , openHH(std::make_unique<HiHatVoice>(sampleRate, false))    // Open
         , crash(std::make_unique<CrashVoice>(sampleRate))
         , bash(std::make_unique<BashVoice>(sampleRate))
+        , cowbell(std::make_unique<CowbellVoice>(sampleRate))
+        , clave(std::make_unique<ClaveVoice>(sampleRate))
         , bitcrusher()
         , distortion()
         , reverb(sampleRate)
@@ -70,7 +76,7 @@ public:
 
     /**
      * Handle MIDI note on (channel 10 only)
-     * @param note - MIDI note number (36-56)
+     * @param note - MIDI note number (36-53)
      * @param velocity - MIDI velocity (0-127)
      */
     void handleNoteOn(uint8_t note, uint8_t velocity) {
@@ -110,6 +116,14 @@ public:
                 bash->trigger(vel);
                 break;
 
+            case 52:  // E3 - Cowbell
+                cowbell->trigger(vel);
+                break;
+
+            case 53:  // F3 - Clave
+                clave->trigger(vel);
+                break;
+
             case 41:  // F2 - Crash
                 crash->trigger(1.0f);  // Fixed level
                 break;
@@ -135,6 +149,8 @@ public:
         sum += openHH->process();
         sum += crash->process();
         sum += bash->process();
+        sum += cowbell->process();
+        sum += clave->process();
 
         // Master FX chain
         sum = bitcrusher.process(sum);
@@ -180,6 +196,14 @@ public:
     void setCrashBrightness(float value) { crash->setBrightness(value); }
     void setCrashDecay(float value) { crash->setDecay(value); }
 
+    // Cowbell (2 params)
+    void setCowbellTone(float value) { cowbell->setTone(value); }
+    void setCowbellDecay(float value) { cowbell->setDecay(value); }
+
+    // Clave (2 params)
+    void setClaveTone(float value) { clave->setTone(value); }
+    void setClaveDecay(float value) { clave->setDecay(value); }
+
     // Master (4 params)
     void setBitCrush(float value) { bitcrusher.setAmount(value); }
 
@@ -220,6 +244,8 @@ public:
         openHH->reset();
         crash->reset();
         bash->reset();
+        cowbell->reset();
+        clave->reset();
 
         reverb.reset();
         dcBlocker.reset();

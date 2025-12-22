@@ -1,11 +1,11 @@
 # Flues Drumkit - Hardcore Industrial TR-909
 
-A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
+A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the TR-909 but pushed into aggressive territory. Designed for industrial, EBM, and harsh electronic music.
 
 ## Features
 
-- **9 Synthesized Drum Voices** (not samples!)
-- **28 Parameters** with X11/Cairo GUI
+- **11 Synthesized Drum Voices** (not samples!)
+- **32 Parameters** with X11/Cairo GUI
 - **Velocity Sensitivity** on kick, snare, and toms
 - **Hi-Hat Choke Group** (closed kills open)
 - **Master FX Chain**: Bit Crusher, Distortion, Reverb
@@ -24,6 +24,8 @@ A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the 
 | 46 | A#2 | Open Hi-Hat | No (fixed level) |
 | 50 | D3 | Hi Tom | Yes |
 | 51 | Eb3 | Bash (Metal) | Yes |
+| 52 | E3 | Cowbell | Yes |
+| 53 | F3 | Clave | Yes |
 
 **Note**: When Closed Hi-Hat (42) is triggered, it immediately silences Open Hi-Hat (46) for realistic behavior.
 
@@ -66,6 +68,18 @@ A hardcore industrial drum synthesizer LV2 plugin with 9 voices inspired by the 
 - **Decay**: Envelope decay 300-2500ms
 
 **Synthesis**: White noise → 3× bandpass cascade → Soft clipping
+
+### Cowbell (2 Parameters)
+- **Tone**: Dual oscillator pitch 380-1400 Hz
+- **Decay**: Envelope decay 50-1000 ms
+
+**Synthesis**: Dual square/sine oscillators → bandpass → saturation
+
+### Clave (2 Parameters)
+- **Tone**: Resonant click pitch 900-4200 Hz
+- **Decay**: Envelope decay 20-400 ms
+
+**Synthesis**: Noise burst → resonant bandpass → envelope
 
 ### Bash (6 Parameters)
 - **Size**: Base plate/pipe frequency (180-1200 Hz)
@@ -165,7 +179,7 @@ lv2info https://danja.github.io/flues/plugins/drumkit
 
 - **Sample Rate**: 48kHz (native)
 - **Latency**: Zero (real-time synthesis)
-- **Polyphony**: 9 voices (one per drum, monophonic)
+- **Polyphony**: 11 voices (one per drum, monophonic)
 - **CPU Usage**: ~5-8% (single core, all voices active)
 - **Output Level**: Calibrated to ~-6dB peak with all drums
 
