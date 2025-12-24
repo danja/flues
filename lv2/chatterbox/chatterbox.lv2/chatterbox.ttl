@@ -1,5 +1,6 @@
 @prefix atom: <http://lv2plug.in/ns/ext/atom#> .
 @prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -10,6 +11,10 @@
     a lv2:InstrumentPlugin ;
     doap:name "Chatterbox" ;
     doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
     lv2:project <https://danja.github.io/flues> ;
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;

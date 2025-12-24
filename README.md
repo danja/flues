@@ -6,6 +6,18 @@
 
 ---
 
+## Contents
+
+- [What is this?](#what-is-this)
+- [Try It Now - Live Web Experiments](#-try-it-now---live-web-experiments)
+- [The Experimental Journey](#the-experimental-journey)
+  - [Physical Modeling - Stove](#1-physical-modeling--stove)
+  - [Speech Synthesis - Chatterbox + ChatGen](#2-speech-synthesis--chatterbox--chatgen)
+  - [Distortion Synthesis - Disyn](#3-distortion-synthesis--disyn)
+  - [Hybrid Synthesis - Floozy + Flues-Synth](#4-hybrid-synthesis--floozy--flues-synth)
+  - [Drum Synthesis - Drumkit](#5-drum-synthesis--drumkit)
+- [Implementation Patterns](#implementation-patterns)
+
 ## What is this?
 
 Flues is a collection of experimental synthesizers exploring different approaches to sound generation. What started as a simple clarinet simulator has evolved into a family of instruments spanning physical modeling, vocal synthesis, distortion techniques, and hybrid architectures.
