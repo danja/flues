@@ -24,6 +24,8 @@
 #define SEQ_STEPS 16
 #define LIVE_PADS 16
 #define PARAM_CONTROLS 16
+#define MAX_MIDI_EVENTS 128
+#define DEFAULT_GATE_MS 50
 
 // ============================================================================
 // Drum Voice
@@ -98,6 +100,16 @@ typedef struct {
 } ParameterControl;
 
 // ============================================================================
+// MIDI Event Queue (host-facing)
+// ============================================================================
+
+typedef struct {
+    uint32_t frame;      // Sample offset within current block
+    uint8_t size;        // Usually 3 bytes
+    uint8_t data[3];     // MIDI message
+} MidiOutEvent;
+
+// ============================================================================
 // Quadrangle Engine
 // ============================================================================
 
@@ -122,9 +134,9 @@ typedef struct {
     // Sample rate
     float sample_rate;
 
-    // MIDI output buffer
-    uint8_t midi_out_buffer[1024];
-    uint16_t midi_out_size;
+    // MIDI output queue for current block
+    MidiOutEvent midi_events[MAX_MIDI_EVENTS];
+    uint16_t midi_event_count;
 
 } QuadrangleEngine;
 
@@ -153,6 +165,9 @@ void quadrangle_set_tempo(QuadrangleEngine *engine, uint16_t bpm);
 
 // Audio processing
 void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples);
+void quadrangle_begin_block(QuadrangleEngine *engine);
+void quadrangle_refresh_grid_state(QuadrangleEngine *engine);
+uint32_t quadrangle_default_gate_frames(const QuadrangleEngine *engine);
 
 // Grid update
 void quadrangle_update_leds(QuadrangleEngine *engine, MidiMessage *msg);

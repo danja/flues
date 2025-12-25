@@ -20,6 +20,8 @@
 #define SIDE_WIDTH 30
 #define TOP_HEIGHT 30
 #define INFO_HEIGHT 60
+#define PORT_PLAY_STATE 5  // Matches quadrangle.ttl lv2:index for play_state
+#define PORT_CURRENT_STEP 6
 
 #define WINDOW_WIDTH (MARGIN * 2 + GRID_SIZE * (PAD_SIZE + PAD_GAP) + SIDE_WIDTH)
 #define WINDOW_HEIGHT (MARGIN * 2 + GRID_SIZE * (PAD_SIZE + PAD_GAP) + TOP_HEIGHT + INFO_HEIGHT)
@@ -62,6 +64,13 @@ typedef struct {
     cairo_t *back_cr;
 
     int needs_redraw;
+    int width;
+    int height;
+    int screen;
+    Window parent;
+    pthread_t thread;
+    pthread_mutex_t mutex;
+    int running;
 
     UIState state;
 
@@ -69,6 +78,19 @@ typedef struct {
     LV2UI_Controller controller;
 
 } QuadrangleUI;
+
+// Xlib threading guard (match pm-synth UI pattern to avoid host crashes)
+static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
+static bool g_xlib_threads_ready = false;
+
+static void ensure_xlib_threads(void) {
+    pthread_mutex_lock(&g_xlib_init_lock);
+    if (!g_xlib_threads_ready) {
+        XInitThreads();
+        g_xlib_threads_ready = true;
+    }
+    pthread_mutex_unlock(&g_xlib_init_lock);
+}
 
 // ============================================================================
 // Drawing Functions
@@ -142,7 +164,13 @@ static void draw_grid(QuadrangleUI *ui) {
             Color color;
             double brightness;
 
-            if (value == 5) {  // Playhead
+            // Playhead overlay for sequencer quadrants
+            int playhead_row = ui->state.current_step / 4;
+            int playhead_col = ui->state.current_step % 4;
+            int is_drum_head = (row >= 4 && row - 4 == playhead_row && col < 4 && col == playhead_col);
+            int is_melody_head = (row >= 4 && row - 4 == playhead_row && col >= 4 && (col - 4) == playhead_col);
+
+            if (ui->state.playing && (is_drum_head || is_melody_head)) {
                 color = COLOR_PLAYHEAD;
                 brightness = 1.0;
             } else if (value > 0) {
@@ -243,6 +271,9 @@ static void redraw(QuadrangleUI *ui) {
 
 static int idle(LV2UI_Handle handle) {
     QuadrangleUI *ui = (QuadrangleUI*)handle;
+    if (!ui || !ui->display || !ui->window) {
+        return 1;
+    }
 
     // Process X11 events
     while (XPending(ui->display) > 0) {
@@ -270,6 +301,72 @@ static int idle(LV2UI_Handle handle) {
 }
 
 // ============================================================================
+// Event Thread (mirrors euclid/pm-synth stability pattern)
+// ============================================================================
+
+static void *event_thread_main(void *arg) {
+    QuadrangleUI *ui = (QuadrangleUI*)arg;
+
+    while (ui->running) {
+        while (XPending(ui->display)) {
+            XEvent event;
+            XNextEvent(ui->display, &event);
+
+            switch (event.type) {
+                case Expose:
+                    ui->needs_redraw = 1;
+                    break;
+                case ConfigureNotify: {
+                    ui->width = event.xconfigure.width;
+                    ui->height = event.xconfigure.height;
+
+                    if (ui->surface) {
+                        cairo_surface_destroy(ui->surface);
+                    }
+                    Visual *visual = DefaultVisual(ui->display, ui->screen);
+                    ui->surface = cairo_xlib_surface_create(
+                        ui->display,
+                        ui->window,
+                        visual,
+                        ui->width, ui->height
+                    );
+                    if (ui->cr) {
+                        cairo_destroy(ui->cr);
+                    }
+                    ui->cr = cairo_create(ui->surface);
+
+                    if (ui->back_cr) {
+                        cairo_destroy(ui->back_cr);
+                        ui->back_cr = NULL;
+                    }
+                    if (ui->back_buffer) {
+                        cairo_surface_destroy(ui->back_buffer);
+                        ui->back_buffer = NULL;
+                    }
+                    ui->back_buffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, ui->width, ui->height);
+                    ui->back_cr = cairo_create(ui->back_buffer);
+                    ui->needs_redraw = 1;
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+
+        if (ui->needs_redraw) {
+            pthread_mutex_lock(&ui->mutex);
+            redraw(ui);
+            ui->needs_redraw = 0;
+            pthread_mutex_unlock(&ui->mutex);
+        }
+
+        usleep(16000);
+    }
+
+    return NULL;
+}
+
+// ============================================================================
 // LV2 UI Callbacks
 // ============================================================================
 
@@ -294,6 +391,12 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     memset(&ui->state, 0, sizeof(UIState));
     ui->state.bpm = 120;
     ui->needs_redraw = 1;
+    ui->width = WINDOW_WIDTH;
+    ui->height = WINDOW_HEIGHT;
+    ui->running = 1;
+    pthread_mutex_init(&ui->mutex, NULL);
+
+    ensure_xlib_threads();
 
     // Initialize X11
     ui->display = XOpenDisplay(NULL);
@@ -304,19 +407,35 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
 
     int screen = DefaultScreen(ui->display);
 
-    ui->window = XCreateSimpleWindow(
+    ui->screen = screen;
+
+    // Allow host to supply parent window
+    ui->parent = RootWindow(ui->display, screen);
+    for (int i = 0; features && features[i]; ++i) {
+        if (!strcmp(features[i]->URI, LV2_UI__parent)) {
+            ui->parent = (Window)(uintptr_t)features[i]->data;
+        }
+    }
+
+    XSetWindowAttributes attrs;
+    attrs.event_mask = ExposureMask | StructureNotifyMask;
+    attrs.background_pixel = BlackPixel(ui->display, screen);
+
+    ui->window = XCreateWindow(
         ui->display,
-        RootWindow(ui->display, screen),
+        ui->parent,
         0, 0,
-        WINDOW_WIDTH, WINDOW_HEIGHT,
-        1,
-        BlackPixel(ui->display, screen),
-        BlackPixel(ui->display, screen)
+        ui->width, ui->height,
+        0,
+        CopyFromParent,
+        InputOutput,
+        CopyFromParent,
+        CWBackPixel | CWEventMask,
+        &attrs
     );
 
     XStoreName(ui->display, ui->window, "Quadrangle");
 
-    XSelectInput(ui->display, ui->window, ExposureMask | StructureNotifyMask);
     XMapWindow(ui->display, ui->window);
 
     // Create Cairo surface
@@ -325,13 +444,13 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
         ui->display,
         ui->window,
         visual,
-        WINDOW_WIDTH, WINDOW_HEIGHT
+        ui->width, ui->height
     );
 
     ui->cr = cairo_create(ui->surface);
 
     // Create back buffer for double buffering
-    ui->back_buffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, WINDOW_WIDTH, WINDOW_HEIGHT);
+    ui->back_buffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, ui->width, ui->height);
     ui->back_cr = cairo_create(ui->back_buffer);
 
     // Initial draw
@@ -339,12 +458,21 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
 
     *widget = (LV2UI_Widget)(intptr_t)ui->window;
 
+    // Start event thread to process X11 events and redraw
+    pthread_create(&ui->thread, NULL, event_thread_main, ui);
+
     return (LV2UI_Handle)ui;
 }
 
 static void cleanup(LV2UI_Handle handle) {
     QuadrangleUI *ui = (QuadrangleUI*)handle;
     if (!ui) return;
+
+    ui->running = 0;
+    if (ui->thread) {
+        pthread_join(ui->thread, NULL);
+        ui->thread = 0;
+    }
 
     // Clean up Cairo resources first
     if (ui->back_cr) {
@@ -385,12 +513,24 @@ static void port_event(LV2UI_Handle handle,
                        uint32_t buffer_size,
                        uint32_t format,
                        const void *buffer) {
-    // For future: receive state updates from plugin
-    (void)handle;
-    (void)port_index;
-    (void)buffer_size;
-    (void)format;
-    (void)buffer;
+    QuadrangleUI *ui = (QuadrangleUI*)handle;
+    if (!ui) return;
+
+    // play_state is a plain control port (float)
+    if (port_index == PORT_PLAY_STATE && buffer && buffer_size >= sizeof(float)) {
+        float value = *(const float*)buffer;
+        ui->state.playing = (value > 0.5f) ? 1 : 0;
+        ui->needs_redraw = 1;
+        return;
+    }
+    if (port_index == PORT_CURRENT_STEP && buffer && buffer_size >= sizeof(float)) {
+        float value = *(const float*)buffer;
+        if (value < 0) value = 0;
+        if (value > 15) value = 15;
+        ui->state.current_step = (uint8_t)value;
+        ui->needs_redraw = 1;
+        return;
+    }
 }
 
 static const LV2UI_Idle_Interface idle_interface = {
@@ -398,9 +538,7 @@ static const LV2UI_Idle_Interface idle_interface = {
 };
 
 static const void* extension_data(const char *uri) {
-    if (!strcmp(uri, LV2_UI__idleInterface)) {
-        return &idle_interface;
-    }
+    (void)uri;
     return NULL;
 }
 

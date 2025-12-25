@@ -6,3 +6,8 @@
     a lv2:Plugin ;
     lv2:binary <quadrangle.so> ;
     rdfs:seeAlso <quadrangle.ttl> .
+
+<https://danja.github.io/flues/plugins/quadrangle#ui>
+    a ui:X11UI ;
+    ui:binary <quadrangle_ui.so> ;
+    rdfs:label "Quadrangle Control Panel" .

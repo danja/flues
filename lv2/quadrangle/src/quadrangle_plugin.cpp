@@ -23,7 +23,9 @@ typedef enum {
     PORT_MIDI_OUT    = 1,  // Atom output (Musical MIDI notes)
     PORT_LAUNCHPAD_OUT = 2,  // Atom output (LED commands to Launchpad)
     PORT_AUDIO_OUT_L = 3,  // Audio output (left)
-    PORT_AUDIO_OUT_R = 4   // Audio output (right)
+    PORT_AUDIO_OUT_R = 4,  // Audio output (right)
+    PORT_PLAY_STATE  = 5,  // Control output to UI (0=stopped, 1=playing)
+    PORT_CURRENT_STEP = 6  // Control output: current playhead step (0-15)
 } PortIndex;
 
 // URIDs we need
@@ -46,6 +48,8 @@ typedef struct {
     LV2_Atom_Sequence *launchpad_out;
     float *audio_out_l;
     float *audio_out_r;
+    float *play_state_out;
+    float *current_step_out;
 
     // URIDs
     QuadrangleURIDs urids;
@@ -63,6 +67,54 @@ typedef struct {
     uint32_t frame_counter;
 
 } Quadrangle;
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+// Write a MIDI/SysEx message to Launchpad control output.
+// If launchpad_out is not connected (size too small/null), fall back to midi_out
+// so the Launchpad still lights when routed via the main MIDI port.
+static inline void send_lp_msg(Quadrangle* self,
+                               const uint8_t* data,
+                               uint16_t size) {
+    const bool lp_connected = self->launchpad_out &&
+        self->launchpad_out->atom.size >= sizeof(LV2_Atom_Sequence_Body);
+
+    if (lp_connected) {
+        lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
+        lv2_atom_forge_atom(&self->launchpad_forge, size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->launchpad_forge, data, size);
+    } else {
+        // Fallback: send via midi_out (may reach Launchpad if routed; instruments should ignore SysEx)
+        lv2_atom_forge_frame_time(&self->forge, 0);
+        lv2_atom_forge_atom(&self->forge, size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->forge, data, size);
+    }
+}
+
+// Seed a visible default palette so hardware shows life immediately
+static void set_default_led_layout(Quadrangle* self) {
+    // Leave grid pads off initially; light only helpers so the device isn't a solid wall
+    grid_state_clear(&self->engine.grid_state);
+
+    // Side buttons select drum voice 0 by default
+    for (uint8_t i = 0; i < MAX_DRUM_VOICES && i < GRID_HEIGHT; ++i) {
+        uint8_t color = (i == 0) ? COLOR_SELECTED : COLOR_DRUMS;
+        grid_state_set_side_button(&self->engine.grid_state, i, 0, color);
+    }
+
+    // Top buttons: play/stop off, patterns A-D dim, clear dim red
+    for (uint8_t i = 0; i < 9; ++i) {
+        uint8_t color = COLOR_OFF;
+        if (i >= 2 && i <= 5) {
+            color = COLOR_YELLOW_DIM;  // pattern buttons A-D
+        } else if (i == 7) {
+            color = COLOR_RED_DIM;     // clear
+        }
+        grid_state_set_top_button(&self->engine.grid_state, i, 0, color);
+    }
+}
 
 // ============================================================================
 // LV2 Callbacks
@@ -132,6 +184,12 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
         case PORT_AUDIO_OUT_R:
             self->audio_out_r = (float *)data;
             break;
+        case PORT_PLAY_STATE:
+            self->play_state_out = (float *)data;
+            break;
+        case PORT_CURRENT_STEP:
+            self->current_step_out = (float *)data;
+            break;
     }
 }
 
@@ -171,33 +229,41 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
     // Process incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->control_in, ev) {
-        // Process transport position first
-        if (ev->body.type == self->urids.atom_Object ||
-            ev->body.type == self->urids.atom_Blank) {
-            const LV2_Atom_Object* obj = (const LV2_Atom_Object*)&ev->body;
-
-            if (obj->body.otype == self->urids.time_Position) {
-                // Extract BPM
-                LV2_Atom *bpm = NULL;
-                lv2_atom_object_get(obj, self->urids.time_beatsPerMinute, &bpm, 0);
-                if (bpm && bpm->type == self->urids.atom_Float) {
-                    float new_bpm = ((LV2_Atom_Float*)bpm)->body;
-                    quadrangle_set_tempo(&self->engine, (uint8_t)new_bpm);
-                }
-
-                // Extract transport speed (0.0 = stopped, 1.0 = playing)
-                LV2_Atom *speed = NULL;
-                lv2_atom_object_get(obj, self->urids.time_speed, &speed, 0);
-                if (speed && speed->type == self->urids.atom_Float) {
-                    float transport_speed = ((LV2_Atom_Float*)speed)->body;
-                    if (transport_speed > 0.0f && !self->engine.playing) {
-                        quadrangle_start(&self->engine);
-                    } else if (transport_speed == 0.0f && self->engine.playing) {
-                        quadrangle_stop(&self->engine);
-                    }
-                }
+        // Process transport position first (mirror Euclid: handle direct Position or Object/Blank wrapper)
+        const LV2_Atom_Object* obj = NULL;
+        if (ev->body.type == self->urids.time_Position) {
+            obj = (const LV2_Atom_Object*)&ev->body;
+        } else if (ev->body.type == self->urids.atom_Object ||
+                   ev->body.type == self->urids.atom_Blank) {
+            const LV2_Atom_Object* cand = (const LV2_Atom_Object*)&ev->body;
+            if (cand->body.otype == self->urids.time_Position) {
+                obj = cand;
             }
         }
+
+        if (obj) {
+            // Extract BPM
+            LV2_Atom *bpm = NULL;
+            lv2_atom_object_get(obj, self->urids.time_beatsPerMinute, &bpm, 0);
+            if (bpm && bpm->type == self->urids.atom_Float) {
+                float new_bpm = ((LV2_Atom_Float*)bpm)->body;
+                quadrangle_set_tempo(&self->engine, (uint8_t)new_bpm);
+            }
+
+            // Extract transport speed (0.0 = stopped, 1.0 = playing)
+            LV2_Atom *speed = NULL;
+            lv2_atom_object_get(obj, self->urids.time_speed, &speed, 0);
+            if (speed && speed->type == self->urids.atom_Float) {
+                float transport_speed = ((LV2_Atom_Float*)speed)->body;
+                if (transport_speed > 0.0f && !self->engine.playing) {
+                    quadrangle_start(&self->engine);
+                } else if (transport_speed == 0.0f && self->engine.playing) {
+                    quadrangle_stop(&self->engine);
+                }
+            }
+            continue;
+        }
+
         // Process MIDI events from Launchpad
         else if (ev->body.type == self->urids.midi_Event) {
             const uint8_t *midi = (const uint8_t*)(ev + 1);  // Grid-seq pattern
@@ -275,71 +341,71 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         }
         fprintf(stderr, "\n");
 
-        // IMPORTANT: Send to BOTH outputs like grid-seq
+        // Primary: Launchpad control output
+        lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
+        lv2_atom_forge_atom(&self->launchpad_forge, sizeof(sysex), self->urids.midi_Event);
+        lv2_atom_forge_write(&self->launchpad_forge, sysex, sizeof(sysex));
+        // Fallback: also emit SysEx on midi_out in case host routes Launchpad there (instruments will ignore SysEx)
         lv2_atom_forge_frame_time(&self->forge, 0);
         lv2_atom_forge_atom(&self->forge, sizeof(sysex), self->urids.midi_Event);
         lv2_atom_forge_write(&self->forge, sysex, sizeof(sysex));
 
-        lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
-        lv2_atom_forge_atom(&self->launchpad_forge, sizeof(sysex), self->urids.midi_Event);
-        lv2_atom_forge_write(&self->launchpad_forge, sysex, sizeof(sysex));
-
         self->launchpad_initialized = 1;
-        fprintf(stderr, "quadrangle: Sent Programmer Mode to BOTH outputs\n");
+        fprintf(stderr, "quadrangle: Sent Programmer Mode to Launchpad output (and midi_out fallback)\n");
+
+        // Force-clear LEDs after entering programmer mode to avoid stale states
+        MidiMessage clear_msg;
+        midi_build_clear_all(&clear_msg);
+        send_lp_msg(self, clear_msg.data, clear_msg.size);
+
+        // Seed a visible LED layout immediately so hardware shows activity
+        set_default_led_layout(self);
     }
 
-    // Update LEDs - send individual Note On messages like grid-seq
+    // Prepare MIDI queue for this block and run sequencer clock
+    quadrangle_begin_block(&self->engine);
+    quadrangle_process(&self->engine, n_samples);
+
+    // Flush queued MIDI events to midi_out
+    for (uint16_t i = 0; i < self->engine.midi_event_count; ++i) {
+        const MidiOutEvent* ev = &self->engine.midi_events[i];
+        lv2_atom_forge_frame_time(&self->forge, ev->frame);
+        lv2_atom_forge_atom(&self->forge, ev->size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->forge, ev->data, ev->size);
+    }
+
+    // Update LEDs AFTER processing so playhead reflects the new step
     self->frame_counter += n_samples;
     if (self->frame_counter >= 64) {
         self->frame_counter = 0;
 
-        static int led_count = 0;
-        if (led_count < 3) {
-            fprintf(stderr, "quadrangle: Sending LED update #%d\n", led_count);
-            led_count++;
-        }
+        // Refresh grid state colors before emitting LED messages
+        quadrangle_refresh_grid_state(&self->engine);
 
-        // Send LED update for each pad
-        for (uint8_t row = 0; row < 8; row++) {
-            for (uint8_t col = 0; col < 8; col++) {
-                uint8_t note = grid_to_note(row, col);
-                uint8_t color = self->engine.grid_state.grid[row][col].color;
-
-                // Send as Note On (0x90) like grid-seq does
-                uint8_t msg[3] = {0x90, note, color};
-                lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
-                lv2_atom_forge_atom(&self->launchpad_forge, 3, self->urids.midi_Event);
-                lv2_atom_forge_write(&self->launchpad_forge, msg, 3);
-            }
-        }
-
-        // Update side buttons
-        for (uint8_t i = 0; i < 8; i++) {
-            uint8_t color = self->engine.grid_state.side[i].color;
-            uint8_t cc_num = SIDE_BUTTONS[i];
-
-            // Send as CC (0xB0)
-            uint8_t msg[3] = {0xB0, cc_num, color};
-            lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
-            lv2_atom_forge_atom(&self->launchpad_forge, 3, self->urids.midi_Event);
-            lv2_atom_forge_write(&self->launchpad_forge, msg, 3);
-        }
-
-        // Update top buttons
-        for (uint8_t i = 0; i < 9; i++) {
-            uint8_t color = self->engine.grid_state.top[i].color;
-            uint8_t cc_num = TOP_BUTTONS[i];
-
-            // Send as CC (0xB0)
-            uint8_t msg[3] = {0xB0, cc_num, color};
-            lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
-            lv2_atom_forge_atom(&self->launchpad_forge, 3, self->urids.midi_Event);
-            lv2_atom_forge_write(&self->launchpad_forge, msg, 3);
-        }
+        // Bulk SysEx update for safety (sent both to Launchpad out and midi_out; instruments ignore SysEx)
+        MidiMessage bulk;
+        midi_update_grid(&bulk, &self->engine.grid_state);
+        // Launchpad out
+        lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
+        lv2_atom_forge_atom(&self->launchpad_forge, bulk.size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->launchpad_forge, bulk.data, bulk.size);
+        // midi_out fallback
+        lv2_atom_forge_frame_time(&self->forge, 0);
+        lv2_atom_forge_atom(&self->forge, bulk.size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->forge, bulk.data, bulk.size);
     }
 
-    // Process audio (sequencer clock)
-    quadrangle_process(&self->engine, n_samples);
+    // Finalize forged sequences so hosts see valid atom sizes
+    lv2_atom_forge_pop(&self->forge, &midi_frame);
+    lv2_atom_forge_pop(&self->launchpad_forge, &launchpad_frame);
+
+    // Publish play state to UI (simple control port)
+    if (self->play_state_out) {
+        *self->play_state_out = self->engine.playing ? 1.0f : 0.0f;
+    }
+    if (self->current_step_out) {
+        *self->current_step_out = (float)(self->engine.current_step & 0xFF);
+    }
 
     // Clear audio output (no audio generation yet)
     memset(self->audio_out_l, 0, n_samples * sizeof(float));

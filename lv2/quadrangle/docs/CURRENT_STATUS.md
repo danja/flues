@@ -2,50 +2,36 @@
 
 **Date:** 2025-12-25
 **Plugin:** quadrangle (Novation Launchpad Mini MK3 performance instrument)
-**Status:** Plugin loads, transport sync works, **MIDI routing issue**
+**Status:** Plugin loads, transport sync works, pad presses now reach the plugin, **LED output dark**
 
 ## What Works ✅
 
 1. **Plugin loads successfully** in Reaper and jalv
-2. **UI displays** (X11/Cairo interface with grid visualization)
+2. **UI manifest re-enabled** - X11/Cairo UI should now be discoverable by hosts (manifest now lists `quadrangle_ui.so`)
 3. **Transport sync** - receives `time:Position` events from host
-4. **Build system** - CMake compiles and installs correctly
-5. **Code structure** - Identical MIDI handling to working grid-seq plugin
+4. **Pad presses arrive** - Note On/CC from Launchpad now logged (`quadrangle: Received Note On - note=XX`)
+5. **Build system** - CMake compiles and installs correctly
 
 ## What Doesn't Work ❌
 
-1. **No MIDI events received** from Launchpad pads
-2. **LEDs don't update** on Launchpad hardware
-3. **No response to button presses**
+1. **Launchpad LEDs dark** - no color changes when pads pressed
+2. **No playhead/side/top LED feedback** yet
 
 ## Console Output
-
-### Normal Output (First Run)
+LED logging during current failure:
 ```
 quadrangle: First run() call - plugin is active
-quadrangle: control_in pointer: 0x7f...
 quadrangle: Initializing Launchpad...
 quadrangle: Sending Programmer Mode SysEx: F0 00 20 29 02 0D 0E 01 F7
 quadrangle: Sent Programmer Mode to BOTH outputs
-quadrangle: Sending LED update #0
-quadrangle: Sending LED update #1
-quadrangle: Sending LED update #2
-```
-
-### Problem Output (Ongoing)
-```
-quadrangle: Event 1: Object/Blank (transport)
-quadrangle: Event 1: Object/Blank (transport)
-quadrangle: Event 1: Object/Blank (transport)
-[floods console with transport events, NO pad events]
-```
-
-### Expected Output (Not Seen)
-```
-quadrangle: MIDI [90 0B 60]  # <-- Note On, note 11, velocity 96
-quadrangle: Received Note On - note=11
+quadrangle: Received Note On - note=11   # pad press now arrives
 quadrangle: Pad press at row=0, col=0, vel=96
+quadrangle: Sending LED update #0        # but LEDs stay off
 ```
+
+### Fix Applied (needs retest)
+- **Atom forge finalization added**: sequences for `midi_out` and `launchpad_out` were never closed, so hosts likely discarded all LED/MIDI output (atom size stayed zero). `lv2_atom_forge_pop` now finalizes both sequences at end of `run()`.
+- **UI re-enabled**: `manifest.ttl` now lists `<quadrangle#ui>` with `quadrangle_ui.so`, so hosts should show the UI again.
 
 ## Code Comparison: grid-seq vs quadrangle
 
@@ -61,16 +47,10 @@ After detailed comparison with the working grid-seq plugin:
 
 See [GRID_SEQ_COMPARISON.md](./GRID_SEQ_COMPARISON.md) for detailed analysis.
 
-## Hypothesis: MIDI Routing Issue
+## Current Hypothesis
 
-Since the code is **functionally identical** to grid-seq (which works), the issue is almost certainly **MIDI routing configuration** in the host, not the plugin code.
-
-### Possible Causes
-
-1. **MIDI not connected** - Launchpad DA output not routed to plugin input
-2. **Wrong MIDI mode** - Launchpad in standalone mode instead of DAW mode
-3. **Host routing** - Reaper/jalv not forwarding MIDI to plugin
-4. **Port caching** - Host using cached port connections from old state
+- **Primary:** LED data was being dropped because the forged atom sequences were never finalized (`lv2_atom_forge_pop` missing). Fix committed—needs rebuild/install/retest.
+- **Secondary (if LEDs still dark):** Host routing/connection of `Launchpad Control` output back to Launchpad DA input.
 
 ## Files Changed During Debug
 

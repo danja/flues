@@ -80,6 +80,16 @@ void quadrangle_reset(QuadrangleEngine *engine) {
     engine->current_step = 0;
     engine->sample_counter = 0;
     grid_state_clear(&engine->grid_state);
+    engine->midi_event_count = 0;
+}
+
+// Queue a note on/off pair with configurable gate (frame offsets)
+static void queue_note_event(QuadrangleEngine *engine, uint8_t note, uint8_t vel, uint8_t channel, uint32_t gate_frames) {
+    if (engine->midi_event_count + 2 > MAX_MIDI_EVENTS) return;
+    uint8_t status_on  = (uint8_t)(0x90 | ((channel - 1) & 0x0F));
+    uint8_t status_off = (uint8_t)(0x80 | ((channel - 1) & 0x0F));
+    engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){0, 3, {status_on, note, vel}};
+    engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){gate_frames ? gate_frames : 1, 3, {status_off, note, 0}};
 }
 
 // ============================================================================
@@ -98,6 +108,11 @@ void quadrangle_set_tempo(QuadrangleEngine *engine, uint16_t bpm) {
     // samples_per_16th = (60 / BPM) * sample_rate / 4
     float seconds_per_16th = 60.0f / (float)bpm / 4.0f;
     engine->samples_per_step = (uint32_t)(seconds_per_16th * engine->sample_rate);
+}
+
+// Default gate length in frames (~DEFAULT_GATE_MS)
+uint32_t quadrangle_default_gate_frames(const QuadrangleEngine *engine) {
+    return (uint32_t)(engine->sample_rate * (DEFAULT_GATE_MS / 1000.0f));
 }
 
 // ============================================================================
@@ -167,6 +182,8 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
             engine->melody.notes[step] = note;
             engine->melody.velocities[step] = velocity;
             grid_state_set_led(&engine->grid_state, row, col, COLOR_MELODY);
+            // Immediate preview tap
+            queue_note_event(engine, note, velocity, 1, quadrangle_default_gate_frames(engine));
             break;
         }
 
@@ -177,6 +194,7 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
 
             quadrangle_trigger_live_pad(engine, pad_index, velocity);
             grid_state_set_led(&engine->grid_state, row, col, COLOR_LIVE);
+            queue_note_event(engine, engine->live_pads[pad_index].note, velocity, 2, quadrangle_default_gate_frames(engine));
             break;
         }
 
@@ -210,10 +228,10 @@ void quadrangle_handle_pad_release(QuadrangleEngine *engine, uint8_t row, uint8_
         uint8_t pad_index = local_row * 4 + local_col;
         if (pad_index >= LIVE_PADS) return;
 
-        if (engine->live_pads[pad_index].mode == 2) {  // Momentary
-            engine->live_pads[pad_index].state = 0;
-            grid_state_set_led(&engine->grid_state, row, col, COLOR_OFF);
-        }
+        // Note off for momentary/toggle release
+        queue_note_event(engine, engine->live_pads[pad_index].note, 0, 2, 1);
+        engine->live_pads[pad_index].state = 0;
+        grid_state_set_led(&engine->grid_state, row, col, COLOR_OFF);
     }
 }
 
@@ -278,6 +296,10 @@ void quadrangle_handle_top_button(QuadrangleEngine *engine, uint8_t index) {
 // Audio Processing (Sequencer Clock)
 // ============================================================================
 
+void quadrangle_begin_block(QuadrangleEngine *engine) {
+    engine->midi_event_count = 0;
+}
+
 void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples) {
     if (!engine->playing) return;
 
@@ -290,24 +312,101 @@ void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples) {
             engine->current_step = (engine->current_step + 1) % SEQ_STEPS;
 
             // Trigger drum voices for this step
+            uint32_t gate_frames = engine->samples_per_step > 1
+                ? (engine->samples_per_step / 2)
+                : 1;
+            if (gate_frames >= n_samples) {
+                gate_frames = (n_samples > 1) ? (n_samples - 1) : 1;
+            }
+
             for (uint8_t v = 0; v < MAX_DRUM_VOICES; v++) {
                 if (engine->drum_voices[v].active &&
                     engine->drum_voices[v].steps[engine->current_step] > 0) {
-                    // TODO: Send MIDI note on to LV2 host
-                    // For now, just mark in state
+                    uint8_t note = engine->drum_voices[v].note;
+                    uint8_t vel = engine->drum_voices[v].steps[engine->current_step];
+                    queue_note_event(engine, note, vel, 10, gate_frames);
                 }
             }
 
             // Trigger melody note for this step
             if (engine->melody.active &&
                 engine->melody.velocities[engine->current_step] > 0) {
-                // TODO: Send MIDI note on to LV2 host
+                uint8_t note = engine->melody.notes[engine->current_step];
+                uint8_t vel = engine->melody.velocities[engine->current_step];
+                queue_note_event(engine, note, vel, 1, gate_frames);
             }
 
             // Update playhead visualization
             engine->grid_state.step_counter = engine->current_step;
         }
     }
+}
+
+// ============================================================================
+// LED State Refresh (used by plugin to drive Launchpad/UI)
+// ============================================================================
+
+void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
+    // Drum quadrant (rows 4-7, cols 0-3) for selected voice
+    uint8_t voice = engine->selected_voice;
+    if (voice >= MAX_DRUM_VOICES) voice = 0;
+    for (uint8_t step = 0; step < SEQ_STEPS; step++) {
+        uint8_t row = step / 4 + 4;  // rows 4-7
+        uint8_t col = step % 4;      // cols 0-3
+        uint8_t color = engine->drum_voices[voice].steps[step] > 0 ? COLOR_STEP_ON : COLOR_STEP_OFF;
+        if (engine->playing && step == engine->current_step) {
+            color = COLOR_PLAYHEAD;
+        }
+        grid_state_set_led(&engine->grid_state, row, col, color);
+    }
+
+    // Melody quadrant (rows 4-7, cols 4-7)
+    for (uint8_t step = 0; step < SEQ_STEPS; step++) {
+        uint8_t row = step / 4 + 4;
+        uint8_t col = (step % 4) + 4;
+        uint8_t color = engine->melody.velocities[step] > 0 ? COLOR_MELODY : COLOR_OFF;
+        if (engine->playing && step == engine->current_step && engine->melody.velocities[step] > 0) {
+            color = COLOR_PLAYHEAD;
+        }
+        grid_state_set_led(&engine->grid_state, row, col, color);
+    }
+
+    // Live quadrant (rows 0-3, cols 0-3)
+    for (uint8_t r = 0; r < 4; r++) {
+        for (uint8_t c = 0; c < 4; c++) {
+            uint8_t idx = r * 4 + c;
+            uint8_t color = (idx < LIVE_PADS && engine->live_pads[idx].state) ? COLOR_LIVE : COLOR_OFF;
+            grid_state_set_led(&engine->grid_state, r, c, color);
+        }
+    }
+
+    // Params quadrant (rows 0-3, cols 4-7) - brightness from param value
+    for (uint8_t r = 0; r < 4; r++) {
+        for (uint8_t c = 0; c < 4; c++) {
+            uint8_t idx = r * 4 + c;
+            if (idx >= PARAM_CONTROLS) continue;
+            uint8_t val = engine->params[idx].value;
+            uint8_t color = (val > 0) ? COLOR_PARAMS : COLOR_OFF;
+            grid_state_set_led(&engine->grid_state, r, c + 4, color);
+        }
+    }
+
+    // Side buttons (drum voice select)
+    for (uint8_t i = 0; i < MAX_DRUM_VOICES && i < GRID_HEIGHT; ++i) {
+        uint8_t color = (i == engine->selected_voice) ? COLOR_SELECTED : COLOR_DRUMS;
+        grid_state_set_side_button(&engine->grid_state, i, 0, color);
+    }
+
+    // Top buttons: play state + pattern A-D (buttons 2-5)
+    grid_state_set_top_button(&engine->grid_state, 0, 0,
+                              engine->playing ? COLOR_GREEN_BRIGHT : COLOR_OFF);
+    for (uint8_t i = 2; i <= 5; i++) {
+        uint8_t pattern = i - 2;
+        uint8_t color = (pattern == engine->grid_state.pattern) ? COLOR_SELECTED : COLOR_YELLOW_DIM;
+        grid_state_set_top_button(&engine->grid_state, i, 0, color);
+    }
+    // Clear button (7) dim red
+    grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_RED_DIM);
 }
 
 // ============================================================================
