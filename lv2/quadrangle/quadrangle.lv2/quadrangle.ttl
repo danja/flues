@@ -1,0 +1,69 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/quadrangle>
+    a lv2:InstrumentPlugin , lv2:Plugin ;
+
+    doap:name "Quadrangle" ;
+    doap:description "Performance instrument for Novation Launchpad with four quadrants: drum sequencer, melody sequencer, live pads, and parameter controls" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        a foaf:Person ;
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://github.com/danja> ;
+    ] ;
+
+    lv2:project [
+        a doap:Project ;
+        doap:name "Flues Synthesizers" ;
+    ] ;
+
+    lv2:requiredFeature urid:map ;
+
+    ui:ui <https://danja.github.io/flues/plugins/quadrangle#ui> ;
+
+    lv2:port [
+        a lv2:InputPort , atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ,
+                      time:Position ;
+        lv2:index 0 ;
+        lv2:symbol "control_in" ;
+        lv2:name "Control In" ;
+        lv2:designation lv2:control ;
+        rdfs:comment "MIDI input from Launchpad (button presses) and transport sync" ;
+    ] , [
+        a lv2:OutputPort , atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+        lv2:index 1 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        lv2:designation lv2:control ;
+        rdfs:comment "Musical MIDI notes from sequencers and live pads" ;
+    ] , [
+        a lv2:OutputPort , atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+        lv2:index 2 ;
+        lv2:symbol "launchpad_out" ;
+        lv2:name "Launchpad Control" ;
+        rdfs:comment "MIDI output to Launchpad (LED control and SysEx)" ;
+    ] , [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 3 ;
+        lv2:symbol "audio_out_l" ;
+        lv2:name "Audio Out L" ;
+    ] , [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 4 ;
+        lv2:symbol "audio_out_r" ;
+        lv2:name "Audio Out R" ;
+    ] .
