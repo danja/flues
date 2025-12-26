@@ -160,8 +160,9 @@ lv2info https://danja.github.io/flues/plugins/quadrangle
 
 *Parameter Controls (SE):*
 - Two-bit CC toggles per column (binary 00/01/10/11)
-- Bottom row CCs: 74, 71, 1, 27
-- Top row CCs: 73, 72, 28, 30
+- Bottom rows CCs: 74, 71, 1, 27
+- Top row: Melody scale select (Chromatic, Major, Minor, Pentatonic)
+- Row below top: Melody degree bank (degrees 1-4, 5-8, 9-12, 13-16)
 
 ## Architecture
 

@@ -347,7 +347,9 @@ static int idle(LV2UI_Handle handle) {
 static void *event_thread_main(void *arg) {
     QuadrangleUI *ui = (QuadrangleUI*)arg;
     static const uint8_t bottom_ccs[4] = {74, 71, 1, 27};
-    static const uint8_t top_ccs[4] = {73, 72, 28, 30};
+    static const char *scale_names[4] = {"Chromatic", "Major", "Minor", "Pentatonic"};
+    static const char *bank_names[4] = {"Degrees 1-4", "Degrees 5-8",
+                                        "Degrees 9-12", "Degrees 13-16"};
 
     while (ui->running) {
         while (XPending(ui->display)) {
@@ -424,10 +426,22 @@ static void *event_thread_main(void *arg) {
                                 int local_row = row;
                                 int local_col = col - 4;
                                 int is_top = (local_row >= 2);
-                                int bit = local_row - (is_top ? 2 : 0);
-                                uint8_t cc = is_top ? top_ccs[local_col] : bottom_ccs[local_col];
-                                snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                         "Param CC %u bit %d", cc, bit);
+                                if (is_top) {
+                                    if (local_row == 3) {
+                                        const char *scale = scale_names[local_col & 3];
+                                        snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                                 "Melody scale: %s", scale);
+                                    } else {
+                                        const char *bank = bank_names[local_col & 3];
+                                        snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                                 "Melody bank: %s", bank);
+                                    }
+                                } else {
+                                    int bit = local_row;
+                                    uint8_t cc = bottom_ccs[local_col];
+                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                             "Param CC %u bit %d", cc, bit);
+                                }
                             }
                             ui->needs_redraw = 1;
                             break;

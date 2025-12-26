@@ -1,6 +1,7 @@
 #include "../include/quadrangle_engine.h"
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 // ============================================================================
 // Scale Definitions
@@ -49,7 +50,10 @@ void quadrangle_init(QuadrangleEngine *engine, float sample_rate) {
     // Initialize melody sequencer
     engine->melody.active = 1;
     engine->melody.root_note = 60;  // C4
+    engine->melody.root_note_shift = 0;
+    engine->melody.direction = 1;
     engine->melody.scale = SCALE_MAJOR;
+    engine->melody.degree_bank = 0;
     memset(engine->melody.notes, 0, SEQ_STEPS);
     memset(engine->melody.velocities, 0, SEQ_STEPS);
 
@@ -128,6 +132,37 @@ static void apply_drum_euclid(QuadrangleEngine *engine, uint8_t voice) {
     uint8_t offset = engine->drum_offsets[voice];
     for (uint8_t step = 0; step < SEQ_STEPS; ++step) {
         engine->drum_voices[voice].steps[step] = euclid_hit(step, pulses, offset, SEQ_STEPS) ? 96 : 0;
+    }
+}
+
+static uint8_t melody_degree_to_note(const QuadrangleEngine *engine, uint8_t degree) {
+    int16_t shift = engine->melody.direction ? engine->melody.root_note_shift : -engine->melody.root_note_shift;
+    int16_t note = (int16_t)engine->melody.root_note + shift +
+                   SCALE_INTERVALS[engine->melody.scale][degree % 12] +
+                   (degree / 12) * 12;
+    if (note < 0) note = 0;
+    if (note > 127) note = 127;
+    return (uint8_t)note;
+}
+
+static uint8_t melody_row_to_degree(const QuadrangleEngine *engine, uint8_t local_row) {
+    uint8_t base = (uint8_t)(engine->melody.degree_bank * 4);
+    if (engine->melody.direction == 0) {
+        return (uint8_t)(base + (3 - local_row));
+    }
+    return (uint8_t)(base + local_row);
+}
+
+static void update_scale_bank_leds(QuadrangleEngine *engine) {
+    // Scale row (row 3, cols 4-7)
+    for (uint8_t c = 0; c < 4; c++) {
+        uint8_t color = (engine->melody.scale == (ScaleType)c) ? COLOR_SELECTED : COLOR_PARAMS;
+        grid_state_set_led(&engine->grid_state, 3, c + 4, color);
+    }
+    // Degree bank row (row 2, cols 4-7)
+    for (uint8_t c = 0; c < 4; c++) {
+        uint8_t color = (engine->melody.degree_bank == c) ? COLOR_SELECTED : COLOR_PARAMS;
+        grid_state_set_led(&engine->grid_state, 2, c + 4, color);
     }
 }
 
@@ -242,17 +277,15 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
             if (step >= SEQ_STEPS) break;
 
             // Map row to scale degree (higher row = higher pitch)
-            uint8_t scale_degree = (3 - local_row) + (local_col / 4) * 4;
-            uint8_t note = engine->melody.root_note +
-                          SCALE_INTERVALS[engine->melody.scale][scale_degree % 12] +
-                          (scale_degree / 12) * 12;
+            uint8_t scale_degree = melody_row_to_degree(engine, local_row);
+            uint8_t note = melody_degree_to_note(engine, scale_degree);
 
-            if (engine->melody.velocities[step] > 0 && engine->melody.notes[step] == note) {
+            if (engine->melody.velocities[step] > 0 && engine->melody.notes[step] == scale_degree) {
                 engine->melody.notes[step] = 0;
                 engine->melody.velocities[step] = 0;
                 grid_state_set_led(&engine->grid_state, row, col, COLOR_OFF);
             } else {
-                engine->melody.notes[step] = note;
+                engine->melody.notes[step] = scale_degree;
                 engine->melody.velocities[step] = velocity;
                 grid_state_set_led(&engine->grid_state, row, col, COLOR_MELODY);
                 // Immediate preview tap
@@ -275,23 +308,35 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
         case QUADRANT_PARAMS: {
             // Parameter controls: two rows of 2-bit CCs per column
             // Bottom row (rows 0-1): CC 74, 71, 1, 27
-            // Top row (rows 2-3):   CC 73, 72, 28, 30
+            // Top row (rows 2-3): reserved for melody scale/root
             static const uint8_t bottom_ccs[4] = {74, 71, 1, 27};
-            static const uint8_t top_ccs[4] = {73, 72, 28, 30};
 
             if (local_col >= 4) break;
 
             uint8_t is_top = (local_row >= 2);
-            uint8_t row_base = is_top ? 2 : 0;
+            if (is_top) {
+                uint8_t idx = (uint8_t)(local_row - 2);  // 0 = bank row, 1 = scale row
+                if (idx == 1) {
+                    // Scale select (row 3): Major, Minor, Pentatonic, Dorian
+                    engine->melody.scale = (ScaleType)(local_col & 3);
+                } else {
+                    // Degree bank select (row 2): 0-3 maps to base degrees 0,4,8,12
+                    engine->melody.degree_bank = (uint8_t)(local_col & 3);
+                }
+                update_scale_bank_leds(engine);
+                break;
+            }
+
+            uint8_t row_base = 0;
             uint8_t bit = (uint8_t)(local_row - row_base);  // 0 or 1
-            uint8_t index = is_top ? (local_col + 4) : local_col;  // store state in params[0..7]
+            uint8_t index = local_col;  // store state in params[0..3]
 
             uint8_t state = engine->params[index].value & 0x03;
             state ^= (uint8_t)(1u << bit);
             engine->params[index].value = state;
 
             uint8_t value = (uint8_t)((state * 127) / 3);
-            uint8_t cc = is_top ? top_ccs[local_col] : bottom_ccs[local_col];
+            uint8_t cc = bottom_ccs[local_col];
 
             queue_cc_event(engine, cc, value, 1);
             break;
@@ -444,9 +489,10 @@ void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples) {
             // Trigger melody note for this step
             if (engine->melody.active &&
                 engine->melody.velocities[engine->current_step] > 0) {
-                uint8_t note = engine->melody.notes[engine->current_step];
+                uint8_t degree = engine->melody.notes[engine->current_step];
                 uint8_t vel = engine->melody.velocities[engine->current_step];
-                queue_note_event(engine, note, vel, 1, gate_frames);
+                uint8_t step_note = melody_degree_to_note(engine, degree);
+                queue_note_event(engine, step_note, vel, 1, gate_frames);
             }
 
             // Update playhead visualization
@@ -484,6 +530,10 @@ void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
         grid_state_set_led(&engine->grid_state, row, col, color);
     }
 
+    // Params quadrant (rows 0-3, cols 4-7)
+    // Top two rows: melody scale + degree bank
+    update_scale_bank_leds(engine);
+
     // Live quadrant (rows 0-3, cols 0-3)
     for (uint8_t r = 0; r < 4; r++) {
         for (uint8_t c = 0; c < 4; c++) {
@@ -493,20 +543,12 @@ void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
         }
     }
 
-    // Params quadrant (rows 0-3, cols 4-7) - 2-bit CC LEDs
+    // Params quadrant (rows 0-1 only) - 2-bit CC LEDs (bottom two rows)
     for (uint8_t c = 0; c < 4; c++) {
         uint8_t bottom_state = engine->params[c].value & 0x03;
-        uint8_t top_state = engine->params[c + 4].value & 0x03;
-
-        // bottom row bits (rows 0-1)
         for (uint8_t b = 0; b < 2; b++) {
             uint8_t on = (bottom_state & (1u << b)) ? 1 : 0;
             grid_state_set_led(&engine->grid_state, b, c + 4, on ? COLOR_PARAMS : COLOR_OFF);
-        }
-        // top row bits (rows 2-3)
-        for (uint8_t b = 0; b < 2; b++) {
-            uint8_t on = (top_state & (1u << b)) ? 1 : 0;
-            grid_state_set_led(&engine->grid_state, b + 2, c + 4, on ? COLOR_PARAMS : COLOR_OFF);
         }
     }
 

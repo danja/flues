@@ -53,10 +53,13 @@ typedef enum {
 
 typedef struct {
     uint8_t active;
-    uint8_t notes[SEQ_STEPS];  // MIDI note numbers
+    uint8_t notes[SEQ_STEPS];  // Scale degrees (0..)
     uint8_t velocities[SEQ_STEPS];
     uint8_t root_note;         // Root note (C4 = 60)
+    int8_t root_note_shift;    // Semitone shift (-2..+2)
+    uint8_t direction;         // 0 = descending, 1 = ascending
     ScaleType scale;
+    uint8_t degree_bank;       // 0-3 (base degree = bank * 4)
 } MelodySequencer;
 
 // ============================================================================
