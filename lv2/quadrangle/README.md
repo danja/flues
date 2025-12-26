@@ -153,10 +153,10 @@ lv2info https://danja.github.io/flues/plugins/quadrangle
 - Notes auto-quantize to selected scale
 
 *Live Pads (SW):*
-- Tap: Trigger note immediately (channel 2)
-- Brightness indicates velocity
-- Green flash on trigger
-- Perfect for fills, accents, and improvisation
+- Top two rows: 8 live pads (channel 2), tap to arm/disable each pad
+- Pressing a live pad sets the Euclid cycle offset to the current step
+- Bottom two rows: per-column Euclid beats (row 1 = up, row 0 = down, wraps 0–16)
+- Vertical pairs share one Euclid sequencer (same column)
 
 *Parameter Controls (SE):*
 - Two-bit CC toggles per column (binary 00/01/10/11)
