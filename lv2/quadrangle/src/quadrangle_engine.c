@@ -92,6 +92,12 @@ static void queue_note_event(QuadrangleEngine *engine, uint8_t note, uint8_t vel
     engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){gate_frames ? gate_frames : 1, 3, {status_off, note, 0}};
 }
 
+// Queue a CC event (channel 1-16)
+static void queue_cc_event(QuadrangleEngine *engine, uint8_t cc, uint8_t value, uint8_t channel) {
+    if (engine->midi_event_count + 1 > MAX_MIDI_EVENTS) return;
+    uint8_t status = (uint8_t)(0xB0 | ((channel - 1) & 0x0F));
+    engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){0, 3, {status, cc, value}};
+}
 // ============================================================================
 // Tempo Control
 // ============================================================================
@@ -179,11 +185,17 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
                           SCALE_INTERVALS[engine->melody.scale][scale_degree % 12] +
                           (scale_degree / 12) * 12;
 
-            engine->melody.notes[step] = note;
-            engine->melody.velocities[step] = velocity;
-            grid_state_set_led(&engine->grid_state, row, col, COLOR_MELODY);
-            // Immediate preview tap
-            queue_note_event(engine, note, velocity, 1, quadrangle_default_gate_frames(engine));
+            if (engine->melody.velocities[step] > 0 && engine->melody.notes[step] == note) {
+                engine->melody.notes[step] = 0;
+                engine->melody.velocities[step] = 0;
+                grid_state_set_led(&engine->grid_state, row, col, COLOR_OFF);
+            } else {
+                engine->melody.notes[step] = note;
+                engine->melody.velocities[step] = velocity;
+                grid_state_set_led(&engine->grid_state, row, col, COLOR_MELODY);
+                // Immediate preview tap
+                queue_note_event(engine, note, velocity, 1, quadrangle_default_gate_frames(engine));
+            }
             break;
         }
 
@@ -199,17 +211,27 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
         }
 
         case QUADRANT_PARAMS: {
-            // Parameter controls: 4×4 = 16 parameters
-            uint8_t param_index = local_row * 4 + local_col;
-            if (param_index >= PARAM_CONTROLS) break;
+            // Parameter controls: two rows of 2-bit CCs per column
+            // Bottom row (rows 0-1): CC 74, 71, 1, 27
+            // Top row (rows 2-3):   CC 73, 72, 28, 30
+            static const uint8_t bottom_ccs[4] = {74, 71, 1, 27};
+            static const uint8_t top_ccs[4] = {73, 72, 28, 30};
 
-            // Vertical position = value (top = high, bottom = low)
-            uint8_t value = ((3 - local_row) * 127) / 3;
-            quadrangle_set_parameter(engine, param_index, value);
+            if (local_col >= 4) break;
 
-            // Color intensity based on value
-            uint8_t color = (value > 64) ? COLOR_PARAMS : COLOR_PURPLE_DIM;
-            grid_state_set_led(&engine->grid_state, row, col, color);
+            uint8_t is_top = (local_row >= 2);
+            uint8_t row_base = is_top ? 2 : 0;
+            uint8_t bit = (uint8_t)(local_row - row_base);  // 0 or 1
+            uint8_t index = is_top ? (local_col + 4) : local_col;  // store state in params[0..7]
+
+            uint8_t state = engine->params[index].value & 0x03;
+            state ^= (uint8_t)(1u << bit);
+            engine->params[index].value = state;
+
+            uint8_t value = (uint8_t)((state * 127) / 3);
+            uint8_t cc = is_top ? top_ccs[local_col] : bottom_ccs[local_col];
+
+            queue_cc_event(engine, cc, value, 1);
             break;
         }
     }
@@ -365,7 +387,7 @@ void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
         uint8_t row = step / 4 + 4;
         uint8_t col = (step % 4) + 4;
         uint8_t color = engine->melody.velocities[step] > 0 ? COLOR_MELODY : COLOR_OFF;
-        if (engine->playing && step == engine->current_step && engine->melody.velocities[step] > 0) {
+        if (engine->playing && step == engine->current_step) {
             color = COLOR_PLAYHEAD;
         }
         grid_state_set_led(&engine->grid_state, row, col, color);
@@ -380,14 +402,20 @@ void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
         }
     }
 
-    // Params quadrant (rows 0-3, cols 4-7) - brightness from param value
-    for (uint8_t r = 0; r < 4; r++) {
-        for (uint8_t c = 0; c < 4; c++) {
-            uint8_t idx = r * 4 + c;
-            if (idx >= PARAM_CONTROLS) continue;
-            uint8_t val = engine->params[idx].value;
-            uint8_t color = (val > 0) ? COLOR_PARAMS : COLOR_OFF;
-            grid_state_set_led(&engine->grid_state, r, c + 4, color);
+    // Params quadrant (rows 0-3, cols 4-7) - 2-bit CC LEDs
+    for (uint8_t c = 0; c < 4; c++) {
+        uint8_t bottom_state = engine->params[c].value & 0x03;
+        uint8_t top_state = engine->params[c + 4].value & 0x03;
+
+        // bottom row bits (rows 0-1)
+        for (uint8_t b = 0; b < 2; b++) {
+            uint8_t on = (bottom_state & (1u << b)) ? 1 : 0;
+            grid_state_set_led(&engine->grid_state, b, c + 4, on ? COLOR_PARAMS : COLOR_OFF);
+        }
+        // top row bits (rows 2-3)
+        for (uint8_t b = 0; b < 2; b++) {
+            uint8_t on = (top_state & (1u << b)) ? 1 : 0;
+            grid_state_set_led(&engine->grid_state, b + 2, c + 4, on ? COLOR_PARAMS : COLOR_OFF);
         }
     }
 

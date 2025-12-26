@@ -209,6 +209,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
     run_count++;
 
+    // Start a fresh MIDI queue for this block before handling input
+    quadrangle_begin_block(&self->engine);
+
     // Check for MIDI events (skip transport spam)
     static int midi_event_count = 0;
     LV2_ATOM_SEQUENCE_FOREACH(self->control_in, ev) {
@@ -362,8 +365,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         set_default_led_layout(self);
     }
 
-    // Prepare MIDI queue for this block and run sequencer clock
-    quadrangle_begin_block(&self->engine);
+    // Run sequencer clock (adds step-triggered MIDI to the queue)
     quadrangle_process(&self->engine, n_samples);
 
     // Flush queued MIDI events to midi_out
