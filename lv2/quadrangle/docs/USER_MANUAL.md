@@ -316,15 +316,16 @@ The Quadrangle UI shows:
 
 ### Button Functions
 
-**Top Row (CC 91-98):**
-- CC 91: Pattern A
-- CC 92: Pattern B
-- CC 93: Pattern C
-- CC 94: Pattern D
-- CC 95: Tap Tempo
-- CC 96: Record
-- CC 97: Clear
-- CC 98: Copy
+**Top Row (CC 91-99):**
+- CC 91: Program Up
+- CC 92: Program Down
+- CC 93: Pattern A
+- CC 94: Pattern B
+- CC 95: Pattern C
+- CC 96: Pattern D
+- CC 97: Play/Stop
+- CC 98: Clear
+- CC 99: Logo (unused)
 
 **Side Buttons (CC 89-79):**
 - CC 89: Voice 1 (top)

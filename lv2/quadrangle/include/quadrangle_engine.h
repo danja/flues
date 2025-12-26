@@ -119,9 +119,17 @@ typedef struct {
 
     // Sequencer state
     DrumVoice drum_voices[MAX_DRUM_VOICES];
+    uint8_t drum_beats[MAX_DRUM_VOICES];
+    uint8_t drum_offsets[MAX_DRUM_VOICES];
+    uint8_t drum_patterns[2][MAX_DRUM_VOICES][SEQ_STEPS];
     MelodySequencer melody;
+    uint8_t melody_patterns[2][SEQ_STEPS];
+    uint8_t melody_vel_patterns[2][SEQ_STEPS];
     LivePad live_pads[LIVE_PADS];
     ParameterControl params[PARAM_CONTROLS];
+    uint8_t melody_program;
+    uint8_t live_pad_patterns[2][LIVE_PADS];
+    uint8_t param_patterns[2][PARAM_CONTROLS];
 
     // Playback state
     uint8_t playing;

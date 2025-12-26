@@ -28,6 +28,7 @@ void quadrangle_init(QuadrangleEngine *engine, float sample_rate) {
     engine->sample_counter = 0;
     engine->selected_voice = 0;
     engine->selected_quadrant = 0;
+    engine->melody_program = 0;
 
     // Initialize grid state
     grid_state_init(&engine->grid_state);
@@ -41,6 +42,8 @@ void quadrangle_init(QuadrangleEngine *engine, float sample_rate) {
         engine->drum_voices[i].note = 36 + i;  // C2-G2 (GM drum notes)
         engine->drum_voices[i].color = COLOR_DRUMS;
         memset(engine->drum_voices[i].steps, 0, SEQ_STEPS);
+        engine->drum_beats[i] = 4;
+        engine->drum_offsets[i] = 0;
     }
 
     // Initialize melody sequencer
@@ -49,6 +52,12 @@ void quadrangle_init(QuadrangleEngine *engine, float sample_rate) {
     engine->melody.scale = SCALE_MAJOR;
     memset(engine->melody.notes, 0, SEQ_STEPS);
     memset(engine->melody.velocities, 0, SEQ_STEPS);
+
+    memset(engine->drum_patterns, 0, sizeof(engine->drum_patterns));
+    memset(engine->melody_patterns, 0, sizeof(engine->melody_patterns));
+    memset(engine->melody_vel_patterns, 0, sizeof(engine->melody_vel_patterns));
+    memset(engine->live_pad_patterns, 0, sizeof(engine->live_pad_patterns));
+    memset(engine->param_patterns, 0, sizeof(engine->param_patterns));
 
     // Initialize live pads
     for (uint8_t i = 0; i < LIVE_PADS; i++) {
@@ -97,6 +106,59 @@ static void queue_cc_event(QuadrangleEngine *engine, uint8_t cc, uint8_t value, 
     if (engine->midi_event_count + 1 > MAX_MIDI_EVENTS) return;
     uint8_t status = (uint8_t)(0xB0 | ((channel - 1) & 0x0F));
     engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){0, 3, {status, cc, value}};
+}
+
+// Queue a Program Change event (channel 1-16)
+static void queue_pc_event(QuadrangleEngine *engine, uint8_t program, uint8_t channel) {
+    if (engine->midi_event_count + 1 > MAX_MIDI_EVENTS) return;
+    uint8_t status = (uint8_t)(0xC0 | ((channel - 1) & 0x0F));
+    engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){0, 2, {status, program, 0}};
+}
+
+static int euclid_hit(uint8_t step, uint8_t pulses, uint8_t offset, uint8_t length) {
+    if (length == 0 || pulses == 0) return 0;
+    if (pulses >= length) return 1;
+    uint8_t base_step = (uint8_t)((step + length - (offset % length)) % length);
+    return ((base_step * pulses) % length) < pulses;
+}
+
+static void apply_drum_euclid(QuadrangleEngine *engine, uint8_t voice) {
+    if (voice >= MAX_DRUM_VOICES) return;
+    uint8_t pulses = engine->drum_beats[voice];
+    uint8_t offset = engine->drum_offsets[voice];
+    for (uint8_t step = 0; step < SEQ_STEPS; ++step) {
+        engine->drum_voices[voice].steps[step] = euclid_hit(step, pulses, offset, SEQ_STEPS) ? 96 : 0;
+    }
+}
+
+static void save_current_pattern(QuadrangleEngine *engine) {
+    uint8_t p = engine->grid_state.pattern & 1;
+    for (uint8_t v = 0; v < MAX_DRUM_VOICES; ++v) {
+        memcpy(engine->drum_patterns[p][v], engine->drum_voices[v].steps, SEQ_STEPS);
+    }
+    memcpy(engine->melody_patterns[p], engine->melody.notes, SEQ_STEPS);
+    memcpy(engine->melody_vel_patterns[p], engine->melody.velocities, SEQ_STEPS);
+    for (uint8_t i = 0; i < LIVE_PADS; ++i) {
+        engine->live_pad_patterns[p][i] = engine->live_pads[i].state;
+    }
+    for (uint8_t i = 0; i < PARAM_CONTROLS; ++i) {
+        engine->param_patterns[p][i] = engine->params[i].value;
+    }
+}
+
+static void load_pattern(QuadrangleEngine *engine, uint8_t p) {
+    p &= 1;
+    for (uint8_t v = 0; v < MAX_DRUM_VOICES; ++v) {
+        memcpy(engine->drum_voices[v].steps, engine->drum_patterns[p][v], SEQ_STEPS);
+    }
+    memcpy(engine->melody.notes, engine->melody_patterns[p], SEQ_STEPS);
+    memcpy(engine->melody.velocities, engine->melody_vel_patterns[p], SEQ_STEPS);
+    for (uint8_t i = 0; i < LIVE_PADS; ++i) {
+        engine->live_pads[i].state = engine->live_pad_patterns[p][i];
+    }
+    for (uint8_t i = 0; i < PARAM_CONTROLS; ++i) {
+        engine->params[i].value = engine->param_patterns[p][i];
+    }
 }
 // ============================================================================
 // Tempo Control
@@ -273,43 +335,72 @@ void quadrangle_handle_side_button(QuadrangleEngine *engine, uint8_t index) {
 
 void quadrangle_handle_top_button(QuadrangleEngine *engine, uint8_t index) {
     // Top buttons (0-8):
-    // 0: Play/Stop
-    // 1: Record
-    // 2-5: Pattern select (A-D)
-    // 6: Tap tempo
-    // 7: Clear pattern
+    // 0: Program Up
+    // 1: Program Down
+    // 2: Euclid Beats Up
+    // 3: Euclid Beats Down
+    // 4: Euclid Offset Up
+    // 5: Pattern A
+    // 6: Pattern B
+    // 7: Play/Stop
+    // 8: Clear pattern
     // 8: Logo (unused)
 
     switch (index) {
-        case 0:  // Play/Stop
-            if (engine->playing) {
-                quadrangle_stop(engine);
-                grid_state_set_top_button(&engine->grid_state, 0, 0, COLOR_OFF);
-            } else {
-                quadrangle_start(engine);
-                grid_state_set_top_button(&engine->grid_state, 0, 0, COLOR_GREEN_BRIGHT);
-            }
-            break;
-
-        case 2:
-        case 3:
-        case 4:
-        case 5: {
-            // Pattern select
-            uint8_t pattern = index - 2;  // 0-3
-            quadrangle_set_pattern(engine, pattern);
-
-            // Update pattern button LEDs
-            for (uint8_t i = 2; i <= 5; i++) {
-                uint8_t color = (i == index) ? COLOR_SELECTED : COLOR_YELLOW_DIM;
-                grid_state_set_top_button(&engine->grid_state, i, 0, color);
-            }
+        case 0: {  // Program Up
+            engine->melody_program = (uint8_t)((engine->melody_program + 1) & 0x7F);
+            queue_pc_event(engine, engine->melody_program, 1);
             break;
         }
+        case 1: {  // Program Down
+            engine->melody_program = (uint8_t)((engine->melody_program + 127) & 0x7F);
+            queue_pc_event(engine, engine->melody_program, 1);
+            break;
+        }
+        case 2: {  // Euclid beats down
+            uint8_t voice = engine->selected_voice;
+            if (voice >= MAX_DRUM_VOICES) voice = 0;
+            if (engine->drum_beats[voice] == 0) {
+                engine->drum_beats[voice] = SEQ_STEPS;
+            } else {
+                engine->drum_beats[voice]--;
+            }
+            apply_drum_euclid(engine, voice);
+            break;
+        }
+        case 3: {  // Euclid beats up
+            uint8_t voice = engine->selected_voice;
+            if (voice >= MAX_DRUM_VOICES) voice = 0;
+            engine->drum_beats[voice] = (uint8_t)((engine->drum_beats[voice] + 1) % (SEQ_STEPS + 1));
+            apply_drum_euclid(engine, voice);
+            break;
+        }
+        case 4: {  // Euclid offset up
+            uint8_t voice = engine->selected_voice;
+            if (voice >= MAX_DRUM_VOICES) voice = 0;
+            engine->drum_offsets[voice] = (uint8_t)((engine->drum_offsets[voice] + 1) % SEQ_STEPS);
+            apply_drum_euclid(engine, voice);
+            break;
+        }
+        case 5:  // Pattern A
+            quadrangle_set_pattern(engine, 0);
+            break;
+        case 6:  // Pattern B
+            quadrangle_set_pattern(engine, 1);
+            break;
+        case 7:  // Play/Stop
+            if (engine->playing) {
+                quadrangle_stop(engine);
+                grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_OFF);
+            } else {
+                quadrangle_start(engine);
+                grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_GREEN_BRIGHT);
+            }
+            break;
 
-        case 7:  // Clear pattern
+        case 8:  // Clear pattern
             quadrangle_clear_pattern(engine);
-            grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_RED_BRIGHT);
+            grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_RED_BRIGHT);
             break;
     }
 }
@@ -425,16 +516,20 @@ void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
         grid_state_set_side_button(&engine->grid_state, i, 0, color);
     }
 
-    // Top buttons: play state + pattern A-D (buttons 2-5)
-    grid_state_set_top_button(&engine->grid_state, 0, 0,
+    // Top buttons: play state + program/euclid controls
+    grid_state_set_top_button(&engine->grid_state, 7, 0,
                               engine->playing ? COLOR_GREEN_BRIGHT : COLOR_OFF);
-    for (uint8_t i = 2; i <= 5; i++) {
-        uint8_t pattern = i - 2;
-        uint8_t color = (pattern == engine->grid_state.pattern) ? COLOR_SELECTED : COLOR_YELLOW_DIM;
-        grid_state_set_top_button(&engine->grid_state, i, 0, color);
-    }
-    // Clear button (7) dim red
-    grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_RED_DIM);
+    grid_state_set_top_button(&engine->grid_state, 0, 0, COLOR_CYAN_DIM);
+    grid_state_set_top_button(&engine->grid_state, 1, 0, COLOR_CYAN_DIM);
+    grid_state_set_top_button(&engine->grid_state, 2, 0, COLOR_BLUE_DIM);
+    grid_state_set_top_button(&engine->grid_state, 3, 0, COLOR_BLUE_DIM);
+    grid_state_set_top_button(&engine->grid_state, 4, 0, COLOR_BLUE_DIM);
+    grid_state_set_top_button(&engine->grid_state, 5, 0,
+                              engine->grid_state.pattern == 0 ? COLOR_SELECTED : COLOR_YELLOW_DIM);
+    grid_state_set_top_button(&engine->grid_state, 6, 0,
+                              engine->grid_state.pattern == 1 ? COLOR_SELECTED : COLOR_YELLOW_DIM);
+    // Clear button (8) dim red
+    grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_RED_DIM);
 }
 
 // ============================================================================
@@ -468,8 +563,9 @@ void quadrangle_update_leds(QuadrangleEngine *engine, MidiMessage *msg) {
 // ============================================================================
 
 void quadrangle_set_pattern(QuadrangleEngine *engine, uint8_t pattern) {
-    engine->grid_state.pattern = pattern;
-    // TODO: Load pattern from storage
+    save_current_pattern(engine);
+    engine->grid_state.pattern = (uint8_t)(pattern & 1);
+    load_pattern(engine, engine->grid_state.pattern);
 }
 
 void quadrangle_copy_pattern(QuadrangleEngine *engine, uint8_t src, uint8_t dst) {
@@ -483,9 +579,14 @@ void quadrangle_clear_pattern(QuadrangleEngine *engine) {
     // Clear current pattern
     for (uint8_t v = 0; v < MAX_DRUM_VOICES; v++) {
         memset(engine->drum_voices[v].steps, 0, SEQ_STEPS);
+        memset(engine->drum_patterns[engine->grid_state.pattern & 1][v], 0, SEQ_STEPS);
     }
     memset(engine->melody.notes, 0, SEQ_STEPS);
     memset(engine->melody.velocities, 0, SEQ_STEPS);
+    memset(engine->melody_patterns[engine->grid_state.pattern & 1], 0, SEQ_STEPS);
+    memset(engine->melody_vel_patterns[engine->grid_state.pattern & 1], 0, SEQ_STEPS);
+    memset(engine->live_pad_patterns[engine->grid_state.pattern & 1], 0, LIVE_PADS);
+    memset(engine->param_patterns[engine->grid_state.pattern & 1], 0, PARAM_CONTROLS);
 }
 
 // ============================================================================

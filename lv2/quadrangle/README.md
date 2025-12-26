@@ -41,27 +41,25 @@ The 8×8 grid is divided into four quadrants, each serving a specific musical fu
 
 **Southwest - Live Performance Pads** (Rows 0-3, Cols 0-3)
 - 16 velocity-sensitive trigger pads
-- Three modes: Oneshot, Toggle, Momentary
-- Instant triggering for live performance
-- Can trigger notes, samples, or automation
+- Instant triggering for live performance (MIDI channel 2)
 - Green color scheme for easy identification
 
 **Southeast - Parameter Controls** (Rows 0-3, Cols 4-7)
-- 16 context-sensitive macro controls
-- Vertical touch position = parameter value (top = high, bottom = low)
-- Controls filter, resonance, distortion, reverb, delay, envelope, swing, tempo
+- Two rows of 2-bit controls per column (binary 00/01/10/11)
+- Bottom row CCs: 74, 71, 1, 27
+- Top row CCs: 73, 72, 28, 30
 - Purple color scheme
-- Real-time visual feedback
 
 ## Features
 
 - **Dual Sequencers:** Independent drum and melody patterns running simultaneously
-- **Pattern Storage:** 4 pattern slots (A-D) accessible via top buttons
+- **Pattern Storage:** 2 pattern slots (A/B) accessible via top buttons
 - **Edge Dynamics:** Inspired by the design brief - changes near center are subtle, edges are extreme (though currently uniform for MVP)
 - **Tempo Control:** 60-240 BPM with MIDI clock sync
 - **Scale Quantization:** Multiple musical scales for melody sequencer
 - **Visual Feedback:** Color-coded zones with playhead animation and state indicators
 - **Modular Architecture:** Clean separation allows easy extension and hardware swapping
+- **UI Parity:** X11/Cairo UI mirrors hardware state and supports mouse pad clicks + tooltips
 
 ## Building
 
@@ -125,12 +123,15 @@ lv2info https://danja.github.io/flues/plugins/quadrangle
 ### Controls
 
 **Top Row (L to R):**
-- Button 0: ▶️ Play/Stop (Green when playing)
-- Button 1: 🔴 Record (future feature)
-- Button 2-5: 🎵 Pattern A/B/C/D selection
-- Button 6: 🥁 Tap tempo (future feature)
-- Button 7: 🗑️ Clear current pattern
-- Button 8: Logo (unused)
+- Button 0: Program Up (sends MIDI Program Change +1 on channel 1)
+- Button 1: Program Down (sends MIDI Program Change -1 on channel 1)
+- Button 2: Euclid Beats Down (current drum voice)
+- Button 3: Euclid Beats Up (current drum voice)
+- Button 4: Euclid Offset Up (current drum voice)
+- Button 5: Pattern A
+- Button 6: Pattern B
+- Button 7: ▶️ Play/Stop (Green when playing)
+- Button 8: 🗑️ Clear current pattern
 
 **Side Buttons (Top to Bottom):**
 - Buttons 0-7: Select drum voice for editing (voice 0-7)
@@ -145,22 +146,21 @@ lv2info https://danja.github.io/flues/plugins/quadrangle
 - Use side buttons to switch between 8 drum voices
 
 *Melody Sequencer (NE):*
-- Tap pad: Set note at that step
+- Tap pad: Toggle note at that step
 - Vertical = pitch (top = high, bottom = low)
 - Horizontal = step position (0-15)
 - Notes auto-quantize to selected scale
 
 *Live Pads (SW):*
-- Tap: Trigger note immediately
+- Tap: Trigger note immediately (channel 2)
 - Brightness indicates velocity
 - Green flash on trigger
 - Perfect for fills, accents, and improvisation
 
 *Parameter Controls (SE):*
-- Tap top of column: High value
-- Tap bottom of column: Low value
-- Real-time control of synthesis parameters
-- Purple intensity shows current value
+- Two-bit CC toggles per column (binary 00/01/10/11)
+- Bottom row CCs: 74, 71, 1, 27
+- Top row CCs: 73, 72, 28, 30
 
 ## Architecture
 

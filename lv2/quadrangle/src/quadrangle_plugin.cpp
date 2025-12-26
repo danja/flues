@@ -13,6 +13,7 @@ extern "C" {
 #include "../include/quadrangle_engine.h"
 #include "../include/midi_comm.h"
 #include "../include/launchpad_config.h"
+#include "../include/quadrangle_ui_state.h"
 }
 
 #define QUADRANGLE_URI "https://danja.github.io/flues/plugins/quadrangle"
@@ -25,7 +26,8 @@ typedef enum {
     PORT_AUDIO_OUT_L = 3,  // Audio output (left)
     PORT_AUDIO_OUT_R = 4,  // Audio output (right)
     PORT_PLAY_STATE  = 5,  // Control output to UI (0=stopped, 1=playing)
-    PORT_CURRENT_STEP = 6  // Control output: current playhead step (0-15)
+    PORT_CURRENT_STEP = 6, // Control output: current playhead step (0-15)
+    PORT_NOTIFY_OUT = 7    // Atom output to UI (state notify)
 } PortIndex;
 
 // URIDs we need
@@ -35,6 +37,7 @@ typedef struct {
     LV2_URID atom_Blank;
     LV2_URID atom_Object;
     LV2_URID atom_Float;
+    LV2_URID atom_Chunk;
     LV2_URID time_Position;
     LV2_URID time_beatsPerMinute;
     LV2_URID time_speed;
@@ -46,6 +49,7 @@ typedef struct {
     const LV2_Atom_Sequence *control_in;
     LV2_Atom_Sequence *midi_out;
     LV2_Atom_Sequence *launchpad_out;
+    LV2_Atom_Sequence *notify_out;
     float *audio_out_l;
     float *audio_out_r;
     float *play_state_out;
@@ -58,6 +62,7 @@ typedef struct {
     // Atom forges
     LV2_Atom_Forge forge;           // For MIDI notes
     LV2_Atom_Forge launchpad_forge; // For Launchpad LED commands
+    LV2_Atom_Forge notify_forge;    // For UI notifications
 
     // Engine
     QuadrangleEngine engine;
@@ -148,6 +153,7 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
     self->urids.atom_Blank = self->map->map(self->map->handle, LV2_ATOM__Blank);
     self->urids.atom_Object = self->map->map(self->map->handle, LV2_ATOM__Object);
     self->urids.atom_Float = self->map->map(self->map->handle, LV2_ATOM__Float);
+    self->urids.atom_Chunk = self->map->map(self->map->handle, LV2_ATOM__Chunk);
     self->urids.time_Position = self->map->map(self->map->handle, LV2_TIME__Position);
     self->urids.time_beatsPerMinute = self->map->map(self->map->handle, LV2_TIME__beatsPerMinute);
     self->urids.time_speed = self->map->map(self->map->handle, LV2_TIME__speed);
@@ -155,6 +161,7 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
     // Initialize atom forges
     lv2_atom_forge_init(&self->forge, self->map);
     lv2_atom_forge_init(&self->launchpad_forge, self->map);
+    lv2_atom_forge_init(&self->notify_forge, self->map);
 
     // Initialize engine
     quadrangle_init(&self->engine, (float)rate);
@@ -177,6 +184,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
             break;
         case PORT_LAUNCHPAD_OUT:
             self->launchpad_out = (LV2_Atom_Sequence *)data;
+            break;
+        case PORT_NOTIFY_OUT:
+            self->notify_out = (LV2_Atom_Sequence *)data;
             break;
         case PORT_AUDIO_OUT_L:
             self->audio_out_l = (float *)data;
@@ -302,11 +312,15 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
                 uint8_t index;
                 if (is_side_button(cc, &index)) {
-                    fprintf(stderr, "quadrangle: Side button %u\n", index);
-                    quadrangle_handle_side_button(&self->engine, index);
+                    if (value > 0) {
+                        fprintf(stderr, "quadrangle: Side button %u\n", index);
+                        quadrangle_handle_side_button(&self->engine, index);
+                    }
                 } else if (is_top_button(cc, &index)) {
-                    fprintf(stderr, "quadrangle: Top button %u\n", index);
-                    quadrangle_handle_top_button(&self->engine, index);
+                    if (value > 0) {
+                        fprintf(stderr, "quadrangle: Top button %u\n", index);
+                        quadrangle_handle_top_button(&self->engine, index);
+                    }
                 }
             }
         }
@@ -322,6 +336,12 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     lv2_atom_forge_set_buffer(&self->launchpad_forge,
                                (uint8_t*)self->launchpad_out,
                                launchpad_capacity);
+    const uint32_t notify_capacity = self->notify_out ? self->notify_out->atom.size : 0;
+    if (self->notify_out && notify_capacity > 0) {
+        lv2_atom_forge_set_buffer(&self->notify_forge,
+                                   (uint8_t*)self->notify_out,
+                                   notify_capacity);
+    }
 
     // Start MIDI note sequence
     LV2_Atom_Forge_Frame midi_frame;
@@ -330,6 +350,10 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     // Start Launchpad control sequence
     LV2_Atom_Forge_Frame launchpad_frame;
     lv2_atom_forge_sequence_head(&self->launchpad_forge, &launchpad_frame, 0);
+    LV2_Atom_Forge_Frame notify_frame;
+    if (self->notify_out && notify_capacity > 0) {
+        lv2_atom_forge_sequence_head(&self->notify_forge, &notify_frame, 0);
+    }
 
     // Initialize Launchpad on first run
     if (!self->launchpad_initialized) {
@@ -395,11 +419,40 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         lv2_atom_forge_frame_time(&self->forge, 0);
         lv2_atom_forge_atom(&self->forge, bulk.size, self->urids.midi_Event);
         lv2_atom_forge_write(&self->forge, bulk.data, bulk.size);
+
+        if (self->notify_out && notify_capacity > 0) {
+            QuadrangleUiState state;
+            memset(&state, 0, sizeof(state));
+            state.magic = QUADRANGLE_UI_STATE_MAGIC;
+            state.version = QUADRANGLE_UI_STATE_VERSION;
+            for (uint8_t r = 0; r < 8; ++r) {
+                for (uint8_t c = 0; c < 8; ++c) {
+                    state.grid[r][c] = self->engine.grid_state.grid[r][c].color;
+                }
+            }
+            for (uint8_t i = 0; i < 8; ++i) {
+                state.side[i] = self->engine.grid_state.side[i].color;
+            }
+            for (uint8_t i = 0; i < 9; ++i) {
+                state.top[i] = self->engine.grid_state.top[i].color;
+            }
+            state.selected_voice = self->engine.selected_voice;
+            state.pattern = self->engine.grid_state.pattern;
+            state.playing = self->engine.playing ? 1 : 0;
+            state.current_step = (uint8_t)(self->engine.current_step & 0xFF);
+
+            lv2_atom_forge_frame_time(&self->notify_forge, 0);
+            lv2_atom_forge_atom(&self->notify_forge, sizeof(state), self->urids.atom_Chunk);
+            lv2_atom_forge_write(&self->notify_forge, &state, sizeof(state));
+        }
     }
 
     // Finalize forged sequences so hosts see valid atom sizes
     lv2_atom_forge_pop(&self->forge, &midi_frame);
     lv2_atom_forge_pop(&self->launchpad_forge, &launchpad_frame);
+    if (self->notify_out && notify_capacity > 0) {
+        lv2_atom_forge_pop(&self->notify_forge, &notify_frame);
+    }
 
     // Publish play state to UI (simple control port)
     if (self->play_state_out) {

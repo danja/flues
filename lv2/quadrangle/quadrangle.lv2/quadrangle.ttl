@@ -78,6 +78,14 @@
         lv2:symbol "current_step" ;
         lv2:name "Current Step" ;
         rdfs:comment "Current 0-15 playhead position (for UI mirroring)" ;
+    ] , [
+        a lv2:OutputPort , atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports atom:Chunk ;
+        lv2:index 7 ;
+        lv2:symbol "notify_out" ;
+        lv2:name "UI Notify" ;
+        rdfs:comment "UI state notifications (grid/side/top colors)" ;
     ] .
 
 <https://danja.github.io/flues/plugins/quadrangle#ui>
@@ -94,4 +102,9 @@
         ui:port [ lv2:index 6 ; lv2:symbol "current_step" ] ;
         ui:portIndex 6 ;
         ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/quadrangle> ;
+        ui:port [ lv2:index 7 ; lv2:symbol "notify_out" ] ;
+        ui:portIndex 7 ;
+        ui:protocol ui:atomProtocol
     ] .

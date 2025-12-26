@@ -4,12 +4,17 @@
 #include <math.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <lv2/core/lv2.h>
+#include <lv2/atom/atom.h>
+#include <lv2/atom/forge.h>
+#include <lv2/midi/midi.h>
+#include <lv2/urid/urid.h>
+#include <lv2/ui/ui.h>
+#include "../include/quadrangle_ui_state.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <cairo.h>
 #include <cairo-xlib.h>
-#include <lv2/core/lv2.h>
-#include <lv2/ui/ui.h>
 
 #define QUADRANGLE_UI_URI "https://danja.github.io/flues/plugins/quadrangle#ui"
 
@@ -25,6 +30,25 @@
 
 #define WINDOW_WIDTH (MARGIN * 2 + GRID_SIZE * (PAD_SIZE + PAD_GAP) + SIDE_WIDTH)
 #define WINDOW_HEIGHT (MARGIN * 2 + GRID_SIZE * (PAD_SIZE + PAD_GAP) + TOP_HEIGHT + INFO_HEIGHT)
+
+static const uint8_t GRID_NOTES[GRID_SIZE][GRID_SIZE] = {
+    {11, 12, 13, 14, 15, 16, 17, 18},
+    {21, 22, 23, 24, 25, 26, 27, 28},
+    {31, 32, 33, 34, 35, 36, 37, 38},
+    {41, 42, 43, 44, 45, 46, 47, 48},
+    {51, 52, 53, 54, 55, 56, 57, 58},
+    {61, 62, 63, 64, 65, 66, 67, 68},
+    {71, 72, 73, 74, 75, 76, 77, 78},
+    {81, 82, 83, 84, 85, 86, 87, 88}
+};
+
+static const uint8_t SIDE_BUTTONS[GRID_SIZE] = {19, 29, 39, 49, 59, 69, 79, 89};
+static const uint8_t TOP_BUTTONS[9] = {91, 92, 93, 94, 95, 96, 97, 98, 99};
+
+static inline uint8_t grid_to_note(uint8_t row, uint8_t col) {
+    if (row >= GRID_SIZE || col >= GRID_SIZE) return 0;
+    return GRID_NOTES[row][col];
+}
 
 // Color definitions
 typedef struct {
@@ -73,9 +97,18 @@ typedef struct {
     int running;
 
     UIState state;
+    int hover_active;
+    int hover_row;
+    int hover_col;
+    char hover_text[128];
 
     LV2UI_Write_Function write_function;
     LV2UI_Controller controller;
+    LV2_URID_Map* map;
+    LV2_Atom_Forge forge;
+    LV2_URID atom_event_transfer;
+    LV2_URID midi_event_urid;
+    LV2_URID atom_chunk_urid;
 
 } QuadrangleUI;
 
@@ -244,6 +277,13 @@ static void draw_grid(QuadrangleUI *ui) {
 
     cairo_move_to(cr, MARGIN + GRID_SIZE/2 * (PAD_SIZE + PAD_GAP) + 5, info_y + 55);
     cairo_show_text(cr, "PARAMS");
+
+    if (ui->hover_active && ui->hover_text[0] != '\0') {
+        cairo_set_font_size(cr, 11);
+        cairo_set_source_rgba(cr, COLOR_TEXT.r, COLOR_TEXT.g, COLOR_TEXT.b, 0.8);
+        cairo_move_to(cr, MARGIN, info_y + 72);
+        cairo_show_text(cr, ui->hover_text);
+    }
 }
 
 static void redraw(QuadrangleUI *ui) {
@@ -306,6 +346,8 @@ static int idle(LV2UI_Handle handle) {
 
 static void *event_thread_main(void *arg) {
     QuadrangleUI *ui = (QuadrangleUI*)arg;
+    static const uint8_t bottom_ccs[4] = {74, 71, 1, 27};
+    static const uint8_t top_ccs[4] = {73, 72, 28, 30};
 
     while (ui->running) {
         while (XPending(ui->display)) {
@@ -346,6 +388,149 @@ static void *event_thread_main(void *arg) {
                     ui->back_buffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, ui->width, ui->height);
                     ui->back_cr = cairo_create(ui->back_buffer);
                     ui->needs_redraw = 1;
+                    break;
+                }
+                case MotionNotify: {
+                    int x = event.xmotion.x;
+                    int y = event.xmotion.y;
+                    ui->hover_active = 0;
+                    ui->hover_text[0] = '\0';
+
+                    int grid_x = x - MARGIN;
+                    int grid_y = y - (MARGIN + TOP_HEIGHT);
+                    if (grid_x >= 0 && grid_y >= 0) {
+                        int cell = PAD_SIZE + PAD_GAP;
+                        int col = grid_x / cell;
+                        int row_from_top = grid_y / cell;
+                        int in_pad_x = (grid_x % cell) < PAD_SIZE;
+                        int in_pad_y = (grid_y % cell) < PAD_SIZE;
+                        if (col >= 0 && col < GRID_SIZE && row_from_top >= 0 && row_from_top < GRID_SIZE &&
+                            in_pad_x && in_pad_y) {
+                            int row = (GRID_SIZE - 1) - row_from_top;
+                            ui->hover_active = 1;
+                            ui->hover_row = row;
+                            ui->hover_col = col;
+
+                            if (row >= 4 && col < 4) {
+                                snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                         "Drums: step %d (voice via side buttons)", (row - 4) * 4 + col + 1);
+                            } else if (row >= 4 && col >= 4) {
+                                snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                         "Melody: step %d", (row - 4) * 4 + (col - 4) + 1);
+                            } else if (row < 4 && col < 4) {
+                                snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                         "Live pad %d (ch 2)", row * 4 + col + 1);
+                            } else {
+                                int local_row = row;
+                                int local_col = col - 4;
+                                int is_top = (local_row >= 2);
+                                int bit = local_row - (is_top ? 2 : 0);
+                                uint8_t cc = is_top ? top_ccs[local_col] : bottom_ccs[local_col];
+                                snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                         "Param CC %u bit %d", cc, bit);
+                            }
+                            ui->needs_redraw = 1;
+                            break;
+                        }
+                    }
+                    ui->needs_redraw = 1;
+                    break;
+                }
+                case ButtonPress:
+                case ButtonRelease: {
+                    int is_press = (event.type == ButtonPress);
+                    int x = event.xbutton.x;
+                    int y = event.xbutton.y;
+
+                    int grid_x = x - MARGIN;
+                    int grid_y = y - (MARGIN + TOP_HEIGHT);
+                    if (grid_x >= 0 && grid_y >= 0) {
+                        int cell = PAD_SIZE + PAD_GAP;
+                        int col = grid_x / cell;
+                        int row_from_top = grid_y / cell;
+                        int in_pad_x = (grid_x % cell) < PAD_SIZE;
+                        int in_pad_y = (grid_y % cell) < PAD_SIZE;
+                        if (col >= 0 && col < GRID_SIZE && row_from_top >= 0 && row_from_top < GRID_SIZE &&
+                            in_pad_x && in_pad_y) {
+                            int row = (GRID_SIZE - 1) - row_from_top;
+                            uint8_t note = grid_to_note((uint8_t)row, (uint8_t)col);
+                            uint8_t msg[3] = { (uint8_t)(is_press ? 0x90 : 0x80), note, (uint8_t)(is_press ? 96 : 0) };
+
+                            if (ui->write_function && ui->atom_event_transfer && ui->midi_event_urid) {
+                                uint8_t buf[16];
+                                lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
+                                lv2_atom_forge_atom(&ui->forge, 3, ui->midi_event_urid);
+                                lv2_atom_forge_write(&ui->forge, msg, 3);
+                                LV2_Atom* atom = (LV2_Atom*)buf;
+                                ui->write_function(ui->controller, 0,
+                                                  lv2_atom_total_size(atom),
+                                                  ui->atom_event_transfer,
+                                                  atom);
+                            }
+
+                            if (is_press) {
+                                ui->state.grid[row][col] = ui->state.grid[row][col] ? 0 : 1;
+                                ui->needs_redraw = 1;
+                            }
+                            break;
+                        }
+                    }
+
+                    int top_y = y - MARGIN;
+                    if (top_y >= 0 && top_y < TOP_HEIGHT) {
+                        int cell = PAD_SIZE + PAD_GAP;
+                        int col = (x - MARGIN) / cell;
+                        int in_pad_x = ((x - MARGIN) % cell) < (TOP_HEIGHT - 4);
+                        if (col >= 0 && col < 8 && in_pad_x) {
+                            uint8_t cc = TOP_BUTTONS[col];
+                            uint8_t msg[3] = {0xB0, cc, (uint8_t)(is_press ? 127 : 0)};
+                            if (ui->write_function && ui->atom_event_transfer && ui->midi_event_urid) {
+                                uint8_t buf[16];
+                                lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
+                                lv2_atom_forge_atom(&ui->forge, 3, ui->midi_event_urid);
+                                lv2_atom_forge_write(&ui->forge, msg, 3);
+                                LV2_Atom* atom = (LV2_Atom*)buf;
+                                ui->write_function(ui->controller, 0,
+                                                  lv2_atom_total_size(atom),
+                                                  ui->atom_event_transfer,
+                                                  atom);
+                            }
+                            if (is_press) {
+                                ui->state.top_buttons[col] = ui->state.top_buttons[col] ? 0 : 1;
+                                ui->needs_redraw = 1;
+                            }
+                            break;
+                        }
+                    }
+
+                    int side_x = x - (MARGIN + GRID_SIZE * (PAD_SIZE + PAD_GAP) + PAD_GAP);
+                    if (side_x >= 0 && side_x < SIDE_WIDTH) {
+                        int cell = PAD_SIZE + PAD_GAP;
+                        int row_from_top = (y - (MARGIN + TOP_HEIGHT)) / cell;
+                        int in_pad_y = ((y - (MARGIN + TOP_HEIGHT)) % cell) < PAD_SIZE;
+                        if (row_from_top >= 0 && row_from_top < GRID_SIZE && in_pad_y) {
+                            int row = (GRID_SIZE - 1) - row_from_top;
+                            uint8_t cc = SIDE_BUTTONS[row];
+                            uint8_t msg[3] = {0xB0, cc, (uint8_t)(is_press ? 127 : 0)};
+                            if (ui->write_function && ui->atom_event_transfer && ui->midi_event_urid) {
+                                uint8_t buf[16];
+                                lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
+                                lv2_atom_forge_atom(&ui->forge, 3, ui->midi_event_urid);
+                                lv2_atom_forge_write(&ui->forge, msg, 3);
+                                LV2_Atom* atom = (LV2_Atom*)buf;
+                                ui->write_function(ui->controller, 0,
+                                                  lv2_atom_total_size(atom),
+                                                  ui->atom_event_transfer,
+                                                  atom);
+                            }
+                            if (is_press) {
+                                ui->state.selected_voice = row;
+                                ui->state.side_buttons[row] = 1;
+                                ui->needs_redraw = 1;
+                            }
+                            break;
+                        }
+                    }
                     break;
                 }
                 default:
@@ -418,7 +603,8 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     }
 
     XSetWindowAttributes attrs;
-    attrs.event_mask = ExposureMask | StructureNotifyMask;
+    attrs.event_mask = ExposureMask | StructureNotifyMask |
+                       ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
     attrs.background_pixel = BlackPixel(ui->display, screen);
 
     ui->window = XCreateWindow(
@@ -452,6 +638,21 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     // Create back buffer for double buffering
     ui->back_buffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, ui->width, ui->height);
     ui->back_cr = cairo_create(ui->back_buffer);
+
+    // Map URIDs for MIDI writeback
+    ui->map = NULL;
+    for (int i = 0; features && features[i]; ++i) {
+        if (!strcmp(features[i]->URI, LV2_URID__map)) {
+            ui->map = (LV2_URID_Map*)features[i]->data;
+            break;
+        }
+    }
+    if (ui->map) {
+        lv2_atom_forge_init(&ui->forge, ui->map);
+        ui->atom_event_transfer = ui->map->map(ui->map->handle, LV2_ATOM__eventTransfer);
+        ui->midi_event_urid = ui->map->map(ui->map->handle, LV2_MIDI__MidiEvent);
+        ui->atom_chunk_urid = ui->map->map(ui->map->handle, LV2_ATOM__Chunk);
+    }
 
     // Initial draw
     redraw(ui);
@@ -520,6 +721,7 @@ static void port_event(LV2UI_Handle handle,
     if (port_index == PORT_PLAY_STATE && buffer && buffer_size >= sizeof(float)) {
         float value = *(const float*)buffer;
         ui->state.playing = (value > 0.5f) ? 1 : 0;
+        ui->state.top_buttons[7] = ui->state.playing ? 1 : 0;
         ui->needs_redraw = 1;
         return;
     }
@@ -529,6 +731,35 @@ static void port_event(LV2UI_Handle handle,
         if (value > 15) value = 15;
         ui->state.current_step = (uint8_t)value;
         ui->needs_redraw = 1;
+        return;
+    }
+    if (port_index == 7 && buffer && buffer_size >= sizeof(LV2_Atom_Sequence)) {
+        const LV2_Atom_Sequence* seq = (const LV2_Atom_Sequence*)buffer;
+        LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
+            if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(QuadrangleUiState)) {
+                const QuadrangleUiState* state = (const QuadrangleUiState*)(ev + 1);
+                if (state->magic != QUADRANGLE_UI_STATE_MAGIC ||
+                    state->version != QUADRANGLE_UI_STATE_VERSION) {
+                    continue;
+                }
+                for (uint8_t r = 0; r < 8; ++r) {
+                    for (uint8_t c = 0; c < 8; ++c) {
+                        ui->state.grid[r][c] = state->grid[r][c] ? 1 : 0;
+                    }
+                }
+                for (uint8_t i = 0; i < 8; ++i) {
+                    ui->state.side_buttons[i] = state->side[i] ? 1 : 0;
+                }
+                for (uint8_t i = 0; i < 9; ++i) {
+                    ui->state.top_buttons[i] = state->top[i] ? 1 : 0;
+                }
+                ui->state.selected_voice = state->selected_voice;
+                ui->state.pattern = state->pattern;
+                ui->state.playing = state->playing;
+                ui->state.current_step = state->current_step;
+                ui->needs_redraw = 1;
+            }
+        }
         return;
     }
 }
