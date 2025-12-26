@@ -42,6 +42,7 @@ The 8×8 grid is divided into four quadrants, each serving a specific musical fu
 **Southwest - Live Performance Pads** (Rows 0-3, Cols 0-3)
 - 16 velocity-sensitive trigger pads
 - Instant triggering for live performance (MIDI channel 2)
+- Note range: MIDI 60-75 (C4-D#5)
 - Green color scheme for easy identification
 
 **Southeast - Parameter Controls** (Rows 0-3, Cols 4-7)
@@ -239,6 +240,17 @@ B0 <cc> <value>       // Control Change (side/top buttons)
 80 <note> 00  // Note Off
 90 <note> 00  // Note On with velocity 0
 ```
+
+## Live Pad Note Map
+
+Live pads (SW quadrant, rows 0–3, cols 0–3) output MIDI notes 60–75 on channel 2:
+
+| Row (bottom=0) | Col 0 | Col 1 | Col 2 | Col 3 |
+|---|---|---|---|---|
+| 3 | 72 (C5) | 73 (C#5) | 74 (D5) | 75 (D#5) |
+| 2 | 68 (G#4) | 69 (A4) | 70 (A#4) | 71 (B4) |
+| 1 | 64 (E4) | 65 (F4) | 66 (F#4) | 67 (G4) |
+| 0 | 60 (C4) | 61 (C#4) | 62 (D4) | 63 (D#4) |
 
 ## Future Enhancements
 
