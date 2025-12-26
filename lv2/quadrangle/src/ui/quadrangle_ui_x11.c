@@ -420,8 +420,16 @@ static void *event_thread_main(void *arg) {
                                 snprintf(ui->hover_text, sizeof(ui->hover_text),
                                          "Melody: step %d", (row - 4) * 4 + (col - 4) + 1);
                             } else if (row < 4 && col < 4) {
-                                snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                         "Live pad %d (ch 2)", row * 4 + col + 1);
+                                if (row >= 2) {
+                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                             "Live pad %d (euclid, ch 2)", (row - 2) * 4 + col + 1);
+                                } else if (row == 1) {
+                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                             "Live beats up (col %d)", col + 1);
+                                } else {
+                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                             "Live beats down (col %d)", col + 1);
+                                }
                             } else {
                                 int local_row = row;
                                 int local_col = col - 4;
@@ -430,7 +438,7 @@ static void *event_thread_main(void *arg) {
                                     if (local_row == 3) {
                                         const char *scale = scale_names[local_col & 3];
                                         snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                                 "Melody scale: %s", scale);
+                                                 "Melody scale: %s (tap again to flip direction)", scale);
                                     } else {
                                         const char *bank = bank_names[local_col & 3];
                                         snprintf(ui->hover_text, sizeof(ui->hover_text),

@@ -133,6 +133,8 @@ typedef struct {
     uint8_t melody_program;
     uint8_t live_pad_patterns[2][LIVE_PADS];
     uint8_t param_patterns[2][PARAM_CONTROLS];
+    uint8_t live_beats[4];      // Euclid pulses per live column
+    uint8_t live_offsets[4];    // Euclid offsets per live column
 
     // Playback state
     uint8_t playing;

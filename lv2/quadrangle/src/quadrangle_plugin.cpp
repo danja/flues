@@ -70,6 +70,7 @@ typedef struct {
     // Launchpad state
     uint8_t launchpad_initialized;
     uint32_t frame_counter;
+    uint8_t pad_down[GRID_HEIGHT][GRID_WIDTH];
 
 } Quadrangle;
 
@@ -207,6 +208,7 @@ static void activate(LV2_Handle instance) {
     Quadrangle *self = (Quadrangle *)instance;
     quadrangle_reset(&self->engine);
     self->launchpad_initialized = 0;
+    memset(self->pad_down, 0, sizeof(self->pad_down));
 }
 
 static void run(LV2_Handle instance, uint32_t n_samples) {
@@ -291,7 +293,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 if (note_to_grid(note, &row, &col)) {
                     fprintf(stderr, "quadrangle: Pad press at row=%u, col=%u, vel=%u\n",
                             row, col, midi[2]);
-                    quadrangle_handle_pad_press(&self->engine, row, col, midi[2]);
+                    if (!self->pad_down[row][col]) {
+                        self->pad_down[row][col] = 1;
+                        quadrangle_handle_pad_press(&self->engine, row, col, midi[2]);
+                    } else {
+                        // Some devices send Note On on release; treat as release for live pads.
+                        self->pad_down[row][col] = 0;
+                        quadrangle_handle_pad_release(&self->engine, row, col);
+                    }
                 }
             }
             // Note Off (0x80) or Note On with velocity 0
@@ -300,6 +309,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 uint8_t row, col;
                 if (note_to_grid(note, &row, &col)) {
                     fprintf(stderr, "quadrangle: Pad release at row=%u, col=%u\n", row, col);
+                    self->pad_down[row][col] = 0;
                     quadrangle_handle_pad_release(&self->engine, row, col);
                 }
             }

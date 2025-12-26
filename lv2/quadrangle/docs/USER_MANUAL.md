@@ -219,33 +219,25 @@ Row 0: [FX 1   ][FX 2   ][FX 3   ][FX 4   ]
 
 **Layout:**
 ```
-Row 7: [Cutoff][Resonance][Attack][Release]
-Row 6: [Reverb][Delay   ][Drive][Mix    ]
-Row 5: [LFO 1 ][LFO 2   ][Mod  ][Depth  ]
-Row 4: [Macro ][Scene   ][Mute ][Solo   ]
+Row 7: [Scale ][Scale ][Scale ][Scale ]
+Row 6: [Bank  ][Bank  ][Bank  ][Bank  ]
+Row 5: [CC 74 ][CC 71 ][CC 1  ][CC 27 ]
+Row 4: [CC 74 ][CC 71 ][CC 1  ][CC 27 ]
 ```
 
 **How It Works:**
-- **Press**: Latch parameter (stays on)
-- **Hold + move**: Adjust value in real-time
-- **Vertical position**: Parameter value 0-127
-- **LED brightness**: Shows current value
+- **Top row**: Select melody scale (tap again to flip direction)
+- **Row below**: Select melody degree bank (1-4, 5-8, 9-12, 13-16)
+- **Bottom two rows**: Two-bit CC toggles per column (00/01/10/11)
 
 **MIDI Output:**
 - Continuous Controllers (CC)
-- CC 74: Filter Cutoff
-- CC 71: Filter Resonance
-- CC 73: Attack
-- CC 72: Release
-- CC 91: Reverb
-- CC 94: Delay
-- CC 1: Mod Wheel (LFO depth)
+- CC 74, CC 71, CC 1, CC 27 (two-bit toggles)
 
 **Performance Tips:**
-- Assign to synth parameters in your DAW
-- Use for filter sweeps during builds
-- Top row = extreme values
-- Center = neutral starting point
+- Map CCs to your synth or effect parameters
+- Use scale/bank selection to reshape the melody range quickly
+- Toggle direction by tapping the selected scale again
 
 ---
 

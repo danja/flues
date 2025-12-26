@@ -70,6 +70,10 @@ void quadrangle_init(QuadrangleEngine *engine, float sample_rate) {
         engine->live_pads[i].mode = 0;  // Oneshot
         engine->live_pads[i].state = 0;
     }
+    for (uint8_t i = 0; i < 4; ++i) {
+        engine->live_beats[i] = 4;
+        engine->live_offsets[i] = 0;
+    }
 
     // Initialize parameters
     const char *param_names[PARAM_CONTROLS] = {
@@ -153,10 +157,36 @@ static uint8_t melody_row_to_degree(const QuadrangleEngine *engine, uint8_t loca
     return (uint8_t)(base + local_row);
 }
 
+static void flip_melody_direction(QuadrangleEngine *engine) {
+    engine->melody.direction = (uint8_t)(engine->melody.direction ? 0 : 1);
+    for (uint8_t step = 0; step < SEQ_STEPS; ++step) {
+        if (engine->melody.velocities[step] == 0) continue;
+        uint8_t degree = engine->melody.notes[step];
+        uint8_t base = (uint8_t)((degree / 4) * 4);
+        uint8_t local = (uint8_t)(degree % 4);
+        engine->melody.notes[step] = (uint8_t)(base + (3 - local));
+    }
+}
+
+static void remap_melody_bank(QuadrangleEngine *engine, uint8_t new_bank) {
+    new_bank &= 3;
+    if (engine->melody.degree_bank == new_bank) return;
+    uint8_t base = (uint8_t)(new_bank * 4);
+    for (uint8_t step = 0; step < SEQ_STEPS; ++step) {
+        if (engine->melody.velocities[step] == 0) continue;
+        uint8_t degree = engine->melody.notes[step];
+        engine->melody.notes[step] = (uint8_t)(base + (degree % 4));
+    }
+    engine->melody.degree_bank = new_bank;
+}
+
 static void update_scale_bank_leds(QuadrangleEngine *engine) {
     // Scale row (row 3, cols 4-7)
     for (uint8_t c = 0; c < 4; c++) {
-        uint8_t color = (engine->melody.scale == (ScaleType)c) ? COLOR_SELECTED : COLOR_PARAMS;
+        uint8_t color = COLOR_PARAMS;
+        if (engine->melody.scale == (ScaleType)c) {
+            color = engine->melody.direction ? COLOR_SELECTED : COLOR_ORANGE;
+        }
         grid_state_set_led(&engine->grid_state, 3, c + 4, color);
     }
     // Degree bank row (row 2, cols 4-7)
@@ -295,13 +325,31 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
         }
 
         case QUADRANT_LIVE: {
-            // Live pads: 4×4 = 16 pads
-            uint8_t pad_index = local_row * 4 + local_col;
-            if (pad_index >= LIVE_PADS) break;
+            // Live pads: top two rows are 8 pads (rows 2-3), bottom two rows are beat controls.
+            if (local_row >= 2) {
+                uint8_t pad_index = (uint8_t)((local_row - 2) * 4 + local_col);
+                if (pad_index >= LIVE_PADS) break;
 
-            quadrangle_trigger_live_pad(engine, pad_index, velocity);
-            grid_state_set_led(&engine->grid_state, row, col, COLOR_LIVE);
-            queue_note_event(engine, engine->live_pads[pad_index].note, velocity, 2, quadrangle_default_gate_frames(engine));
+                LivePad *pad = &engine->live_pads[pad_index];
+                if (pad->state) {
+                    pad->state = 0;
+                    grid_state_set_led(&engine->grid_state, row, col, COLOR_OFF);
+                } else {
+                    pad->state = 1;
+                    engine->live_offsets[local_col] = (uint8_t)engine->current_step;
+                    grid_state_set_led(&engine->grid_state, row, col, COLOR_LIVE);
+                    queue_note_event(engine, pad->note, velocity, 2, quadrangle_default_gate_frames(engine));
+                }
+            } else {
+                // Bottom rows: per-column Euclid beat count (0-16).
+                uint8_t beats = engine->live_beats[local_col];
+                if (local_row == 0) {
+                    beats = (beats == 0) ? SEQ_STEPS : (uint8_t)(beats - 1);
+                } else {
+                    beats = (uint8_t)((beats + 1) % (SEQ_STEPS + 1));
+                }
+                engine->live_beats[local_col] = beats;
+            }
             break;
         }
 
@@ -318,10 +366,15 @@ void quadrangle_handle_pad_press(QuadrangleEngine *engine, uint8_t row, uint8_t 
                 uint8_t idx = (uint8_t)(local_row - 2);  // 0 = bank row, 1 = scale row
                 if (idx == 1) {
                     // Scale select (row 3): Major, Minor, Pentatonic, Dorian
-                    engine->melody.scale = (ScaleType)(local_col & 3);
+                    ScaleType next_scale = (ScaleType)(local_col & 3);
+                    if (engine->melody.scale == next_scale) {
+                        flip_melody_direction(engine);
+                    } else {
+                        engine->melody.scale = next_scale;
+                    }
                 } else {
                     // Degree bank select (row 2): 0-3 maps to base degrees 0,4,8,12
-                    engine->melody.degree_bank = (uint8_t)(local_col & 3);
+                    remap_melody_bank(engine, (uint8_t)(local_col & 3));
                 }
                 update_scale_bank_leds(engine);
                 break;
@@ -495,6 +548,23 @@ void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples) {
                 queue_note_event(engine, step_note, vel, 1, gate_frames);
             }
 
+            // Trigger live pad Euclid sequencers (per column, shared by vertical pairs)
+            for (uint8_t col = 0; col < 4; ++col) {
+                uint8_t pulses = engine->live_beats[col];
+                if (pulses == 0) continue;
+                if (!euclid_hit(engine->current_step, pulses,
+                                engine->live_offsets[col], SEQ_STEPS)) {
+                    continue;
+                }
+                for (uint8_t row = 0; row < 2; ++row) {
+                    uint8_t idx = (uint8_t)(row * 4 + col);
+                    if (engine->live_pads[idx].state) {
+                        queue_note_event(engine, engine->live_pads[idx].note,
+                                         engine->live_pads[idx].velocity, 2, gate_frames);
+                    }
+                }
+            }
+
             // Update playhead visualization
             engine->grid_state.step_counter = engine->current_step;
         }
@@ -537,9 +607,20 @@ void quadrangle_refresh_grid_state(QuadrangleEngine *engine) {
     // Live quadrant (rows 0-3, cols 0-3)
     for (uint8_t r = 0; r < 4; r++) {
         for (uint8_t c = 0; c < 4; c++) {
-            uint8_t idx = r * 4 + c;
-            uint8_t color = (idx < LIVE_PADS && engine->live_pads[idx].state) ? COLOR_LIVE : COLOR_OFF;
-            grid_state_set_led(&engine->grid_state, r, c, color);
+            if (r >= 2) {
+                uint8_t idx = (uint8_t)((r - 2) * 4 + c);
+                uint8_t color = (idx < LIVE_PADS && engine->live_pads[idx].state) ? COLOR_LIVE : COLOR_OFF;
+                grid_state_set_led(&engine->grid_state, r, c, color);
+            } else {
+                uint8_t beats = engine->live_beats[c];
+                uint8_t color = COLOR_OFF;
+                if (r == 1) {
+                    color = (beats > 0) ? COLOR_LIVE : COLOR_OFF;
+                } else {
+                    color = (beats > 8) ? COLOR_LIVE : COLOR_OFF;
+                }
+                grid_state_set_led(&engine->grid_state, r, c, color);
+            }
         }
     }
 
