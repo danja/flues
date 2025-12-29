@@ -430,8 +430,21 @@ static const SynthParameter PROGRAM_28_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
+// Program 29: Taylor Series Approximation
+static const SynthParameter PROGRAM_29_MAP[9] = {
+    PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → First Terms (1-10)
+    PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Second Terms (1-10)
+    PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Blend (0-1)
+    PARAM_MASTER_GAIN,      // Slider 4 (CC 30) → Master Gain
+    PARAM_NONE,             // Slider 5 (CC 74) → (unused)
+    PARAM_NONE,             // Slider 6 (CC 71) → (unused)
+    PARAM_NONE,             // Slider 7 (CC 1) → (unused)
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
 // Master program table (array of pointers)
-static const SynthParameter* PROGRAM_MAPS[29] = {
+static const SynthParameter* PROGRAM_MAPS[30] = {
     PROGRAM_0_MAP,
     PROGRAM_1_MAP,
     PROGRAM_2_MAP,
@@ -460,12 +473,13 @@ static const SynthParameter* PROGRAM_MAPS[29] = {
     PROGRAM_25_MAP,
     PROGRAM_26_MAP,
     PROGRAM_27_MAP,
-    PROGRAM_28_MAP
+    PROGRAM_28_MAP,
+    PROGRAM_29_MAP
 };
 
 // Get parameter for program/slider combination
 SynthParameter midi_get_slider_parameter(uint8_t program, uint8_t slider_index) {
-    if (program >= 29 || slider_index >= 9) {
+    if (program >= 30 || slider_index >= 9) {
         return PARAM_NONE;
     }
     return PROGRAM_MAPS[program][slider_index];
