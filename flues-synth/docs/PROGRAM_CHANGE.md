@@ -37,6 +37,7 @@ MIDI Program Change messages (0-28) configure the signal chain routing and dynam
 | 26 | Spectral Animator | Algorithm + Formants → LFO Mod → Output | Active |
 | 27 | Feedback Chaos Engine | DSF → Interface → Delays → Filter → Max FB | Active |
 | 28 | Vocal Morph Matrix | ModFM → Formants + Vocal Modes → Output | Active |
+| 29 | Taylor Series | Taylor → Output (educational/lo-fi) | Active |
 
 ## Hardware Slider Mapping
 
@@ -634,6 +635,34 @@ The MIDI controller has 9 sliders sending these CC numbers:
 - Slider 9: **Release** (7→72)
 
 **Default Settings**: ModFM (algo 6), Disyn 0.5, F1=700Hz F2=1220Hz F3=2600Hz F4=3500Hz, Vocal modes off, Master 0.7
+
+---
+
+### Program 29: Taylor Series Approximation
+
+**Signal Chain**: Taylor (Algorithm 17) → Output
+
+**Use Case**: Educational synthesis demonstrating Taylor series convergence and intentional aliasing. Explore the progression from harsh digital artifacts (few terms) to smooth sine waves (many terms). Blend fundamental and second harmonic for timbral variation.
+
+**Slider Mappings**:
+- Slider 1: **First Terms** (73→17) - Terms for fundamental (1-10)
+- Slider 2: **Second Terms** (72→18) - Terms for 2nd harmonic (1-10)
+- Slider 3: **Blend** (28→19) - Fundamental/2nd harmonic mix (0-100%)
+- Slider 4: **Master Gain** (30→7) - Output level
+- Slider 5: (unused)
+- Slider 6: (unused)
+- Slider 7: (unused)
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: Taylor (algo 17), First=5 terms, Second=5 terms, Blend=50%, Disyn 0.7, Master 0.7
+
+**Sound Design Tips**:
+- **1-2 terms**: Harsh sawtooth-like, severe aliasing (lo-fi aesthetic)
+- **3-4 terms**: Soft-clipped sine, noticeable harmonics
+- **5-7 terms**: Good approximation with subtle aliasing
+- **8-10 terms**: Nearly perfect sine wave
+- **Blend control**: 0% = fundamental only, 50% = equal mix, 100% = octave up
 
 ---
 

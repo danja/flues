@@ -35,6 +35,8 @@ export class OscillatorModule {
         return this.processPAF(params, frequency);
       case 'modFm':
         return this.processModFM(params, frequency);
+      case 'taylor':
+        return this.processTaylor(params, frequency);
       default:
         return this.processSine(frequency);
     }
@@ -155,5 +157,56 @@ export class OscillatorModule {
     const modulator = Math.cos(this.modPhase * TWO_PI);
     const envelope = Math.exp(-index);
     return carrier * Math.exp(index * (modulator - 1)) * envelope;
+  }
+
+  wrapAngle(x) {
+    // Wrap angle to [-π, π] for better Taylor series convergence
+    let wrapped = x;
+    while (wrapped > Math.PI) wrapped -= TWO_PI;
+    while (wrapped < -Math.PI) wrapped += TWO_PI;
+    return wrapped;
+  }
+
+  computeTaylorSine(x, numTerms) {
+    // Taylor series: sin(x) = x - x³/3! + x⁵/5! - x⁷/7! + ...
+    // Compute iteratively to avoid recalculating factorials and powers
+
+    // Wrap angle to [-π, π] for better convergence
+    const wrapped = this.wrapAngle(x);
+
+    let result = 0;
+    let term = wrapped;
+    let xSquared = wrapped * wrapped;
+
+    for (let n = 0; n < numTerms; n++) {
+      result += term;
+      // Calculate next term: multiply by -x²/((2n+2)(2n+3))
+      const denominator = (2 * n + 2) * (2 * n + 3);
+      term *= -xSquared / denominator;
+    }
+
+    // Clamp output to prevent runaway values
+    return Math.max(-1.5, Math.min(1.5, result));
+  }
+
+  processTaylor(params, frequency) {
+    const firstTerms = Math.max(1, Math.round(params.first?.mapped ?? 5));
+    const secondTerms = Math.max(1, Math.round(params.second?.mapped ?? 5));
+    const blend = params.blend?.mapped ?? 0.5;
+
+    this.phase = this.stepPhase(this.phase, frequency);
+    const theta = this.phase * TWO_PI;
+
+    // Compute fundamental with N terms
+    const fundamental = this.computeTaylorSine(theta, firstTerms);
+
+    // Compute second harmonic with M terms
+    const secondHarmonic = this.computeTaylorSine(2 * theta, secondTerms);
+
+    // Blend between the two waveforms
+    const output = fundamental * (1 - blend) + secondHarmonic * blend;
+
+    // Final safety clamp to prevent any audio glitches
+    return Math.max(-1.0, Math.min(1.0, output));
   }
 }

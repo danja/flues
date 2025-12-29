@@ -640,6 +640,99 @@ s(t) = (dsf + modfm) × 0.35
 
 ---
 
+### 18. Taylor Series Approximation (Novel 4)
+
+**Principle:** Generates waveforms using truncated Taylor series expansion of sine functions. By controlling the number of terms, the algorithm produces everything from rough aliased approximations (few terms) to smooth sinusoids (many terms). Blends fundamental and second harmonic for timbral variation.
+
+**Mathematical Basis:**
+The Taylor series for sine around x=0:
+```
+sin(x) = x - x³/3! + x⁵/5! - x⁷/7! + x⁹/9! - ...
+       = Σ(n=0 to ∞) [(-1)ⁿ × x^(2n+1) / (2n+1)!]
+```
+
+**Algorithm:**
+```
+// Wrap angles to [-π, π] for convergence
+θ₁ = wrap(2π × phase)
+θ₂ = wrap(2 × θ₁)
+
+// Compute truncated Taylor series (iterative)
+fundamental = taylor_sine(θ₁, firstTerms)
+second_harmonic = taylor_sine(θ₂, secondTerms)
+
+// Blend outputs
+s(t) = fundamental × (1-blend) + second_harmonic × blend
+```
+
+**Iterative Computation:**
+```c
+float taylor_sine(float x, int num_terms) {
+    float wrapped = wrap_angle(x);  // [-π, π]
+    float result = 0.0f;
+    float term = wrapped;
+    float x_squared = wrapped * wrapped;
+
+    for (int n = 0; n < num_terms; n++) {
+        result += term;
+        // Next term: multiply by -x²/((2n+2)(2n+3))
+        float denom = (2*n + 2) * (2*n + 3);
+        term *= -x_squared / denom;
+    }
+
+    // Clamp to prevent runaway values
+    return fmaxf(-1.5f, fminf(1.5f, result));
+}
+```
+
+**Parameters:**
+- **param1 (First Terms):** Number of terms for fundamental (1-10)
+  - Mapped: `N = 1 + round(param1 × 9)`
+  - 1 term: just x (sawtooth-like, severe aliasing)
+  - 5 terms: reasonable approximation
+  - 10 terms: nearly perfect sine wave
+- **param2 (Second Terms):** Number of terms for 2nd harmonic (1-10)
+  - Mapped: `M = 1 + round(param2 × 9)`
+  - Controls brightness/overtone character
+- **param3 (Blend):** Mix between fundamental and 2nd harmonic (0-1)
+  - 0.0 = pure fundamental
+  - 0.5 = 50/50 mix
+  - 1.0 = pure second harmonic (octave up)
+
+**Implementation Notes:**
+- **Angle wrapping critical:** Taylor series diverges rapidly for |x| > π
+- **Intermediate clamping:** Each taylor_sine clamped to ±1.5
+- **Final output clamp:** Result clamped to ±1.0 for audio safety
+- Iterative computation avoids factorial/power explosion
+- Peak RMS: ~0.7
+- Lower term counts produce aliasing (intentional aesthetic)
+
+**Convergence Behavior:**
+- **1 term:** `sin(x) ≈ x` (linear ramp, harsh)
+- **2 terms:** `sin(x) ≈ x - x³/6` (softened, cubic bend)
+- **5 terms:** Good approximation within [-π, π]
+- **10 terms:** Machine-precision sine within [-π, π]
+
+**Spectral Characteristics:**
+- Low term counts: Rich aliased harmonics (digital artifact)
+- High term counts: Pure fundamental/harmonic (clean sine)
+- Second harmonic adds octave content
+- Blend parameter morphs between timbres
+
+**Use Cases:**
+- Educational: Visualize Taylor series convergence
+- Lo-fi synthesis: Aliased/digital character (1-3 terms)
+- Morphing oscillator: Smooth/harsh transitions
+- Harmonic exploration: Fundamental + octave blending
+- Spectral sculpting: Term count automation creates evolving aliasing
+
+**Comparison with Other Algorithms:**
+- Unlike Dirichlet Pulse (exact harmonics), Taylor creates aliasing
+- Unlike Tanh waveshaping (smooth saturation), Taylor creates stepped approximations
+- Unique aesthetic: "partial computation" of sine wave
+
+---
+
 ## Signal Processing Modules
 
 ### DC Blocker

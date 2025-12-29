@@ -28,7 +28,7 @@ void disyn_destroy(DisynModule* disyn) {
 }
 
 void disyn_set_algorithm(DisynModule* disyn, int algorithm) {
-    if (algorithm >= 0 && algorithm <= 16) {  // Updated from 6 to 16
+    if (algorithm >= 0 && algorithm <= 17) {  // Updated to support Taylor (algorithm 17)
         disyn->algorithm = static_cast<flues::disyn::AlgorithmType>(algorithm);
     }
 }

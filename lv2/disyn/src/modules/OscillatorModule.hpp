@@ -27,10 +27,11 @@ enum class AlgorithmType : int {
     COMBINATION_6_INHARMONIC = 12,         // DSF (φ ratio) → PAF
     COMBINATION_7_ADAPTIVE_FILTER = 13,    // DSF + ModFM (filter emulation)
 
-    // Novel extrapolations (14-16)
+    // Novel extrapolations (14-17)
     NOVEL_1_MULTISTAGE = 14,               // Tanh → Exp → Ring mod
     NOVEL_2_FREQ_ASYMMETRY = 15,           // Frequency-dependent AsymFM
-    NOVEL_3_CROSS_MOD = 16                 // Cross-algorithm modulation
+    NOVEL_3_CROSS_MOD = 16,                // Cross-algorithm modulation
+    NOVEL_4_TAYLOR = 17                    // Taylor series approximation
 };
 
 // Parameter structures for each algorithm
@@ -134,13 +135,15 @@ public:
             case AlgorithmType::COMBINATION_7_ADAPTIVE_FILTER:
                 return processCombination7AdaptiveFilter(param1, param2, param3, frequency);
 
-            // Novel extrapolations (14-16)
+            // Novel extrapolations (14-17)
             case AlgorithmType::NOVEL_1_MULTISTAGE:
                 return processNovel1Multistage(param1, param2, param3, frequency);
             case AlgorithmType::NOVEL_2_FREQ_ASYMMETRY:
                 return processNovel2FreqAsymmetry(param1, param2, param3, frequency);
             case AlgorithmType::NOVEL_3_CROSS_MOD:
                 return processNovel3CrossMod(param1, param2, param3, frequency);
+            case AlgorithmType::NOVEL_4_TAYLOR:
+                return processNovel4Taylor(param1, param2, param3, frequency);
 
             default:
                 return processSine(frequency);
@@ -618,6 +621,61 @@ private:
         const float modfm = std::cos(TWO_PI * modPhase) * std::exp(modfmIndex * (mod - 1.0f));
 
         return (dsf + modfm) * 0.35f;  // Reduced from 0.5f
+    }
+
+    // Novel 4: Taylor Series Approximation
+    // Truncated Taylor series for fundamental + 2nd harmonic blend
+    float processNovel4Taylor(float param1, float param2, float param3, float frequency) {
+        // Map parameters: param1=first terms (1-10), param2=second terms (1-10), param3=blend (0-1)
+        const int firstTerms = std::max(1, static_cast<int>(std::round(1.0f + param1 * 9.0f)));
+        const int secondTerms = std::max(1, static_cast<int>(std::round(1.0f + param2 * 9.0f)));
+        const float blend = std::clamp(param3, 0.0f, 1.0f);
+
+        phase = stepPhase(phase, frequency);
+        const float theta = phase * TWO_PI;
+
+        // Compute fundamental with N terms
+        const float fundamental = computeTaylorSine(theta, firstTerms);
+
+        // Compute second harmonic with M terms
+        const float secondHarmonic = computeTaylorSine(2.0f * theta, secondTerms);
+
+        // Blend between the two waveforms
+        const float output = fundamental * (1.0f - blend) + secondHarmonic * blend;
+
+        // Final safety clamp to prevent any audio glitches
+        return std::clamp(output, -1.0f, 1.0f);
+    }
+
+    // Helper: wrap angle to [-π, π] for Taylor series convergence
+    float wrapAngle(float x) {
+        float wrapped = x;
+        while (wrapped > M_PI) wrapped -= TWO_PI;
+        while (wrapped < -M_PI) wrapped += TWO_PI;
+        return wrapped;
+    }
+
+    // Helper: compute truncated Taylor series for sine
+    float computeTaylorSine(float x, int numTerms) {
+        // Taylor series: sin(x) = x - x³/3! + x⁵/5! - x⁷/7! + ...
+        // Compute iteratively to avoid recalculating factorials and powers
+
+        // Wrap angle to [-π, π] for better convergence
+        const float wrapped = wrapAngle(x);
+
+        float result = 0.0f;
+        float term = wrapped;
+        const float xSquared = wrapped * wrapped;
+
+        for (int n = 0; n < numTerms; n++) {
+            result += term;
+            // Calculate next term: multiply by -x²/((2n+2)(2n+3))
+            const float denominator = static_cast<float>((2 * n + 2) * (2 * n + 3));
+            term *= -xSquared / denominator;
+        }
+
+        // Clamp output to prevent runaway values
+        return std::clamp(result, -1.5f, 1.5f);
     }
 
     // Helper: exponential mapping from normalized 0-1 to min-max range

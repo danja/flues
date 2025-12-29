@@ -167,6 +167,37 @@ export const ALGORITHMS = [
       },
     ],
   },
+  {
+    id: 'taylor',
+    label: 'Taylor',
+    description: 'Taylor series approximation of sine with fundamental and second harmonic.',
+    params: [
+      {
+        id: 'first',
+        label: 'First',
+        unit: 'terms',
+        default: 0.5,
+        mapValue: (v) => Math.max(1, Math.round(1 + clamp01(v) * 9)),
+        format: (v) => `${v}`,
+      },
+      {
+        id: 'second',
+        label: 'Second',
+        unit: 'terms',
+        default: 0.5,
+        mapValue: (v) => Math.max(1, Math.round(1 + clamp01(v) * 9)),
+        format: (v) => `${v}`,
+      },
+      {
+        id: 'blend',
+        label: 'Blend',
+        unit: '%',
+        default: 0.5,
+        mapValue: (v) => clamp01(v),
+        format: (v) => `${Math.round(v * 100)}`,
+      },
+    ],
+  },
 ];
 
 export const DEFAULT_ALGORITHM_ID = 'tanhSquare';

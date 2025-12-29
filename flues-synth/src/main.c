@@ -593,6 +593,24 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_master_gain(synth, 0.7f);
             break;
 
+        case 29:  // Taylor Series Approximation - Novel 4 (Algorithm 17)
+            printf("Program 29: Taylor Series Approximation\n");
+            printf("  - Algorithm 17: Truncated Taylor series with fundamental + 2nd harmonic blend\n");
+            printf("  - Educational synthesis demonstrating series convergence and aliasing\n");
+            printf("  - Sliders: First Terms(73→17), Second Terms(72→18), Blend(28→19), Master(30→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, false);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_algorithm(synth, 17);  // Taylor
+            synth_engine_set_disyn_param1(synth, 0.5f);  // First terms (5/10)
+            synth_engine_set_disyn_param2(synth, 0.5f);  // Second terms (5/10)
+            synth_engine_set_disyn_param3(synth, 0.5f);  // Blend (50/50)
+            synth_engine_set_disyn_level(synth, 0.7f);
+            synth_engine_set_master_gain(synth, 0.7f);
+            break;
+
         default:
             printf("Program %d: Unknown (using program 0)\n", program);
             handle_program_change(0, synth);
@@ -607,7 +625,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
 static void apply_parameter(SynthEngine* synth, SynthParameter param, float value) {
     switch (param) {
         case PARAM_DISYN_ALGORITHM:
-            synth_engine_set_disyn_algorithm(synth, (int)(value * 16.999f));  // Updated: 0-16 algorithms
+            synth_engine_set_disyn_algorithm(synth, (int)(value * 17.999f));  // Updated: 0-17 algorithms
             break;
         case PARAM_DISYN_PARAM1:
             synth_engine_set_disyn_param1(synth, value);
