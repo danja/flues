@@ -19,7 +19,7 @@
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
 
-    rdfs:comment "MIDI CC controller for flues-synth with 29 programs (0-28) and 9 parameter sliders" ;
+    rdfs:comment "MIDI CC controller for flues-synth with 30 programs (0-29) and 9 parameter sliders" ;
 
     lv2:port [
         # Port 0: MIDI Input
@@ -47,7 +47,7 @@
         lv2:name "Program" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
-        lv2:maximum 28 ;
+        lv2:maximum 29 ;
         lv2:portProperty lv2:integer, lv2:enumeration ;
         lv2:scalePoint [
             rdfs:label "Disyn Echo" ;
@@ -136,6 +136,9 @@
         ] , [
             rdfs:label "Vocal Morph" ;
             rdf:value 28
+        ] , [
+            rdfs:label "Taylor Series (Alg 17)" ;
+            rdf:value 29
         ] ;
         rdfs:comment "Synth program selector (remaps sliders to different parameters)" ;
     ] , [

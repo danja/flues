@@ -1,11 +1,11 @@
 # Flues Control LV2 Plugin
 
-A MIDI CC controller plugin specifically designed for controlling [flues-synth](../../flues-synth/). Provides 8 program presets and 9 parameter sliders that output MIDI Program Changes and CCs to control the synthesizer.
+A MIDI CC controller plugin specifically designed for controlling [flues-synth](../../flues-synth/). Provides 30 program presets and 9 parameter sliders that output MIDI Program Changes and CCs to control the synthesizer.
 
 ## Features
 
 - **MIDI Pass-Through**: All incoming MIDI note messages pass through unchanged
-- **8 Program Presets**: Switch between different synthesis modes in flues-synth
+- **30 Program Presets**: Switch between different synthesis modes in flues-synth (0-29)
 - **9 Parameter Sliders**: Control context-dependent parameters that remap per program
 - **Hardware Controller Emulation**: Mirrors the behavior of a physical MIDI controller
 - **Default LV2 UI**: Works with any LV2 host's generic parameter UI
@@ -14,15 +14,15 @@ A MIDI CC controller plugin specifically designed for controlling [flues-synth](
 ## Controls
 
 ### Program Selector
-Dropdown menu with 8 synthesis programs:
-- **0: Disyn Echo** - Disyn distortion synthesis through single delay line
-- **1: Disyn + Delays** - Disyn with dual delay lines for echo/resonance
-- **2: Disyn + Filter** - Disyn through state-variable filter
-- **3: Formant Voice** - Pure vocal synthesis via formant cascade
-- **4: Hybrid Speech** - Voiced speech synthesis (Disyn + formants)
-- **5: Physical Model** - Classic Karplus-Strong physical modeling
-- **6: (Physical Model)** - Redirects to program 5
-- **7: Disyn Direct** - Raw distortion synthesis output
+Dropdown menu with 30 synthesis programs:
+- **0-7**: Basic programs (Disyn Echo, Delays, Filter, Formant Voice, Hybrid, Physical Model, Direct)
+- **8-17**: Algorithm showcase (ModFM, DSF, PAF, Tanh, Hybrid, Feedback, Dirichlet, Multi-Algorithm, Spectral Sculptor)
+- **18-24**: Combination algorithms (Hybrid Formant, Cascaded, Parallel Bank, Feedback, Morphing, Inharmonic, Adaptive Filter)
+- **25-27**: Novel algorithms (Multi-Stage, Freq Asymmetry, Cross-Mod)
+- **28**: Vocal Morph - Complete vocal synthesis with formants + vocal modes
+- **29**: Taylor Series (Alg 17) - Educational Taylor series approximation with fundamental + 2nd harmonic blend
+
+For complete program descriptions, see [flues-synth/docs/PROGRAM_CHANGE.md](../../flues-synth/docs/PROGRAM_CHANGE.md).
 
 ### 9 Parameter Sliders
 Each slider outputs a fixed MIDI CC but controls different parameters per program:
