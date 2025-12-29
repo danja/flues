@@ -66,4 +66,45 @@
         lv2:index 4 ;
         lv2:symbol "audio_out_r" ;
         lv2:name "Audio Out R" ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "play_state" ;
+        lv2:name "Play State" ;
+        rdfs:comment "0.0 when stopped, 1.0 when playing (for UI)" ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "current_step" ;
+        lv2:name "Current Step" ;
+        rdfs:comment "Current 0-15 playhead position (for UI mirroring)" ;
+    ] , [
+        a lv2:OutputPort , atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports atom:Chunk ;
+        lv2:index 7 ;
+        lv2:symbol "notify_out" ;
+        lv2:name "UI Notify" ;
+        rdfs:comment "UI state notifications (grid/side/top colors)" ;
+    ] .
+
+<https://danja.github.io/flues/plugins/quadrangle#ui>
+    a ui:X11UI ;
+    ui:binary <quadrangle_ui.so> ;
+    rdfs:label "Quadrangle Control Panel" ;
+    ui:portNotification [
+        ui:plugin <https://danja.github.io/flues/plugins/quadrangle> ;
+        ui:port [ lv2:index 5 ; lv2:symbol "play_state" ] ;
+        ui:portIndex 5 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/quadrangle> ;
+        ui:port [ lv2:index 6 ; lv2:symbol "current_step" ] ;
+        ui:portIndex 6 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/quadrangle> ;
+        ui:port [ lv2:index 7 ; lv2:symbol "notify_out" ] ;
+        ui:portIndex 7 ;
+        ui:protocol ui:atomProtocol
     ] .

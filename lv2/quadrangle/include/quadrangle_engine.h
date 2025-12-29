@@ -24,6 +24,8 @@
 #define SEQ_STEPS 16
 #define LIVE_PADS 16
 #define PARAM_CONTROLS 16
+#define MAX_MIDI_EVENTS 128
+#define DEFAULT_GATE_MS 50
 
 // ============================================================================
 // Drum Voice
@@ -51,10 +53,13 @@ typedef enum {
 
 typedef struct {
     uint8_t active;
-    uint8_t notes[SEQ_STEPS];  // MIDI note numbers
+    uint8_t notes[SEQ_STEPS];  // Scale degrees (0..)
     uint8_t velocities[SEQ_STEPS];
     uint8_t root_note;         // Root note (C4 = 60)
+    int8_t root_note_shift;    // Semitone shift (-2..+2)
+    uint8_t direction;         // 0 = descending, 1 = ascending
     ScaleType scale;
+    uint8_t degree_bank;       // 0-3 (base degree = bank * 4)
 } MelodySequencer;
 
 // ============================================================================
@@ -98,6 +103,16 @@ typedef struct {
 } ParameterControl;
 
 // ============================================================================
+// MIDI Event Queue (host-facing)
+// ============================================================================
+
+typedef struct {
+    uint32_t frame;      // Sample offset within current block
+    uint8_t size;        // Usually 3 bytes
+    uint8_t data[3];     // MIDI message
+} MidiOutEvent;
+
+// ============================================================================
 // Quadrangle Engine
 // ============================================================================
 
@@ -107,9 +122,19 @@ typedef struct {
 
     // Sequencer state
     DrumVoice drum_voices[MAX_DRUM_VOICES];
+    uint8_t drum_beats[MAX_DRUM_VOICES];
+    uint8_t drum_offsets[MAX_DRUM_VOICES];
+    uint8_t drum_patterns[2][MAX_DRUM_VOICES][SEQ_STEPS];
     MelodySequencer melody;
+    uint8_t melody_patterns[2][SEQ_STEPS];
+    uint8_t melody_vel_patterns[2][SEQ_STEPS];
     LivePad live_pads[LIVE_PADS];
     ParameterControl params[PARAM_CONTROLS];
+    uint8_t melody_program;
+    uint8_t live_pad_patterns[2][LIVE_PADS];
+    uint8_t param_patterns[2][PARAM_CONTROLS];
+    uint8_t live_beats[4];      // Euclid pulses per live column
+    uint8_t live_offsets[4];    // Euclid offsets per live column
 
     // Playback state
     uint8_t playing;
@@ -122,9 +147,9 @@ typedef struct {
     // Sample rate
     float sample_rate;
 
-    // MIDI output buffer
-    uint8_t midi_out_buffer[1024];
-    uint16_t midi_out_size;
+    // MIDI output queue for current block
+    MidiOutEvent midi_events[MAX_MIDI_EVENTS];
+    uint16_t midi_event_count;
 
 } QuadrangleEngine;
 
@@ -153,6 +178,9 @@ void quadrangle_set_tempo(QuadrangleEngine *engine, uint16_t bpm);
 
 // Audio processing
 void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples);
+void quadrangle_begin_block(QuadrangleEngine *engine);
+void quadrangle_refresh_grid_state(QuadrangleEngine *engine);
+uint32_t quadrangle_default_gate_frames(const QuadrangleEngine *engine);
 
 // Grid update
 void quadrangle_update_leds(QuadrangleEngine *engine, MidiMessage *msg);
