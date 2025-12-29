@@ -123,6 +123,11 @@ static void queue_pc_event(QuadrangleEngine *engine, uint8_t program, uint8_t ch
     engine->midi_events[engine->midi_event_count++] = (MidiOutEvent){0, 2, {status, program, 0}};
 }
 
+void quadrangle_set_melody_program(QuadrangleEngine *engine, uint8_t program) {
+    engine->melody_program = (uint8_t)(program & 0x7F);
+    queue_pc_event(engine, engine->melody_program, 1);
+}
+
 static int euclid_hit(uint8_t step, uint8_t pulses, uint8_t offset, uint8_t length) {
     if (length == 0 || pulses == 0) return 0;
     if (pulses >= length) return 1;
@@ -446,13 +451,11 @@ void quadrangle_handle_top_button(QuadrangleEngine *engine, uint8_t index) {
 
     switch (index) {
         case 0: {  // Program Up
-            engine->melody_program = (uint8_t)((engine->melody_program + 1) & 0x7F);
-            queue_pc_event(engine, engine->melody_program, 1);
+            quadrangle_set_melody_program(engine, (uint8_t)(engine->melody_program + 1));
             break;
         }
         case 1: {  // Program Down
-            engine->melody_program = (uint8_t)((engine->melody_program + 127) & 0x7F);
-            queue_pc_event(engine, engine->melody_program, 1);
+            quadrangle_set_melody_program(engine, (uint8_t)(engine->melody_program + 127));
             break;
         }
         case 2: {  // Euclid beats down

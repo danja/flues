@@ -175,6 +175,7 @@ void quadrangle_handle_top_button(QuadrangleEngine *engine, uint8_t index);
 void quadrangle_start(QuadrangleEngine *engine);
 void quadrangle_stop(QuadrangleEngine *engine);
 void quadrangle_set_tempo(QuadrangleEngine *engine, uint16_t bpm);
+void quadrangle_set_melody_program(QuadrangleEngine *engine, uint8_t program);
 
 // Audio processing
 void quadrangle_process(QuadrangleEngine *engine, uint32_t n_samples);

@@ -17,6 +17,7 @@ extern "C" {
 }
 
 #define QUADRANGLE_URI "https://danja.github.io/flues/plugins/quadrangle"
+#define MAX_UI_DELTAS 128
 
 // LV2 Port Indices
 typedef enum {
@@ -71,8 +72,17 @@ typedef struct {
     uint8_t launchpad_initialized;
     uint32_t frame_counter;
     uint8_t pad_down[GRID_HEIGHT][GRID_WIDTH];
+    uint8_t last_ui_program;
+    QuadrangleUiState last_ui_state;
+    uint8_t last_ui_state_valid;
 
 } Quadrangle;
+
+typedef struct {
+    QuadrangleUiDeltaTarget target;
+    uint8_t index_a;
+    uint8_t index_b;
+} UiPendingDelta;
 
 // ============================================================================
 // Helpers
@@ -97,6 +107,82 @@ static inline void send_lp_msg(Quadrangle* self,
         lv2_atom_forge_atom(&self->forge, size, self->urids.midi_Event);
         lv2_atom_forge_write(&self->forge, data, size);
     }
+}
+
+static void build_ui_state(Quadrangle* self, QuadrangleUiState* state) {
+    memset(state, 0, sizeof(*state));
+    state->magic = QUADRANGLE_UI_STATE_MAGIC;
+    state->version = QUADRANGLE_UI_STATE_VERSION;
+    for (uint8_t r = 0; r < 8; ++r) {
+        for (uint8_t c = 0; c < 8; ++c) {
+            state->grid[r][c] = self->engine.grid_state.grid[r][c].color;
+        }
+    }
+    for (uint8_t i = 0; i < 8; ++i) {
+        state->side[i] = self->engine.grid_state.side[i].color;
+    }
+    for (uint8_t i = 0; i < 9; ++i) {
+        state->top[i] = self->engine.grid_state.top[i].color;
+    }
+    state->selected_voice = self->engine.selected_voice;
+    state->pattern = self->engine.grid_state.pattern;
+    state->playing = self->engine.playing ? 1 : 0;
+    state->current_step = (uint8_t)(self->engine.current_step & 0xFF);
+    state->melody_program = self->engine.melody_program;
+}
+
+static void send_ui_state(Quadrangle* self) {
+    if (!self->notify_out) {
+        return;
+    }
+    QuadrangleUiState state;
+    build_ui_state(self, &state);
+
+    lv2_atom_forge_frame_time(&self->notify_forge, 0);
+    lv2_atom_forge_atom(&self->notify_forge, sizeof(state), self->urids.atom_Chunk);
+    lv2_atom_forge_write(&self->notify_forge, &state, sizeof(state));
+    self->last_ui_program = self->engine.melody_program;
+    self->last_ui_state = state;
+    self->last_ui_state_valid = 1;
+}
+
+static void send_ui_delta(Quadrangle* self, QuadrangleUiDeltaTarget target,
+                          uint8_t index_a, uint8_t index_b, uint8_t color) {
+    QuadrangleUiDelta delta;
+    memset(&delta, 0, sizeof(delta));
+    delta.magic = QUADRANGLE_UI_DELTA_MAGIC;
+    delta.version = QUADRANGLE_UI_DELTA_VERSION;
+    delta.target = (uint8_t)target;
+    delta.index_a = index_a;
+    delta.index_b = index_b;
+    delta.color = color;
+
+    lv2_atom_forge_frame_time(&self->notify_forge, 0);
+    lv2_atom_forge_atom(&self->notify_forge, sizeof(delta), self->urids.atom_Chunk);
+    lv2_atom_forge_write(&self->notify_forge, &delta, sizeof(delta));
+}
+
+static int ui_state_meta_changed(const QuadrangleUiState* a, const QuadrangleUiState* b) {
+    return a->selected_voice != b->selected_voice ||
+           a->pattern != b->pattern ||
+           a->playing != b->playing ||
+           a->current_step != b->current_step ||
+           a->melody_program != b->melody_program;
+}
+
+static void send_ui_updates(Quadrangle* self) {
+    send_ui_state(self);
+}
+
+static void add_ui_delta(UiPendingDelta *pending, uint16_t *count,
+                         QuadrangleUiDeltaTarget target, uint8_t index_a, uint8_t index_b) {
+    if (*count >= MAX_UI_DELTAS) {
+        return;
+    }
+    pending[*count].target = target;
+    pending[*count].index_a = index_a;
+    pending[*count].index_b = index_b;
+    (*count)++;
 }
 
 // Seed a visible default palette so hardware shows life immediately
@@ -169,6 +255,8 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
 
     self->launchpad_initialized = 0;
     self->frame_counter = 0;
+    self->last_ui_program = self->engine.melody_program;
+    self->last_ui_state_valid = 0;
 
     return (LV2_Handle)self;
 }
@@ -209,6 +297,8 @@ static void activate(LV2_Handle instance) {
     quadrangle_reset(&self->engine);
     self->launchpad_initialized = 0;
     memset(self->pad_down, 0, sizeof(self->pad_down));
+    self->last_ui_program = self->engine.melody_program;
+    self->last_ui_state_valid = 0;
 }
 
 static void run(LV2_Handle instance, uint32_t n_samples) {
@@ -227,10 +317,17 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     // Check for MIDI events (skip transport spam)
     static int midi_event_count = 0;
     LV2_ATOM_SEQUENCE_FOREACH(self->control_in, ev) {
-        if (ev->body.type == self->urids.midi_Event) {
+        if (ev->body.type == self->urids.midi_Event && ev->body.size > 0) {
             const uint8_t *midi = (const uint8_t*)(ev + 1);
-            fprintf(stderr, "quadrangle: MIDI [%02X %02X %02X]\n",
-                    midi[0], midi[1], midi[2]);
+            if (ev->body.size >= 3) {
+                fprintf(stderr, "quadrangle: MIDI [%02X %02X %02X]\n",
+                        midi[0], midi[1], midi[2]);
+            } else if (ev->body.size == 2) {
+                fprintf(stderr, "quadrangle: MIDI [%02X %02X]\n",
+                        midi[0], midi[1]);
+            } else {
+                fprintf(stderr, "quadrangle: MIDI [%02X]\n", midi[0]);
+            }
             midi_event_count++;
         }
     }
@@ -243,6 +340,10 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     check_count++;
 
     // Process incoming events
+    bool ui_dirty = false;
+    bool ui_full_state = false;
+    UiPendingDelta ui_deltas[MAX_UI_DELTAS];
+    uint16_t ui_delta_count = 0;
     LV2_ATOM_SEQUENCE_FOREACH(self->control_in, ev) {
         // Process transport position first (mirror Euclid: handle direct Position or Object/Blank wrapper)
         const LV2_Atom_Object* obj = NULL;
@@ -281,10 +382,13 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
         // Process MIDI events from Launchpad
         else if (ev->body.type == self->urids.midi_Event) {
+            if (ev->body.size == 0) {
+                continue;
+            }
             const uint8_t *midi = (const uint8_t*)(ev + 1);  // Grid-seq pattern
 
             // Note On (0x90)
-            if ((midi[0] & 0xF0) == 0x90 && midi[2] > 0) {
+            if (ev->body.size >= 3 && (midi[0] & 0xF0) == 0x90 && midi[2] > 0) {
                 uint8_t note = midi[1];
                 fprintf(stderr, "quadrangle: Received Note On - note=%d\n", note);
 
@@ -296,25 +400,33 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     if (!self->pad_down[row][col]) {
                         self->pad_down[row][col] = 1;
                         quadrangle_handle_pad_press(&self->engine, row, col, midi[2]);
+                        ui_dirty = true;
+                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_GRID, row, col);
                     } else {
                         // Some devices send Note On on release; treat as release for live pads.
                         self->pad_down[row][col] = 0;
                         quadrangle_handle_pad_release(&self->engine, row, col);
+                        ui_dirty = true;
+                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_GRID, row, col);
                     }
                 }
             }
             // Note Off (0x80) or Note On with velocity 0
-            else if ((midi[0] & 0xF0) == 0x80 || ((midi[0] & 0xF0) == 0x90 && midi[2] == 0)) {
+            else if (ev->body.size >= 2 &&
+                     ((midi[0] & 0xF0) == 0x80 ||
+                      ((midi[0] & 0xF0) == 0x90 && ev->body.size >= 3 && midi[2] == 0))) {
                 uint8_t note = midi[1];
                 uint8_t row, col;
                 if (note_to_grid(note, &row, &col)) {
                     fprintf(stderr, "quadrangle: Pad release at row=%u, col=%u\n", row, col);
                     self->pad_down[row][col] = 0;
                     quadrangle_handle_pad_release(&self->engine, row, col);
+                    ui_dirty = true;
+                    add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_GRID, row, col);
                 }
             }
             // Control Change (0xB0) - side and top buttons
-            else if ((midi[0] & 0xF0) == 0xB0) {
+            else if (ev->body.size >= 3 && (midi[0] & 0xF0) == 0xB0) {
                 uint8_t cc = midi[1];
                 uint8_t value = midi[2];
 
@@ -325,13 +437,24 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     if (value > 0) {
                         fprintf(stderr, "quadrangle: Side button %u\n", index);
                         quadrangle_handle_side_button(&self->engine, index);
+                        ui_dirty = true;
+                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_SIDE, index, 0);
                     }
                 } else if (is_top_button(cc, &index)) {
                     if (value > 0) {
                         fprintf(stderr, "quadrangle: Top button %u\n", index);
                         quadrangle_handle_top_button(&self->engine, index);
+                        ui_dirty = true;
+                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_TOP, index, 0);
                     }
                 }
+            }
+            // Program Change (0xC0)
+            else if (ev->body.size >= 2 && (midi[0] & 0xF0) == 0xC0) {
+                uint8_t program = midi[1];
+                quadrangle_set_melody_program(&self->engine, program);
+                ui_dirty = true;
+                ui_full_state = true;
             }
         }
     }
@@ -363,6 +486,27 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     LV2_Atom_Forge_Frame notify_frame;
     if (self->notify_out && notify_capacity > 0) {
         lv2_atom_forge_sequence_head(&self->notify_forge, &notify_frame, 0);
+    }
+
+    if (ui_dirty && self->notify_out && notify_capacity > 0) {
+        quadrangle_refresh_grid_state(&self->engine);
+        if (ui_full_state) {
+            send_ui_state(self);
+        } else {
+            for (uint16_t i = 0; i < ui_delta_count; ++i) {
+                const UiPendingDelta *delta = &ui_deltas[i];
+                if (delta->target == QUADRANGLE_UI_DELTA_GRID) {
+                    uint8_t color = self->engine.grid_state.grid[delta->index_a][delta->index_b].color;
+                    send_ui_delta(self, QUADRANGLE_UI_DELTA_GRID, delta->index_a, delta->index_b, color);
+                } else if (delta->target == QUADRANGLE_UI_DELTA_SIDE) {
+                    uint8_t color = self->engine.grid_state.side[delta->index_a].color;
+                    send_ui_delta(self, QUADRANGLE_UI_DELTA_SIDE, delta->index_a, 0, color);
+                } else if (delta->target == QUADRANGLE_UI_DELTA_TOP) {
+                    uint8_t color = self->engine.grid_state.top[delta->index_a].color;
+                    send_ui_delta(self, QUADRANGLE_UI_DELTA_TOP, delta->index_a, 0, color);
+                }
+            }
+        }
     }
 
     // Initialize Launchpad on first run
@@ -412,8 +556,10 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
     // Update LEDs AFTER processing so playhead reflects the new step
     self->frame_counter += n_samples;
+    bool send_notify = false;
     if (self->frame_counter >= 64) {
         self->frame_counter = 0;
+        send_notify = true;
 
         // Refresh grid state colors before emitting LED messages
         quadrangle_refresh_grid_state(&self->engine);
@@ -430,31 +576,13 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         lv2_atom_forge_atom(&self->forge, bulk.size, self->urids.midi_Event);
         lv2_atom_forge_write(&self->forge, bulk.data, bulk.size);
 
-        if (self->notify_out && notify_capacity > 0) {
-            QuadrangleUiState state;
-            memset(&state, 0, sizeof(state));
-            state.magic = QUADRANGLE_UI_STATE_MAGIC;
-            state.version = QUADRANGLE_UI_STATE_VERSION;
-            for (uint8_t r = 0; r < 8; ++r) {
-                for (uint8_t c = 0; c < 8; ++c) {
-                    state.grid[r][c] = self->engine.grid_state.grid[r][c].color;
-                }
-            }
-            for (uint8_t i = 0; i < 8; ++i) {
-                state.side[i] = self->engine.grid_state.side[i].color;
-            }
-            for (uint8_t i = 0; i < 9; ++i) {
-                state.top[i] = self->engine.grid_state.top[i].color;
-            }
-            state.selected_voice = self->engine.selected_voice;
-            state.pattern = self->engine.grid_state.pattern;
-            state.playing = self->engine.playing ? 1 : 0;
-            state.current_step = (uint8_t)(self->engine.current_step & 0xFF);
+    }
+    if (self->engine.melody_program != self->last_ui_program) {
+        send_notify = true;
+    }
 
-            lv2_atom_forge_frame_time(&self->notify_forge, 0);
-            lv2_atom_forge_atom(&self->notify_forge, sizeof(state), self->urids.atom_Chunk);
-            lv2_atom_forge_write(&self->notify_forge, &state, sizeof(state));
-        }
+    if (send_notify && self->notify_out && notify_capacity > 0) {
+        send_ui_updates(self);
     }
 
     // Finalize forged sequences so hosts see valid atom sizes
