@@ -168,7 +168,7 @@ static void draw_pad(cairo_t *cr, double x, double y, double size, Color color, 
 static Color palette_color(uint8_t index) {
     switch (index) {
         case 0: return (Color){0.05, 0.05, 0.06};  // Off
-        case 1: return (Color){0.2, 0.2, 0.22};    // Gray dim
+        case 1: return (Color){0.3, 0.3, 0.34};    // Gray dim
         case 2: return (Color){0.4, 0.4, 0.42};    // Gray med
         case 3: return (Color){0.9, 0.9, 0.92};    // White
         case 4: return (Color){0.4, 0.1, 0.1};     // Red dim
@@ -204,7 +204,7 @@ static Color palette_color(uint8_t index) {
 static double palette_brightness(uint8_t index) {
     switch (index) {
         case 0: return 0.05;
-        case 1: return 0.2;
+        case 1: return 0.35;
         case 2: return 0.4;
         case 3: return 0.9;
         case 4: return 0.4;

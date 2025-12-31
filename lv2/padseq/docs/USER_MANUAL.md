@@ -27,6 +27,7 @@ PadSeq is a Launchpad-driven drum sequencer LV2 plugin for the Novation Launchpa
 
 - Buttons 0-7 select the drum voice (top to bottom).
 - The selected voice is highlighted.
+- Default MIDI notes per voice (0-7): 36, 40, 39, 50, 42, 46, 53, 51 (maps to a subset of `lv2/drumkit`).
 
 ### Grid
 

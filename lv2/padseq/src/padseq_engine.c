@@ -26,9 +26,12 @@ void padseq_init(PadSeqEngine *engine, float sample_rate) {
     grid_state_init(&engine->grid_state);
     padseq_set_tempo(engine, 120);
 
+    static const uint8_t default_drum_notes[MAX_DRUM_VOICES] = {
+        36, 40, 39, 50, 42, 46, 53, 51
+    };
     for (uint8_t i = 0; i < MAX_DRUM_VOICES; i++) {
         engine->drum_voices[i].active = 1;
-        engine->drum_voices[i].note = (uint8_t)(36 + i);  // C2-G2
+        engine->drum_voices[i].note = default_drum_notes[i];
         engine->drum_voices[i].color = COLOR_DRUMS;
         memset(engine->drum_voices[i].steps, 0, SEQ_STEPS);
     }

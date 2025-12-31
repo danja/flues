@@ -195,6 +195,17 @@ static void add_ui_delta(UiPendingDelta *pending, uint16_t *count,
     (*count)++;
 }
 
+static void add_ui_grid_deltas(UiPendingDelta *pending, uint16_t *count) {
+    if (*count + (GRID_WIDTH * GRID_HEIGHT) > MAX_UI_DELTAS) {
+        return;
+    }
+    for (uint8_t r = 0; r < GRID_HEIGHT; ++r) {
+        for (uint8_t c = 0; c < GRID_WIDTH; ++c) {
+            add_ui_delta(pending, count, PADSEQ_UI_DELTA_GRID, r, c);
+        }
+    }
+}
+
 // Seed a visible default palette so hardware shows life immediately
 static void set_default_led_layout(PadSeq* self) {
     // Leave grid pads off initially; light only helpers so the device isn't a solid wall
@@ -459,7 +470,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         padseq_handle_side_button(&self->engine, index);
                         ui_dirty = true;
                         add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_SIDE, index, 0);
-                        ui_full_state = true;
+                        add_ui_grid_deltas(ui_deltas, &ui_delta_count);
                     }
                 } else if (is_top_button(cc, &index)) {
                     if (value > 0) {
@@ -467,7 +478,8 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         padseq_handle_top_button(&self->engine, index);
                         ui_dirty = true;
                         add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_TOP, index, 0);
-                        ui_full_state = true;
+                        add_ui_grid_deltas(ui_deltas, &ui_delta_count);
+                        self->ui_force_notify = 1;
                         if (index == 2 || index == 3) {
                             launchpad_dirty = true;
                         }

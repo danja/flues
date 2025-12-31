@@ -149,6 +149,9 @@ cmake --install lv2/padseq/build --prefix ~/.lv2
 - Buttons 0-7: Select drum voice for editing (voice 0-7)
 - Selected voice is highlighted white
 
+**Default MIDI Notes (per voice 0-7):**
+- 36, 40, 39, 50, 42, 46, 53, 51 (matches a subset of `lv2/drumkit` instruments)
+
 **Grid Interaction:**
 
 *Drum Sequencer (NW):*
