@@ -190,6 +190,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
+- [lv2/padseq/README.md](lv2/padseq/README.md) - Launchpad drum sequencer
 
 ### Build Native Apps
 

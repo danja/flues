@@ -10,13 +10,13 @@
 #include <stdio.h>
 
 extern "C" {
-#include "../include/quadrangle_engine.h"
+#include "../include/padseq_engine.h"
 #include "../include/midi_comm.h"
 #include "../include/launchpad_config.h"
-#include "../include/quadrangle_ui_state.h"
+#include "../include/padseq_ui_state.h"
 }
 
-#define QUADRANGLE_URI "https://danja.github.io/flues/plugins/quadrangle"
+#define PADSEQ_URI "https://danja.github.io/flues/plugins/padseq"
 #define MAX_UI_DELTAS 128
 
 // LV2 Port Indices
@@ -27,7 +27,7 @@ typedef enum {
     PORT_AUDIO_OUT_L = 3,  // Audio output (left)
     PORT_AUDIO_OUT_R = 4,  // Audio output (right)
     PORT_PLAY_STATE  = 5,  // Control output to UI (0=stopped, 1=playing)
-    PORT_CURRENT_STEP = 6, // Control output: current playhead step (0-15)
+    PORT_CURRENT_STEP = 6, // Control output: current playhead step (0-63)
     PORT_NOTIFY_OUT = 7    // Atom output to UI (state notify)
 } PortIndex;
 
@@ -42,7 +42,7 @@ typedef struct {
     LV2_URID time_Position;
     LV2_URID time_beatsPerMinute;
     LV2_URID time_speed;
-} QuadrangleURIDs;
+} PadSeqURIDs;
 
 // Plugin Instance
 typedef struct {
@@ -57,7 +57,7 @@ typedef struct {
     float *current_step_out;
 
     // URIDs
-    QuadrangleURIDs urids;
+    PadSeqURIDs urids;
     LV2_URID_Map *map;
 
     // Atom forges
@@ -66,23 +66,22 @@ typedef struct {
     LV2_Atom_Forge notify_forge;    // For UI notifications
 
     // Engine
-    QuadrangleEngine engine;
+    PadSeqEngine engine;
 
     // Launchpad state
     uint8_t launchpad_initialized;
     uint32_t frame_counter;
     uint8_t pad_down[GRID_HEIGHT][GRID_WIDTH];
-    uint8_t last_ui_program;
-    QuadrangleUiState last_ui_state;
+    PadSeqUiState last_ui_state;
     uint8_t last_ui_state_valid;
     uint8_t ui_force_notify;
     uint8_t last_playing;
     uint8_t ui_init_frames;
 
-} Quadrangle;
+} PadSeq;
 
 typedef struct {
-    QuadrangleUiDeltaTarget target;
+    PadSeqUiDeltaTarget target;
     uint8_t index_a;
     uint8_t index_b;
 } UiPendingDelta;
@@ -94,7 +93,7 @@ typedef struct {
 // Write a MIDI/SysEx message to Launchpad control output.
 // If launchpad_out is not connected (size too small/null), fall back to midi_out
 // so the Launchpad still lights when routed via the main MIDI port.
-static inline void send_lp_msg(Quadrangle* self,
+static inline void send_lp_msg(PadSeq* self,
                                const uint8_t* data,
                                uint16_t size) {
     const bool lp_connected = self->launchpad_out &&
@@ -112,13 +111,26 @@ static inline void send_lp_msg(Quadrangle* self,
     }
 }
 
-static void build_ui_state(Quadrangle* self, QuadrangleUiState* state) {
+static uint8_t grid_base_color(const PadSeqEngine *engine, uint8_t row, uint8_t col) {
+    if (row >= GRID_HEIGHT || col >= GRID_WIDTH) {
+        return COLOR_OFF;
+    }
+    if (col >= engine->active_columns) {
+        return COLOR_GRAY_DIM;
+    }
+    uint8_t voice = engine->selected_voice;
+    if (voice >= MAX_DRUM_VOICES) voice = 0;
+    uint8_t step = (uint8_t)(row * GRID_WIDTH + col);
+    return engine->drum_voices[voice].steps[step] > 0 ? COLOR_YELLOW_DIM : COLOR_OFF;
+}
+
+static void build_ui_state(PadSeq* self, PadSeqUiState* state) {
     memset(state, 0, sizeof(*state));
-    state->magic = QUADRANGLE_UI_STATE_MAGIC;
-    state->version = QUADRANGLE_UI_STATE_VERSION;
+    state->magic = PADSEQ_UI_STATE_MAGIC;
+    state->version = PADSEQ_UI_STATE_VERSION;
     for (uint8_t r = 0; r < 8; ++r) {
         for (uint8_t c = 0; c < 8; ++c) {
-            state->grid[r][c] = self->engine.grid_state.grid[r][c].color;
+            state->grid[r][c] = grid_base_color(&self->engine, r, c);
         }
     }
     for (uint8_t i = 0; i < 8; ++i) {
@@ -131,30 +143,33 @@ static void build_ui_state(Quadrangle* self, QuadrangleUiState* state) {
     state->pattern = self->engine.grid_state.pattern;
     state->playing = self->engine.playing ? 1 : 0;
     state->current_step = (uint8_t)(self->engine.current_step & 0xFF);
-    state->melody_program = self->engine.melody_program;
+    uint8_t p = self->engine.grid_state.pattern & 1;
+    uint8_t v = self->engine.selected_voice;
+    if (v >= MAX_DRUM_VOICES) v = 0;
+    state->euclid_pulses = self->engine.euclid_pulses[p][v];
+    state->euclid_offset = self->engine.euclid_offset[p][v];
 }
 
-static void send_ui_state(Quadrangle* self) {
+static void send_ui_state(PadSeq* self) {
     if (!self->notify_out) {
         return;
     }
-    QuadrangleUiState state;
+    PadSeqUiState state;
     build_ui_state(self, &state);
 
     lv2_atom_forge_frame_time(&self->notify_forge, 0);
     lv2_atom_forge_atom(&self->notify_forge, sizeof(state), self->urids.atom_Chunk);
     lv2_atom_forge_write(&self->notify_forge, &state, sizeof(state));
-    self->last_ui_program = self->engine.melody_program;
     self->last_ui_state = state;
     self->last_ui_state_valid = 1;
 }
 
-static void send_ui_delta(Quadrangle* self, QuadrangleUiDeltaTarget target,
+static void send_ui_delta(PadSeq* self, PadSeqUiDeltaTarget target,
                           uint8_t index_a, uint8_t index_b, uint8_t color) {
-    QuadrangleUiDelta delta;
+    PadSeqUiDelta delta;
     memset(&delta, 0, sizeof(delta));
-    delta.magic = QUADRANGLE_UI_DELTA_MAGIC;
-    delta.version = QUADRANGLE_UI_DELTA_VERSION;
+    delta.magic = PADSEQ_UI_DELTA_MAGIC;
+    delta.version = PADSEQ_UI_DELTA_VERSION;
     delta.target = (uint8_t)target;
     delta.index_a = index_a;
     delta.index_b = index_b;
@@ -165,20 +180,12 @@ static void send_ui_delta(Quadrangle* self, QuadrangleUiDeltaTarget target,
     lv2_atom_forge_write(&self->notify_forge, &delta, sizeof(delta));
 }
 
-static int ui_state_meta_changed(const QuadrangleUiState* a, const QuadrangleUiState* b) {
-    return a->selected_voice != b->selected_voice ||
-           a->pattern != b->pattern ||
-           a->playing != b->playing ||
-           a->current_step != b->current_step ||
-           a->melody_program != b->melody_program;
-}
-
-static void send_ui_updates(Quadrangle* self) {
+static void send_ui_updates(PadSeq* self) {
     send_ui_state(self);
 }
 
 static void add_ui_delta(UiPendingDelta *pending, uint16_t *count,
-                         QuadrangleUiDeltaTarget target, uint8_t index_a, uint8_t index_b) {
+                         PadSeqUiDeltaTarget target, uint8_t index_a, uint8_t index_b) {
     if (*count >= MAX_UI_DELTAS) {
         return;
     }
@@ -189,7 +196,7 @@ static void add_ui_delta(UiPendingDelta *pending, uint16_t *count,
 }
 
 // Seed a visible default palette so hardware shows life immediately
-static void set_default_led_layout(Quadrangle* self) {
+static void set_default_led_layout(PadSeq* self) {
     // Leave grid pads off initially; light only helpers so the device isn't a solid wall
     grid_state_clear(&self->engine.grid_state);
 
@@ -199,12 +206,12 @@ static void set_default_led_layout(Quadrangle* self) {
         grid_state_set_side_button(&self->engine.grid_state, i, 0, color);
     }
 
-    // Top buttons: play/stop off, patterns A-D dim, clear dim red
+    // Top buttons: play/stop off, patterns A/B dim, clear dim red
     for (uint8_t i = 0; i < 9; ++i) {
         uint8_t color = COLOR_OFF;
-        if (i >= 2 && i <= 5) {
-            color = COLOR_YELLOW_DIM;  // pattern buttons A-D
-        } else if (i == 7) {
+        if (i == 5 || i == 6) {
+            color = COLOR_YELLOW_DIM;  // pattern buttons A/B
+        } else if (i == 8) {
             color = COLOR_RED_DIM;     // clear
         }
         grid_state_set_top_button(&self->engine.grid_state, i, 0, color);
@@ -222,7 +229,7 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
     (void)descriptor;
     (void)path;
 
-    Quadrangle *self = (Quadrangle *)calloc(1, sizeof(Quadrangle));
+    PadSeq *self = (PadSeq *)calloc(1, sizeof(PadSeq));
     if (!self) return NULL;
 
     // Get URID map feature
@@ -254,11 +261,10 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
     lv2_atom_forge_init(&self->notify_forge, self->map);
 
     // Initialize engine
-    quadrangle_init(&self->engine, (float)rate);
+    padseq_init(&self->engine, (float)rate);
 
     self->launchpad_initialized = 0;
     self->frame_counter = 0;
-    self->last_ui_program = self->engine.melody_program;
     self->last_ui_state_valid = 0;
     self->ui_force_notify = 1;
     self->last_playing = self->engine.playing;
@@ -268,7 +274,7 @@ static LV2_Handle instantiate(const LV2_Descriptor *descriptor,
 }
 
 static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
-    Quadrangle *self = (Quadrangle *)instance;
+    PadSeq *self = (PadSeq *)instance;
 
     switch (port) {
         case PORT_CONTROL_IN:
@@ -299,11 +305,10 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
 }
 
 static void activate(LV2_Handle instance) {
-    Quadrangle *self = (Quadrangle *)instance;
-    quadrangle_reset(&self->engine);
+    PadSeq *self = (PadSeq *)instance;
+    padseq_reset(&self->engine);
     self->launchpad_initialized = 0;
     memset(self->pad_down, 0, sizeof(self->pad_down));
-    self->last_ui_program = self->engine.melody_program;
     self->last_ui_state_valid = 0;
     self->ui_force_notify = 1;
     self->last_playing = self->engine.playing;
@@ -311,17 +316,17 @@ static void activate(LV2_Handle instance) {
 }
 
 static void run(LV2_Handle instance, uint32_t n_samples) {
-    Quadrangle *self = (Quadrangle *)instance;
+    PadSeq *self = (PadSeq *)instance;
 
     static int run_count = 0;
     if (run_count == 0) {
-        fprintf(stderr, "quadrangle: First run() call - plugin is active\n");
-        fprintf(stderr, "quadrangle: control_in pointer: %p\n", (void*)self->control_in);
+        fprintf(stderr, "padseq: First run() call - plugin is active\n");
+        fprintf(stderr, "padseq: control_in pointer: %p\n", (void*)self->control_in);
     }
     run_count++;
 
     // Start a fresh MIDI queue for this block before handling input
-    quadrangle_begin_block(&self->engine);
+    padseq_begin_block(&self->engine);
 
     // Check for MIDI events (skip transport spam)
     static int midi_event_count = 0;
@@ -329,13 +334,13 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         if (ev->body.type == self->urids.midi_Event && ev->body.size > 0) {
             const uint8_t *midi = (const uint8_t*)(ev + 1);
             if (ev->body.size >= 3) {
-                fprintf(stderr, "quadrangle: MIDI [%02X %02X %02X]\n",
+                fprintf(stderr, "padseq: MIDI [%02X %02X %02X]\n",
                         midi[0], midi[1], midi[2]);
             } else if (ev->body.size == 2) {
-                fprintf(stderr, "quadrangle: MIDI [%02X %02X]\n",
+                fprintf(stderr, "padseq: MIDI [%02X %02X]\n",
                         midi[0], midi[1]);
             } else {
-                fprintf(stderr, "quadrangle: MIDI [%02X]\n", midi[0]);
+                fprintf(stderr, "padseq: MIDI [%02X]\n", midi[0]);
             }
             midi_event_count++;
         }
@@ -344,13 +349,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     // Show message if no MIDI received after 1000 checks
     static int check_count = 0;
     if (midi_event_count == 0 && check_count == 1000) {
-        fprintf(stderr, "quadrangle: WARNING - No MIDI events received yet. Check MIDI routing!\n");
+        fprintf(stderr, "padseq: WARNING - No MIDI events received yet. Check MIDI routing!\n");
     }
     check_count++;
 
     // Process incoming events
     bool ui_dirty = false;
     bool ui_full_state = false;
+    bool launchpad_dirty = false;
     UiPendingDelta ui_deltas[MAX_UI_DELTAS];
     uint16_t ui_delta_count = 0;
     LV2_ATOM_SEQUENCE_FOREACH(self->control_in, ev) {
@@ -372,7 +378,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             lv2_atom_object_get(obj, self->urids.time_beatsPerMinute, &bpm, 0);
             if (bpm && bpm->type == self->urids.atom_Float) {
                 float new_bpm = ((LV2_Atom_Float*)bpm)->body;
-                quadrangle_set_tempo(&self->engine, (uint8_t)new_bpm);
+                padseq_set_tempo(&self->engine, (uint8_t)new_bpm);
             }
 
             // Extract transport speed (0.0 = stopped, 1.0 = playing)
@@ -381,9 +387,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             if (speed && speed->type == self->urids.atom_Float) {
                 float transport_speed = ((LV2_Atom_Float*)speed)->body;
                 if (transport_speed > 0.0f && !self->engine.playing) {
-                    quadrangle_start(&self->engine);
+                    padseq_start(&self->engine);
                 } else if (transport_speed == 0.0f && self->engine.playing) {
-                    quadrangle_stop(&self->engine);
+                    padseq_stop(&self->engine);
                 }
             }
             continue;
@@ -399,24 +405,24 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             // Note On (0x90)
             if (ev->body.size >= 3 && (midi[0] & 0xF0) == 0x90 && midi[2] > 0) {
                 uint8_t note = midi[1];
-                fprintf(stderr, "quadrangle: Received Note On - note=%d\n", note);
+                fprintf(stderr, "padseq: Received Note On - note=%d\n", note);
 
                 // Check if it's a grid pad
                 uint8_t row, col;
                 if (note_to_grid(note, &row, &col)) {
-                    fprintf(stderr, "quadrangle: Pad press at row=%u, col=%u, vel=%u\n",
+                    fprintf(stderr, "padseq: Pad press at row=%u, col=%u, vel=%u\n",
                             row, col, midi[2]);
                     if (!self->pad_down[row][col]) {
                         self->pad_down[row][col] = 1;
-                        quadrangle_handle_pad_press(&self->engine, row, col, midi[2]);
+                        padseq_handle_pad_press(&self->engine, row, col, midi[2]);
                         ui_dirty = true;
-                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_GRID, row, col);
+                        add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_GRID, row, col);
                     } else {
-                        // Some devices send Note On on release; treat as release for live pads.
+                        // Some devices send Note On on release; treat as release.
                         self->pad_down[row][col] = 0;
-                        quadrangle_handle_pad_release(&self->engine, row, col);
+                        padseq_handle_pad_release(&self->engine, row, col);
                         ui_dirty = true;
-                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_GRID, row, col);
+                        add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_GRID, row, col);
                     }
                 }
             }
@@ -427,11 +433,11 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 uint8_t note = midi[1];
                 uint8_t row, col;
                 if (note_to_grid(note, &row, &col)) {
-                    fprintf(stderr, "quadrangle: Pad release at row=%u, col=%u\n", row, col);
+                    fprintf(stderr, "padseq: Pad release at row=%u, col=%u\n", row, col);
                     self->pad_down[row][col] = 0;
-                    quadrangle_handle_pad_release(&self->engine, row, col);
+                    padseq_handle_pad_release(&self->engine, row, col);
                     ui_dirty = true;
-                    add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_GRID, row, col);
+                    add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_GRID, row, col);
                 }
             }
             // Control Change (0xB0) - side and top buttons
@@ -439,7 +445,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 uint8_t cc = midi[1];
                 uint8_t value = midi[2];
 
-                fprintf(stderr, "quadrangle: Received CC %u = %u\n", cc, value);
+                fprintf(stderr, "padseq: Received CC %u = %u\n", cc, value);
 
                 if (cc == 119 && value > 0) {
                     self->ui_force_notify = 1;
@@ -449,26 +455,24 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 uint8_t index;
                 if (is_side_button(cc, &index)) {
                     if (value > 0) {
-                        fprintf(stderr, "quadrangle: Side button %u\n", index);
-                        quadrangle_handle_side_button(&self->engine, index);
+                        fprintf(stderr, "padseq: Side button %u\n", index);
+                        padseq_handle_side_button(&self->engine, index);
                         ui_dirty = true;
-                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_SIDE, index, 0);
+                        add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_SIDE, index, 0);
+                        ui_full_state = true;
                     }
                 } else if (is_top_button(cc, &index)) {
                     if (value > 0) {
-                        fprintf(stderr, "quadrangle: Top button %u\n", index);
-                        quadrangle_handle_top_button(&self->engine, index);
+                        fprintf(stderr, "padseq: Top button %u\n", index);
+                        padseq_handle_top_button(&self->engine, index);
                         ui_dirty = true;
-                        add_ui_delta(ui_deltas, &ui_delta_count, QUADRANGLE_UI_DELTA_TOP, index, 0);
+                        add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_TOP, index, 0);
+                        ui_full_state = true;
+                        if (index == 2 || index == 3) {
+                            launchpad_dirty = true;
+                        }
                     }
                 }
-            }
-            // Program Change (0xC0)
-            else if (ev->body.size >= 2 && (midi[0] & 0xF0) == 0xC0) {
-                uint8_t program = midi[1];
-                quadrangle_set_melody_program(&self->engine, program);
-                ui_dirty = true;
-                ui_full_state = true;
             }
         }
     }
@@ -503,7 +507,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     if (self->notify_out && notify_capacity > 0 && self->ui_init_frames > 0) {
-        quadrangle_refresh_grid_state(&self->engine);
+        padseq_refresh_grid_state(&self->engine);
         send_ui_state(self);
         self->ui_init_frames--;
     }
@@ -514,40 +518,57 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     if (self->ui_force_notify && self->notify_out && notify_capacity > 0) {
-        quadrangle_refresh_grid_state(&self->engine);
+        padseq_refresh_grid_state(&self->engine);
         send_ui_state(self);
         self->ui_force_notify = 0;
     }
 
     if (ui_dirty && self->notify_out && notify_capacity > 0) {
-        quadrangle_refresh_grid_state(&self->engine);
+        padseq_refresh_grid_state(&self->engine);
         if (ui_full_state) {
             send_ui_state(self);
         } else {
             for (uint16_t i = 0; i < ui_delta_count; ++i) {
                 const UiPendingDelta *delta = &ui_deltas[i];
-                if (delta->target == QUADRANGLE_UI_DELTA_GRID) {
-                    uint8_t color = self->engine.grid_state.grid[delta->index_a][delta->index_b].color;
-                    send_ui_delta(self, QUADRANGLE_UI_DELTA_GRID, delta->index_a, delta->index_b, color);
-                } else if (delta->target == QUADRANGLE_UI_DELTA_SIDE) {
+                if (delta->target == PADSEQ_UI_DELTA_GRID) {
+                    uint8_t color = grid_base_color(&self->engine,
+                                                    delta->index_a,
+                                                    delta->index_b);
+                    send_ui_delta(self, PADSEQ_UI_DELTA_GRID,
+                                  delta->index_a,
+                                  delta->index_b,
+                                  color);
+                } else if (delta->target == PADSEQ_UI_DELTA_SIDE) {
                     uint8_t color = self->engine.grid_state.side[delta->index_a].color;
-                    send_ui_delta(self, QUADRANGLE_UI_DELTA_SIDE, delta->index_a, 0, color);
-                } else if (delta->target == QUADRANGLE_UI_DELTA_TOP) {
+                    send_ui_delta(self, PADSEQ_UI_DELTA_SIDE, delta->index_a, 0, color);
+                } else if (delta->target == PADSEQ_UI_DELTA_TOP) {
                     uint8_t color = self->engine.grid_state.top[delta->index_a].color;
-                    send_ui_delta(self, QUADRANGLE_UI_DELTA_TOP, delta->index_a, 0, color);
+                    send_ui_delta(self, PADSEQ_UI_DELTA_TOP, delta->index_a, 0, color);
                 }
             }
         }
     }
 
+    if (launchpad_dirty) {
+        padseq_refresh_grid_state(&self->engine);
+        MidiMessage bulk;
+        midi_update_grid(&bulk, &self->engine.grid_state);
+        lv2_atom_forge_frame_time(&self->launchpad_forge, 0);
+        lv2_atom_forge_atom(&self->launchpad_forge, bulk.size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->launchpad_forge, bulk.data, bulk.size);
+        lv2_atom_forge_frame_time(&self->forge, 0);
+        lv2_atom_forge_atom(&self->forge, bulk.size, self->urids.midi_Event);
+        lv2_atom_forge_write(&self->forge, bulk.data, bulk.size);
+    }
+
     // Initialize Launchpad on first run
     if (!self->launchpad_initialized) {
-        fprintf(stderr, "quadrangle: Initializing Launchpad...\n");
+        fprintf(stderr, "padseq: Initializing Launchpad...\n");
 
         // Send Programmer Mode SysEx
         uint8_t sysex[] = {0xF0, 0x00, 0x20, 0x29, 0x02, 0x0D, 0x0E, 0x01, 0xF7};
 
-        fprintf(stderr, "quadrangle: Sending Programmer Mode SysEx: ");
+        fprintf(stderr, "padseq: Sending Programmer Mode SysEx: ");
         for (size_t i = 0; i < sizeof(sysex); i++) {
             fprintf(stderr, "%02X ", sysex[i]);
         }
@@ -563,7 +584,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         lv2_atom_forge_write(&self->forge, sysex, sizeof(sysex));
 
         self->launchpad_initialized = 1;
-        fprintf(stderr, "quadrangle: Sent Programmer Mode to Launchpad output (and midi_out fallback)\n");
+        fprintf(stderr, "padseq: Sent Programmer Mode to Launchpad output (and midi_out fallback)\n");
 
         // Force-clear LEDs after entering programmer mode to avoid stale states
         MidiMessage clear_msg;
@@ -575,7 +596,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     // Run sequencer clock (adds step-triggered MIDI to the queue)
-    quadrangle_process(&self->engine, n_samples);
+    padseq_process(&self->engine, n_samples);
 
     // Flush queued MIDI events to midi_out
     for (uint16_t i = 0; i < self->engine.midi_event_count; ++i) {
@@ -593,7 +614,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         send_notify = true;
 
         // Refresh grid state colors before emitting LED messages
-        quadrangle_refresh_grid_state(&self->engine);
+        padseq_refresh_grid_state(&self->engine);
 
         // Bulk SysEx update for safety (sent both to Launchpad out and midi_out; instruments ignore SysEx)
         MidiMessage bulk;
@@ -608,10 +629,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         lv2_atom_forge_write(&self->forge, bulk.data, bulk.size);
 
     }
-    if (self->engine.melody_program != self->last_ui_program) {
-        send_notify = true;
-    }
-
     if (send_notify && self->notify_out && notify_capacity > 0) {
         send_ui_updates(self);
     }
@@ -637,7 +654,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 }
 
 static void deactivate(LV2_Handle instance) {
-    Quadrangle *self = (Quadrangle *)instance;
+    PadSeq *self = (PadSeq *)instance;
 
     // Exit programmer mode
     MidiMessage msg;
@@ -661,7 +678,7 @@ static const void *extension_data(const char *uri) {
 // ============================================================================
 
 static const LV2_Descriptor descriptor = {
-    QUADRANGLE_URI,
+    PADSEQ_URI,
     instantiate,
     connect_port,
     activate,

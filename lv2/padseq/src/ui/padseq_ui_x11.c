@@ -10,14 +10,14 @@
 #include <lv2/midi/midi.h>
 #include <lv2/urid/urid.h>
 #include <lv2/ui/ui.h>
-#include "../include/quadrangle_ui_state.h"
+#include "../include/padseq_ui_state.h"
 #include "../include/launchpad_config.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <cairo.h>
 #include <cairo-xlib.h>
 
-#define QUADRANGLE_UI_URI "https://danja.github.io/flues/plugins/quadrangle#ui"
+#define PADSEQ_UI_URI "https://danja.github.io/flues/plugins/padseq#ui"
 
 #define GRID_DIM 8
 #define PAD_SIZE 40
@@ -26,12 +26,8 @@
 #define SIDE_WIDTH 30
 #define TOP_HEIGHT 30
 #define INFO_HEIGHT 60
-#define PROGRAM_DROPDOWN_WIDTH 140
-#define PROGRAM_DROPDOWN_HEIGHT 22
-#define PROGRAM_MENU_ROWS 8
-#define PROGRAM_MENU_ITEM_HEIGHT 18
 #define PORT_LAUNCHPAD_OUT 2
-#define PORT_PLAY_STATE 5  // Matches quadrangle.ttl lv2:index for play_state
+#define PORT_PLAY_STATE 5  // Matches padseq.ttl lv2:index for play_state
 #define PORT_CURRENT_STEP 6
 #define PORT_CONTROL_IN 0
 
@@ -62,7 +58,8 @@ typedef struct {
     uint8_t selected_voice;
     uint16_t bpm;
     uint8_t current_step;
-    uint8_t melody_program;
+    uint8_t euclid_pulses;
+    uint8_t euclid_offset;
 } UIState;
 
 typedef struct {
@@ -89,7 +86,6 @@ typedef struct {
     int hover_row;
     int hover_col;
     char hover_text[128];
-    int program_menu_open;
     uint8_t last_step;
     int playhead_flash;
     int sync_ping_countdown;
@@ -103,7 +99,7 @@ typedef struct {
     LV2_URID atom_chunk_urid;
 
     int has_state_sync;
-} QuadrangleUI;
+} PadSeqUI;
 
 // Xlib threading guard (match pm-synth UI pattern to avoid host crashes)
 static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -238,41 +234,13 @@ static double palette_brightness(uint8_t index) {
     }
 }
 
-static int is_playhead_cell(const QuadrangleUI *ui, int row, int col) {
-    int playhead_row = ui->state.current_step / 4;
-    int playhead_col = ui->state.current_step % 4;
-    int is_drum_head = (row >= 4 && row - 4 == playhead_row && col < 4 && col == playhead_col);
-    int is_melody_head = (row >= 4 && row - 4 == playhead_row && col >= 4 && (col - 4) == playhead_col);
-    return ui->state.playing && (is_drum_head || is_melody_head);
+static int is_playhead_cell(const PadSeqUI *ui, int row, int col) {
+    int playhead_row = ui->state.current_step / GRID_DIM;
+    int playhead_col = ui->state.current_step % GRID_DIM;
+    return ui->state.playing && row == playhead_row && col == playhead_col;
 }
 
-static bool apply_led_color(QuadrangleUI *ui, uint8_t id, uint8_t color) {
-    uint8_t row = 0;
-    uint8_t col = 0;
-    uint8_t index = 0;
-
-    if (note_to_grid(id, &row, &col)) {
-        if (row < GRID_DIM && col < GRID_DIM) {
-            ui->state.grid[row][col] = color;
-        }
-        return true;
-    }
-    if (is_side_button(id, &index)) {
-        if (index < GRID_DIM) {
-            ui->state.side_buttons[index] = color;
-        }
-        return true;
-    }
-    if (is_top_button(id, &index)) {
-        if (index < 9) {
-            ui->state.top_buttons[index] = color;
-        }
-        return true;
-    }
-    return false;
-}
-
-static void apply_default_ui_layout(QuadrangleUI *ui) {
+static void apply_default_ui_layout(PadSeqUI *ui) {
     for (uint8_t r = 0; r < GRID_DIM; ++r) {
         for (uint8_t c = 0; c < GRID_DIM; ++c) {
             ui->state.grid[r][c] = COLOR_OFF;
@@ -281,67 +249,16 @@ static void apply_default_ui_layout(QuadrangleUI *ui) {
     for (uint8_t i = 0; i < GRID_DIM; ++i) {
         ui->state.side_buttons[i] = (i == 0) ? COLOR_SELECTED : COLOR_DRUMS;
     }
-    ui->state.top_buttons[0] = COLOR_CYAN_DIM;
-    ui->state.top_buttons[1] = COLOR_CYAN_DIM;
-    ui->state.top_buttons[2] = COLOR_BLUE_DIM;
-    ui->state.top_buttons[3] = COLOR_BLUE_DIM;
-    ui->state.top_buttons[4] = COLOR_BLUE_DIM;
-    ui->state.top_buttons[5] = COLOR_SELECTED;
-    ui->state.top_buttons[6] = COLOR_YELLOW_DIM;
-    ui->state.top_buttons[7] = COLOR_OFF;
-    ui->state.top_buttons[8] = COLOR_RED_DIM;
+    for (uint8_t i = 0; i < 9; ++i) {
+        ui->state.top_buttons[i] = COLOR_OFF;
+    }
+    ui->state.top_buttons[4] = COLOR_SELECTED;
+    ui->state.top_buttons[5] = COLOR_YELLOW_DIM;
+    ui->state.top_buttons[6] = COLOR_RED_DIM;
+    ui->state.top_buttons[7] = COLOR_RED_DIM;
 }
 
-static bool parse_launchpad_sysex(QuadrangleUI *ui, const uint8_t *data, uint32_t size) {
-    if (size < (SYSEX_HEADER_SIZE + 2) || data[0] != 0xF0) {
-        return false;
-    }
-    if (memcmp(data, SYSEX_HEADER, SYSEX_HEADER_SIZE) != 0) {
-        return false;
-    }
-    if (data[SYSEX_HEADER_SIZE] != SYSEX_CMD_LED_LIGHTING) {
-        return false;
-    }
-    uint32_t i = SYSEX_HEADER_SIZE + 1;
-    uint32_t end = (data[size - 1] == SYSEX_END) ? (size - 1) : size;
-    bool updated = false;
-    while (i + 2 < end) {
-        uint8_t type = data[i++];
-        uint8_t id = data[i++];
-        uint8_t color = data[i++];
-        if (type == LED_TYPE_STATIC) {
-            updated |= apply_led_color(ui, id, color);
-        }
-    }
-    return updated;
-}
-
-static void program_dropdown_geometry(const QuadrangleUI *ui, int *x, int *y, int *w, int *h) {
-    int info_y = MARGIN + TOP_HEIGHT + GRID_DIM * (PAD_SIZE + PAD_GAP) + PAD_GAP;
-    *w = PROGRAM_DROPDOWN_WIDTH;
-    *h = PROGRAM_DROPDOWN_HEIGHT;
-    *x = ui->width - MARGIN - *w;
-    *y = info_y + 4;
-}
-
-static void send_program_change(QuadrangleUI *ui, uint8_t program) {
-    if (!ui->write_function || !ui->atom_event_transfer || !ui->midi_event_urid) {
-        return;
-    }
-
-    uint8_t msg[2] = {0xC0, program};
-    uint8_t buf[16];
-    lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
-    lv2_atom_forge_atom(&ui->forge, 2, ui->midi_event_urid);
-    lv2_atom_forge_write(&ui->forge, msg, 2);
-    LV2_Atom* atom = (LV2_Atom*)buf;
-    ui->write_function(ui->controller, 0,
-                      lv2_atom_total_size(atom),
-                      ui->atom_event_transfer,
-                      atom);
-}
-
-static void send_ui_sync_request(QuadrangleUI *ui) {
+static void send_ui_sync_request(PadSeqUI *ui) {
     if (!ui->write_function || !ui->atom_event_transfer || !ui->midi_event_urid) {
         return;
     }
@@ -358,11 +275,7 @@ static void send_ui_sync_request(QuadrangleUI *ui) {
                       atom);
 }
 
-static int point_in_rect(int x, int y, int rx, int ry, int rw, int rh) {
-    return x >= rx && x < (rx + rw) && y >= ry && y < (ry + rh);
-}
-
-static void draw_grid(QuadrangleUI *ui) {
+static void draw_grid(PadSeqUI *ui) {
     cairo_t *cr = ui->back_cr;
 
     // Draw grid
@@ -467,13 +380,14 @@ static void draw_grid(QuadrangleUI *ui) {
 
     char info[256];
     snprintf(info, sizeof(info),
-        "%s | Pattern %c | Voice %d | BPM %d | Step %d/16 | Prog %u",
+        "%s | Pattern %c | Voice %d | BPM %d | Step %d/64 | Euclid %u/%u",
         ui->state.playing ? "▶ PLAYING" : "⏸ STOPPED",
         'A' + ui->state.pattern,
         ui->state.selected_voice + 1,
         ui->state.bpm,
         ui->state.current_step + 1,
-        ui->state.melody_program
+        ui->state.euclid_pulses,
+        ui->state.euclid_offset
     );
 
     cairo_move_to(cr, MARGIN, info_y + 20);
@@ -484,16 +398,7 @@ static void draw_grid(QuadrangleUI *ui) {
     cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.5);
 
     cairo_move_to(cr, MARGIN + 5, info_y + 40);
-    cairo_show_text(cr, "DRUMS");
-
-    cairo_move_to(cr, MARGIN + GRID_DIM/2 * (PAD_SIZE + PAD_GAP) + 5, info_y + 40);
-    cairo_show_text(cr, "MELODY");
-
-    cairo_move_to(cr, MARGIN + 5, info_y + 55);
-    cairo_show_text(cr, "LIVE");
-
-    cairo_move_to(cr, MARGIN + GRID_DIM/2 * (PAD_SIZE + PAD_GAP) + 5, info_y + 55);
-    cairo_show_text(cr, "PARAMS");
+    cairo_show_text(cr, "STEPS");
 
     if (ui->hover_active && ui->hover_text[0] != '\0') {
         cairo_set_font_size(cr, 11);
@@ -502,68 +407,9 @@ static void draw_grid(QuadrangleUI *ui) {
         cairo_show_text(cr, ui->hover_text);
     }
 
-    // Program dropdown
-    int dd_x, dd_y, dd_w, dd_h;
-    program_dropdown_geometry(ui, &dd_x, &dd_y, &dd_w, &dd_h);
-    cairo_set_source_rgb(cr, 0.15, 0.15, 0.18);
-    cairo_rectangle(cr, dd_x, dd_y, dd_w, dd_h);
-    cairo_fill(cr);
-    cairo_set_source_rgba(cr, 1, 1, 1, 0.2);
-    cairo_set_line_width(cr, 1);
-    cairo_rectangle(cr, dd_x, dd_y, dd_w, dd_h);
-    cairo_stroke(cr);
-
-    cairo_set_source_rgb(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b);
-    cairo_set_font_size(cr, 12);
-    char program_label[32];
-    snprintf(program_label, sizeof(program_label), "Program %03u", ui->state.melody_program);
-    cairo_move_to(cr, dd_x + 8, dd_y + dd_h - 7);
-    cairo_show_text(cr, program_label);
-
-    // Dropdown arrow
-    cairo_move_to(cr, dd_x + dd_w - 14, dd_y + 8);
-    cairo_line_to(cr, dd_x + dd_w - 6, dd_y + 8);
-    cairo_line_to(cr, dd_x + dd_w - 10, dd_y + 14);
-    cairo_close_path(cr);
-    cairo_set_source_rgba(cr, 1, 1, 1, 0.6);
-    cairo_fill(cr);
-
-    if (ui->program_menu_open) {
-        int base = (ui->state.melody_program / PROGRAM_MENU_ROWS) * PROGRAM_MENU_ROWS;
-        if (base > 127 - PROGRAM_MENU_ROWS) {
-            base = 127 - PROGRAM_MENU_ROWS + 1;
-        }
-        int menu_x = dd_x;
-        int menu_h = PROGRAM_MENU_ROWS * PROGRAM_MENU_ITEM_HEIGHT;
-        int menu_y = dd_y - menu_h;
-
-        cairo_set_source_rgb(cr, 0.12, 0.12, 0.14);
-        cairo_rectangle(cr, menu_x, menu_y, dd_w, menu_h);
-        cairo_fill(cr);
-        cairo_set_source_rgba(cr, 1, 1, 1, 0.2);
-        cairo_rectangle(cr, menu_x, menu_y, dd_w, menu_h);
-        cairo_stroke(cr);
-
-        cairo_set_font_size(cr, 11);
-        for (int i = 0; i < PROGRAM_MENU_ROWS; ++i) {
-            int program = base + i;
-            if (program > 127) break;
-            int item_y = menu_y + i * PROGRAM_MENU_ITEM_HEIGHT;
-            if (program == ui->state.melody_program) {
-                cairo_set_source_rgba(cr, 0.3, 0.6, 0.9, 0.4);
-                cairo_rectangle(cr, menu_x + 1, item_y + 1, dd_w - 2, PROGRAM_MENU_ITEM_HEIGHT - 2);
-                cairo_fill(cr);
-            }
-            cairo_set_source_rgb(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b);
-            char item_label[16];
-            snprintf(item_label, sizeof(item_label), "%03d", program);
-            cairo_move_to(cr, menu_x + 10, item_y + PROGRAM_MENU_ITEM_HEIGHT - 5);
-            cairo_show_text(cr, item_label);
-        }
-    }
 }
 
-static void redraw(QuadrangleUI *ui) {
+static void redraw(PadSeqUI *ui) {
     if (!ui->back_cr) return;
 
     // Clear back buffer
@@ -587,7 +433,7 @@ static void redraw(QuadrangleUI *ui) {
 // ============================================================================
 
 static int idle(LV2UI_Handle handle) {
-    QuadrangleUI *ui = (QuadrangleUI*)handle;
+    PadSeqUI *ui = (PadSeqUI*)handle;
     if (!ui || !ui->display || !ui->window) {
         return 1;
     }
@@ -622,11 +468,7 @@ static int idle(LV2UI_Handle handle) {
 // ============================================================================
 
 static void *event_thread_main(void *arg) {
-    QuadrangleUI *ui = (QuadrangleUI*)arg;
-    static const uint8_t bottom_ccs[4] = {74, 71, 1, 27};
-    static const char *scale_names[4] = {"Chromatic", "Major", "Minor", "Pentatonic"};
-    static const char *bank_names[4] = {"Degrees 1-4", "Degrees 5-8",
-                                        "Degrees 9-12", "Degrees 13-16"};
+    PadSeqUI *ui = (PadSeqUI*)arg;
 
     while (ui->running) {
         while (XPending(ui->display)) {
@@ -690,44 +532,9 @@ static void *event_thread_main(void *arg) {
                             ui->hover_row = row;
                             ui->hover_col = col;
 
-                            if (row >= 4 && col < 4) {
-                                snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                         "Drums: step %d (voice via side buttons)", (row - 4) * 4 + col + 1);
-                            } else if (row >= 4 && col >= 4) {
-                                snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                         "Melody: step %d", (row - 4) * 4 + (col - 4) + 1);
-                            } else if (row < 4 && col < 4) {
-                                if (row >= 2) {
-                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                             "Live pad %d (euclid, ch 2)", (row - 2) * 4 + col + 1);
-                                } else if (row == 1) {
-                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                             "Live beats up (col %d)", col + 1);
-                                } else {
-                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                             "Live beats down (col %d)", col + 1);
-                                }
-                            } else {
-                                int local_row = row;
-                                int local_col = col - 4;
-                                int is_top = (local_row >= 2);
-                                if (is_top) {
-                                    if (local_row == 3) {
-                                        const char *scale = scale_names[local_col & 3];
-                                        snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                                 "Melody scale: %s (tap again to flip direction)", scale);
-                                    } else {
-                                        const char *bank = bank_names[local_col & 3];
-                                        snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                                 "Melody bank: %s", bank);
-                                    }
-                                } else {
-                                    int bit = local_row;
-                                    uint8_t cc = bottom_ccs[local_col];
-                                    snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                             "Param CC %u bit %d", cc, bit);
-                                }
-                            }
+                            uint8_t step = (uint8_t)(row * GRID_DIM + col);
+                            snprintf(ui->hover_text, sizeof(ui->hover_text),
+                                     "Step %u (voice %u)", step + 1, ui->state.selected_voice + 1);
                             ui->needs_redraw = 1;
                             break;
                         }
@@ -740,52 +547,6 @@ static void *event_thread_main(void *arg) {
                     int is_press = (event.type == ButtonPress);
                     int x = event.xbutton.x;
                     int y = event.xbutton.y;
-
-                    int dd_x, dd_y, dd_w, dd_h;
-                    program_dropdown_geometry(ui, &dd_x, &dd_y, &dd_w, &dd_h);
-
-                    if (is_press) {
-                        int menu_h = PROGRAM_MENU_ROWS * PROGRAM_MENU_ITEM_HEIGHT;
-                        int menu_x = dd_x;
-                        int menu_y = dd_y - menu_h;
-
-                        if (ui->program_menu_open &&
-                            point_in_rect(x, y, menu_x, menu_y, dd_w, menu_h)) {
-                            int index = (y - menu_y) / PROGRAM_MENU_ITEM_HEIGHT;
-                            int base = (ui->state.melody_program / PROGRAM_MENU_ROWS) * PROGRAM_MENU_ROWS;
-                            if (base > 127 - PROGRAM_MENU_ROWS) {
-                                base = 127 - PROGRAM_MENU_ROWS + 1;
-                            }
-                            int program = base + index;
-                            if (program >= 0 && program <= 127) {
-                                ui->state.melody_program = (uint8_t)program;
-                                send_program_change(ui, (uint8_t)program);
-                                ui->program_menu_open = 0;
-                                ui->needs_redraw = 1;
-                                break;
-                            }
-                        }
-
-                        if (point_in_rect(x, y, dd_x, dd_y, dd_w, dd_h)) {
-                            if (event.xbutton.button == Button4 ||
-                                event.xbutton.button == Button5) {
-                                int delta = (event.xbutton.button == Button4) ? 1 : -1;
-                                uint8_t program = (uint8_t)((ui->state.melody_program + delta + 128) & 0x7F);
-                                ui->state.melody_program = program;
-                                send_program_change(ui, program);
-                                ui->needs_redraw = 1;
-                                break;
-                            }
-                            if (event.xbutton.button == Button1) {
-                                ui->program_menu_open = ui->program_menu_open ? 0 : 1;
-                                ui->needs_redraw = 1;
-                                break;
-                            }
-                        } else if (ui->program_menu_open && event.xbutton.button == Button1) {
-                            ui->program_menu_open = 0;
-                            ui->needs_redraw = 1;
-                        }
-                    }
 
                     int grid_x = x - MARGIN;
                     int grid_y = y - (MARGIN + TOP_HEIGHT);
@@ -925,7 +686,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     (void)plugin_uri;
     (void)bundle_path;
 
-    QuadrangleUI *ui = (QuadrangleUI*)calloc(1, sizeof(QuadrangleUI));
+    PadSeqUI *ui = (PadSeqUI*)calloc(1, sizeof(PadSeqUI));
     if (!ui) return NULL;
 
     ui->write_function = write_function;
@@ -934,18 +695,18 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     // Initialize state
     memset(&ui->state, 0, sizeof(UIState));
     ui->state.bpm = 120;
-    ui->state.melody_program = 0;
     ui->needs_redraw = 1;
     ui->width = WINDOW_WIDTH;
     ui->height = WINDOW_HEIGHT;
     ui->running = 1;
     pthread_mutex_init(&ui->mutex, NULL);
-    ui->program_menu_open = 0;
     ui->has_state_sync = 0;
     ui->last_step = 0;
     ui->playhead_flash = 0;
     ui->sync_ping_countdown = 20;
     apply_default_ui_layout(ui);
+    ui->state.euclid_pulses = 0;
+    ui->state.euclid_offset = 0;
 
     ensure_xlib_threads();
 
@@ -986,7 +747,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
         &attrs
     );
 
-    XStoreName(ui->display, ui->window, "Quadrangle");
+    XStoreName(ui->display, ui->window, "PadSeq");
 
     XMapWindow(ui->display, ui->window);
 
@@ -1035,7 +796,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
 }
 
 static void cleanup(LV2UI_Handle handle) {
-    QuadrangleUI *ui = (QuadrangleUI*)handle;
+    PadSeqUI *ui = (PadSeqUI*)handle;
     if (!ui) return;
 
     ui->running = 0;
@@ -1083,7 +844,7 @@ static void port_event(LV2UI_Handle handle,
                        uint32_t buffer_size,
                        uint32_t format,
                        const void *buffer) {
-    QuadrangleUI *ui = (QuadrangleUI*)handle;
+    PadSeqUI *ui = (PadSeqUI*)handle;
     if (!ui) return;
 
     // play_state is a plain control port (float)
@@ -1091,7 +852,7 @@ static void port_event(LV2UI_Handle handle,
         float value = *(const float*)buffer;
         ui->state.playing = (value > 0.5f) ? 1 : 0;
         if (!ui->has_state_sync) {
-            ui->state.top_buttons[7] = ui->state.playing ? 1 : 0;
+            ui->state.top_buttons[8] = ui->state.playing ? 1 : 0;
         }
         ui->needs_redraw = 1;
         return;
@@ -1138,7 +899,7 @@ static void port_event(LV2UI_Handle handle,
     if (port_index == PORT_CURRENT_STEP && buffer && buffer_size >= sizeof(float)) {
         float value = *(const float*)buffer;
         if (value < 0) value = 0;
-        if (value > 15) value = 15;
+        if (value > 63) value = 63;
         ui->state.current_step = (uint8_t)value;
         if (ui->state.current_step != ui->last_step) {
             ui->playhead_flash = 6;
@@ -1150,10 +911,10 @@ static void port_event(LV2UI_Handle handle,
     if (port_index == 7 && buffer && buffer_size >= sizeof(LV2_Atom_Sequence)) {
         const LV2_Atom_Sequence* seq = (const LV2_Atom_Sequence*)buffer;
         LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
-            if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(QuadrangleUiState)) {
-                const QuadrangleUiState* state = (const QuadrangleUiState*)(ev + 1);
-                if (state->magic == QUADRANGLE_UI_STATE_MAGIC &&
-                    (state->version == QUADRANGLE_UI_STATE_VERSION || state->version == 1)) {
+            if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(PadSeqUiState)) {
+                const PadSeqUiState* state = (const PadSeqUiState*)(ev + 1);
+                if (state->magic == PADSEQ_UI_STATE_MAGIC &&
+                    (state->version == PADSEQ_UI_STATE_VERSION || state->version == 1)) {
                     ui->has_state_sync = 1;
                     for (uint8_t r = 0; r < 8; ++r) {
                         for (uint8_t c = 0; c < 8; ++c) {
@@ -1173,29 +934,30 @@ static void port_event(LV2UI_Handle handle,
                     ui->state.playing = state->playing;
                     ui->state.current_step = state->current_step;
                     if (state->version >= 2) {
-                        ui->state.melody_program = state->melody_program;
+                        ui->state.euclid_pulses = state->euclid_pulses;
+                        ui->state.euclid_offset = state->euclid_offset;
                     }
                     ui->needs_redraw = 1;
                 }
-            } else if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(QuadrangleUiDelta)) {
-                const QuadrangleUiDelta* delta = (const QuadrangleUiDelta*)(ev + 1);
-                if (delta->magic != QUADRANGLE_UI_DELTA_MAGIC ||
-                    delta->version != QUADRANGLE_UI_DELTA_VERSION) {
+            } else if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(PadSeqUiDelta)) {
+                const PadSeqUiDelta* delta = (const PadSeqUiDelta*)(ev + 1);
+                if (delta->magic != PADSEQ_UI_DELTA_MAGIC ||
+                    delta->version != PADSEQ_UI_DELTA_VERSION) {
                     continue;
                 }
                 if (delta->color == COLOR_PLAYHEAD) {
                     continue;
                 }
                 ui->has_state_sync = 1;
-                if (delta->target == QUADRANGLE_UI_DELTA_GRID) {
+                if (delta->target == PADSEQ_UI_DELTA_GRID) {
                     if (delta->index_a < 8 && delta->index_b < 8) {
                         ui->state.grid[delta->index_a][delta->index_b] = delta->color;
                     }
-                } else if (delta->target == QUADRANGLE_UI_DELTA_SIDE) {
+                } else if (delta->target == PADSEQ_UI_DELTA_SIDE) {
                     if (delta->index_a < 8) {
                         ui->state.side_buttons[delta->index_a] = delta->color;
                     }
-                } else if (delta->target == QUADRANGLE_UI_DELTA_TOP) {
+                } else if (delta->target == PADSEQ_UI_DELTA_TOP) {
                     if (delta->index_a < 9) {
                         ui->state.top_buttons[delta->index_a] = delta->color;
                     }
@@ -1221,7 +983,7 @@ static const void* extension_data(const char *uri) {
 // ============================================================================
 
 static const LV2UI_Descriptor descriptor = {
-    QUADRANGLE_UI_URI,
+    PADSEQ_UI_URI,
     instantiate,
     cleanup,
     port_event,
