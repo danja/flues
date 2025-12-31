@@ -123,16 +123,15 @@ lv2info https://danja.github.io/flues/plugins/quadrangle
 
 ### Controls
 
-**Top Row (L to R):**
-- Button 0: Euclid Pulses Up (current drum voice)
-- Button 1: Euclid Offset Up (current drum voice)
-- Button 2: Active Columns Down (1-8)
-- Button 3: Active Columns Up (1-8)
-- Button 4: Pattern A
-- Button 5: Pattern B
-- Button 6: 🗑️ Clear current voice (keeps Euclid values)
-- Button 7: 🗑️ Clear current pattern + Euclid values (all voices)
-- Button 8: ▶️ Play/Stop (Green when playing)
+**Top Row (L to R, numbered 1-8):**
+- Button 1: Euclid Pulses Up (current drum voice)
+- Button 2: Euclid Offset Up (current drum voice)
+- Button 3: Active Columns Down (1-8)
+- Button 4: Active Columns Up (1-8)
+- Button 5: Pattern A
+- Button 6: Pattern B
+- Button 7: 🗑️ Clear current voice + Euclid values
+- Button 8: 🗑️ Clear current pattern + Euclid values (all voices)
 
 ### Install / Build
 

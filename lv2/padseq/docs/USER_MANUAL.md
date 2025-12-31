@@ -11,17 +11,16 @@ PadSeq is a Launchpad-driven drum sequencer LV2 plugin for the Novation Launchpa
 
 ## Controls
 
-### Top Row (CC 91-99)
+### Top Row (CC 91-98)
 
-- CC 91: Euclid Pulses  Up (current voice)
+- CC 91: Euclid Pulses Up (current voice)
 - CC 92: Euclid Offset Up (current voice)
 - CC 93: Active Columns Down (1-8)
 - CC 94: Active Columns Up (1-8)
 - CC 95: Pattern A
 - CC 96: Pattern B
-- CC 97: Clear current voice (keeps Euclid values)
+- CC 97: Clear current voice + Euclid values
 - CC 98: Clear current pattern + Euclid values (all voices)
-- CC 99: Play/Stop
 
 ### Side Buttons (CC 89-19)
 

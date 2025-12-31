@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <pthread.h>
 #include <lv2/core/lv2.h>
 #include <lv2/atom/atom.h>
@@ -86,8 +87,10 @@ typedef struct {
     int hover_row;
     int hover_col;
     char hover_text[128];
+    char status_text[128];
     uint8_t last_step;
     int playhead_flash;
+    int status_frames;
     int sync_ping_countdown;
 
     LV2UI_Write_Function write_function;
@@ -112,6 +115,25 @@ static void ensure_xlib_threads(void) {
         g_xlib_threads_ready = true;
     }
     pthread_mutex_unlock(&g_xlib_init_lock);
+}
+
+static void set_status(PadSeqUI *ui, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ui->status_text, sizeof(ui->status_text), fmt, args);
+    va_end(args);
+    ui->status_frames = 120;
+    ui->needs_redraw = 1;
+}
+
+static uint8_t ui_active_columns(const PadSeqUI *ui) {
+    uint8_t count = 0;
+    for (uint8_t c = 0; c < GRID_DIM; ++c) {
+        if (ui->state.grid[0][c] != COLOR_GRAY_DIM) {
+            count++;
+        }
+    }
+    return count;
 }
 
 // ============================================================================
@@ -256,6 +278,7 @@ static void apply_default_ui_layout(PadSeqUI *ui) {
     ui->state.top_buttons[5] = COLOR_YELLOW_DIM;
     ui->state.top_buttons[6] = COLOR_RED_DIM;
     ui->state.top_buttons[7] = COLOR_RED_DIM;
+    ui->state.top_buttons[8] = COLOR_RED_DIM;
 }
 
 static void send_ui_sync_request(PadSeqUI *ui) {
@@ -405,6 +428,13 @@ static void draw_grid(PadSeqUI *ui) {
         cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.8);
         cairo_move_to(cr, MARGIN, info_y + 72);
         cairo_show_text(cr, ui->hover_text);
+    }
+
+    if (ui->status_frames > 0 && ui->status_text[0] != '\0') {
+        cairo_set_font_size(cr, 11);
+        cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.8);
+        cairo_move_to(cr, MARGIN, info_y + 52);
+        cairo_show_text(cr, ui->status_text);
     }
 
 }
@@ -654,6 +684,13 @@ static void *event_thread_main(void *arg) {
         if (ui->playhead_flash > 0) {
             ui->playhead_flash--;
             ui->needs_redraw = 1;
+        }
+        if (ui->status_frames > 0) {
+            ui->status_frames--;
+            if (ui->status_frames == 0) {
+                ui->status_text[0] = '\0';
+                ui->needs_redraw = 1;
+            }
         }
 
         if (!ui->has_state_sync) {
@@ -956,10 +993,43 @@ static void port_event(LV2UI_Handle handle,
                 } else if (delta->target == PADSEQ_UI_DELTA_SIDE) {
                     if (delta->index_a < 8) {
                         ui->state.side_buttons[delta->index_a] = delta->color;
+                        set_status(ui, "Voice %u selected", (unsigned)(delta->index_a + 1));
                     }
                 } else if (delta->target == PADSEQ_UI_DELTA_TOP) {
                     if (delta->index_a < 9) {
                         ui->state.top_buttons[delta->index_a] = delta->color;
+                        switch (delta->index_a) {
+                            case 0:
+                                set_status(ui, "Euclid pulses: %u", ui->state.euclid_pulses);
+                                break;
+                            case 1:
+                                set_status(ui, "Euclid offset: %u", ui->state.euclid_offset);
+                                break;
+                            case 2:
+                            case 3:
+                                set_status(ui, "Active columns: %u", ui_active_columns(ui));
+                                break;
+                            case 4:
+                                set_status(ui, "Pattern A selected");
+                                break;
+                            case 5:
+                                set_status(ui, "Pattern B selected");
+                                break;
+                            case 6:
+                                set_status(ui, "Cleared voice %u (Euclid reset)",
+                                           (unsigned)(ui->state.selected_voice + 1));
+                                break;
+                            case 7:
+                                set_status(ui, "Cleared pattern %c (Euclid reset)",
+                                           (char)('A' + (ui->state.pattern & 1)));
+                                break;
+                            case 8:
+                                set_status(ui, "Cleared pattern %c (Euclid reset)",
+                                           (char)('A' + (ui->state.pattern & 1)));
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
                 ui->needs_redraw = 1;

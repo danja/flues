@@ -217,13 +217,13 @@ static void set_default_led_layout(PadSeq* self) {
         grid_state_set_side_button(&self->engine.grid_state, i, 0, color);
     }
 
-    // Top buttons: play/stop off, patterns A/B dim, clear dim red
+    // Top buttons: patterns A/B dim, clear dim red
     for (uint8_t i = 0; i < 9; ++i) {
         uint8_t color = COLOR_OFF;
-        if (i == 5 || i == 6) {
+        if (i == 4 || i == 5) {
             color = COLOR_YELLOW_DIM;  // pattern buttons A/B
-        } else if (i == 8) {
-            color = COLOR_RED_DIM;     // clear
+        } else if (i == 6 || i == 7 || i == 8) {
+            color = COLOR_RED_DIM;     // clear buttons
         }
         grid_state_set_top_button(&self->engine.grid_state, i, 0, color);
     }
@@ -434,6 +434,15 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         padseq_handle_pad_release(&self->engine, row, col);
                         ui_dirty = true;
                         add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_GRID, row, col);
+                    }
+                } else {
+                    uint8_t index = 0;
+                    if (is_top_button(note, &index)) {
+                        fprintf(stderr, "padseq: Top button note %u\n", index);
+                        padseq_handle_top_button(&self->engine, index);
+                        ui_dirty = true;
+                        add_ui_delta(ui_deltas, &ui_delta_count, PADSEQ_UI_DELTA_TOP, index, 0);
+                        add_ui_grid_deltas(ui_deltas, &ui_delta_count);
                     }
                 }
             }

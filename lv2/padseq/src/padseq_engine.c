@@ -207,7 +207,8 @@ void padseq_handle_top_button(PadSeqEngine *engine, uint8_t index) {
             grid_state_set_top_button(&engine->grid_state, 6, 0, COLOR_RED_BRIGHT);
             break;
         }
-        case 7: { // Clear pattern + Euclid
+        case 7: // Clear pattern + Euclid
+        case 8: {
             uint8_t p = engine->grid_state.pattern & 1;
             for (uint8_t v = 0; v < MAX_DRUM_VOICES; ++v) {
                 memset(engine->drum_voices[v].steps, 0, SEQ_STEPS);
@@ -216,17 +217,9 @@ void padseq_handle_top_button(PadSeqEngine *engine, uint8_t index) {
                 engine->euclid_offset[p][v] = 0;
             }
             grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_RED_BRIGHT);
+            grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_RED_BRIGHT);
             break;
         }
-        case 8:  // Play/Stop
-            if (engine->playing) {
-                padseq_stop(engine);
-                grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_OFF);
-            } else {
-                padseq_start(engine);
-                grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_GREEN_BRIGHT);
-            }
-            break;
         default:
             break;
     }
@@ -337,8 +330,6 @@ void padseq_refresh_grid_state(PadSeqEngine *engine) {
         grid_state_set_side_button(&engine->grid_state, i, 0, color);
     }
 
-    grid_state_set_top_button(&engine->grid_state, 8, 0,
-                              engine->playing ? COLOR_GREEN_BRIGHT : COLOR_OFF);
     grid_state_set_top_button(&engine->grid_state, 0, 0, COLOR_CYAN_DIM);
     grid_state_set_top_button(&engine->grid_state, 1, 0, COLOR_CYAN_DIM);
     grid_state_set_top_button(&engine->grid_state, 2, 0, COLOR_BLUE_DIM);
@@ -349,6 +340,7 @@ void padseq_refresh_grid_state(PadSeqEngine *engine) {
                               engine->grid_state.pattern == 1 ? COLOR_SELECTED : COLOR_YELLOW_DIM);
     grid_state_set_top_button(&engine->grid_state, 6, 0, COLOR_RED_DIM);
     grid_state_set_top_button(&engine->grid_state, 7, 0, COLOR_RED_DIM);
+    grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_RED_DIM);
 }
 
 // ============================================================================
