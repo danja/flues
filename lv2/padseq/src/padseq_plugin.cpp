@@ -498,7 +498,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         }
     }
 
-    // Setup forges AFTER processing input (grid-seq pattern)
+    // Setup forges AFTER processing input (padseq pattern)
     const uint32_t midi_capacity = self->midi_out->atom.size;
     lv2_atom_forge_set_buffer(&self->forge,
                                (uint8_t*)self->midi_out,

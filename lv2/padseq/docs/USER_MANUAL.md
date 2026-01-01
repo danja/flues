@@ -1,58 +1,74 @@
 # PadSeq User Manual
 
-PadSeq is a Launchpad-driven drum sequencer LV2 plugin for the Novation Launchpad Mini MK3. It turns the full 8x8 grid into a 64-step pattern editor with 8 drum voices, two pattern slots (A/B), and per-voice Euclidean pattern generation.
+PadSeq is a Launchpad-driven drum sequencer LV2 plugin for the Novation Launchpad Mini MK3. It turns the full 8x8 grid into a 64-step pattern editor with 8 drum voices, two pattern slots (A/B), and per-voice Euclidean generation.
 
 ## Quick Start
 
 1. Load PadSeq on a MIDI track.
-2. Route the Launchpad MIDI to the plugin's control input.
-3. The plugin switches the Launchpad into Programmer mode automatically.
-4. The grid lights show the current pattern state.
+2. Route Launchpad DAW MIDI to PadSeq **Control In** and PadSeq **Launchpad Control** back to the Launchpad.
+3. Route PadSeq **MIDI Out** to a drum instrument.
+4. Press play in the host; PadSeq follows tempo and transport.
+
+## Grid Layout
+
+- **Grid (8x8)** = 64 steps for the selected voice
+- **Side buttons** = select voice 0-7
+- **Top row** = Euclid, length, pattern, clear
 
 ## Controls
 
-### Top Row (CC 91-98)
+### Top Row (CC 91-99)
 
-- CC 91: Euclid Pulses Up (current voice)
-- CC 92: Euclid Offset Up (current voice)
-- CC 93: Active Columns Down (1-8)
-- CC 94: Active Columns Up (1-8)
+- CC 91: Euclid pulses up (current voice)
+- CC 92: Euclid offset up (current voice)
+- CC 93: Active columns down (1-8)
+- CC 94: Active columns up (1-8)
 - CC 95: Pattern A
 - CC 96: Pattern B
-- CC 97: Clear current voice + Euclid values
-- CC 98: Clear current pattern + Euclid values (all voices)
+- CC 97: Clear current voice + Euclid
+- CC 98: Clear pattern + Euclid
+- CC 99 (logo): Clear pattern + Euclid
 
-### Side Buttons (CC 89-19)
+### Side Buttons (CC 19-89)
 
 - Buttons 0-7 select the drum voice (top to bottom).
-- The selected voice is highlighted.
-- Default MIDI notes per voice (0-7): 36, 40, 39, 50, 42, 46, 53, 51 (maps to a subset of `lv2/drumkit`).
+- Selected voice is highlighted.
+- Default MIDI notes per voice (0-7): 36, 40, 39, 50, 42, 46, 53, 51.
 
-### Grid
+### Grid Behavior
 
 - Tap a pad to toggle a step on/off for the selected voice.
-- Active steps are dimly lit; inactive steps are off.
+- Pad velocity becomes step velocity.
+- Active steps are yellow, inactive steps are off.
 - Inactive columns (past the active length) are gray.
-- The playhead flashes as the sequence advances.
+- The playhead is green and advances on 16th notes.
 
 ## Euclidean Sequencing
 
-- Each voice has its own Euclid pulses and offset values.
-- Values are stored per pattern (A/B), so each pattern can have a different Euclid setup.
-- Euclid generation uses the current active column count as the pattern length.
+- Each voice has its own **pulses** and **offset**.
+- Euclid generation is based on the **current active column count**.
+- Changing length re-computes Euclid steps for voices with pulses enabled.
 
 ## Patterns
 
-- Two pattern slots: A and B.
-- Switching patterns saves and restores all voice steps.
-- Clearing the pattern (CC 98) also resets all Euclid values for that pattern.
+- Two pattern slots: **A** and **B**.
+- Switching patterns saves/restores all voice steps.
+- Clearing a pattern also resets Euclid values for that pattern.
+
+## Transport Sync
+
+- PadSeq follows the host transport (`time:Position`).
+- Tempo changes update the step clock automatically.
+- If the host does not send transport info, the sequencer will not run.
 
 ## UI Behavior
 
-- The UI mirrors the Launchpad LED state and updates on hardware interaction.
-- The playhead is an overlay flash and does not modify the underlying step state.
+- The UI mirrors Launchpad LED state.
+- Click pads in the UI to toggle steps.
+- UI status shows current voice, pattern, Euclid values, and playhead.
 
 ## Troubleshooting
 
-- No LEDs: confirm the Launchpad is routed to PadSeq and in Programmer mode.
-- UI not updating: press any pad to force a sync and verify the UI state refreshes.
+- **No LEDs**: confirm Launchpad DAW routing to PadSeq control ports.
+- **No playback**: start the host transport and verify time sync.
+- **No MIDI notes**: route PadSeq MIDI Out to a drum instrument.

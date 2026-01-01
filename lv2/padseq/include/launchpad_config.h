@@ -156,7 +156,7 @@ static const uint8_t TOP_BUTTONS[9] = {
 #define COLOR_PINK          57
 #define COLOR_PINK_BRIGHT   58
 
-// Quadrangle theme colors
+// PadSeq theme colors
 #define COLOR_DRUMS         COLOR_RED           // Drum sequencer - red
 #define COLOR_MELODY        COLOR_BLUE          // Melody sequencer - blue
 #define COLOR_LIVE          COLOR_GREEN         // Live pads - green
