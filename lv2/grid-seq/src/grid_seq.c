@@ -37,6 +37,27 @@ static const uint8_t LP_LIGHTING_SYSEX_HEADER[LP_LIGHTING_SYSEX_HEADER_SIZE] = {
 #define LP_LED_TYPE_STATIC 0x00
 #define LP_SYSEX_MAX 512
 
+static const uint8_t LP_GRID_NOTES[8][8] = {
+    {11, 12, 13, 14, 15, 16, 17, 18},
+    {21, 22, 23, 24, 25, 26, 27, 28},
+    {31, 32, 33, 34, 35, 36, 37, 38},
+    {41, 42, 43, 44, 45, 46, 47, 48},
+    {51, 52, 53, 54, 55, 56, 57, 58},
+    {61, 62, 63, 64, 65, 66, 67, 68},
+    {71, 72, 73, 74, 75, 76, 77, 78},
+    {81, 82, 83, 84, 85, 86, 87, 88}
+};
+
+static const uint8_t LP_SIDE_BUTTONS[8] = {19, 29, 39, 49, 59, 69, 79, 89};
+static const uint8_t LP_TOP_BUTTONS[9] = {91, 92, 93, 94, 95, 96, 97, 98, 99};
+
+static uint8_t lp_grid_note(uint8_t row, uint8_t col) {
+    if (row >= 8 || col >= 8) {
+        return 0;
+    }
+    return LP_GRID_NOTES[row][col];
+}
+
 typedef enum {
     PORT_MIDI_IN = 0,
     PORT_MIDI_OUT = 1,
@@ -330,7 +351,7 @@ static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max
 
     for (uint8_t x = 0; x < 8; x++) {
         for (uint8_t y = 0; y < 8; y++) {
-            uint8_t note = lp_grid_to_note(x, y);
+            uint8_t note = lp_grid_note(y, x);
             uint8_t actual_step = page_offset + x;
             uint8_t actual_note = gs->state.pitch_offset + y;
             uint8_t color;
@@ -338,14 +359,10 @@ static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max
             // If this column is beyond sequence length, turn it off
             if (actual_step >= gs->state.sequence_length) {
                 color = LP_COLOR_OFF;
-            }
-            // Check if this is the current playing step
-            else if (actual_step == gs->state.current_step) {
-                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_YELLOW : LP_COLOR_GREEN_DIM;
-            }
-            // Normal step coloring
-            else {
-                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_GREEN : LP_COLOR_OFF;
+            } else if (actual_step == gs->state.current_step) {
+                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_RED : LP_COLOR_GREEN;
+            } else {
+                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_YELLOW : LP_COLOR_OFF;
             }
 
             append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
@@ -361,29 +378,26 @@ static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max
 
     // Light up arrow buttons based on current page and sequence length
     // Left arrow (CC 93) - only lit if we can go left
-    uint8_t left_color = (gs->state.hardware_page > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
-    append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 93);
-    append_sysex_byte(buffer, &pos, max, left_color);
+    for (uint8_t i = 0; i < 8; i++) {
+        append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
+        append_sysex_byte(buffer, &pos, max, LP_SIDE_BUTTONS[i]);
+        append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
+    }
 
-    // Right arrow (CC 94) - only lit if sequence length > 8 and we can go right
-    uint8_t right_color = (gs->state.sequence_length > 8 && gs->state.hardware_page == 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
-    append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 94);
-    append_sysex_byte(buffer, &pos, max, right_color);
+    uint8_t top_colors[9];
+    for (uint8_t i = 0; i < 9; i++) {
+        top_colors[i] = LP_COLOR_OFF;
+    }
+    top_colors[2] = (gs->state.hardware_page > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    top_colors[3] = (gs->state.sequence_length > 8 && gs->state.hardware_page == 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    top_colors[0] = (gs->state.pitch_offset > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    top_colors[1] = (gs->state.pitch_offset < (GRID_PITCH_RANGE - GRID_VISIBLE_ROWS)) ? LP_COLOR_WHITE : LP_COLOR_OFF;
 
-    // Up/Down pitch shift buttons (CC 91/92)
-    // CC 91 (down) - lit if we can shift down
-    uint8_t down_color = (gs->state.pitch_offset > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
-    append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 91);
-    append_sysex_byte(buffer, &pos, max, down_color);
-
-    // CC 92 (up) - lit if we can shift up
-    uint8_t up_color = (gs->state.pitch_offset < (GRID_PITCH_RANGE - GRID_VISIBLE_ROWS)) ? LP_COLOR_WHITE : LP_COLOR_OFF;
-    append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 92);
-    append_sysex_byte(buffer, &pos, max, up_color);
+    for (uint8_t i = 0; i < 9; i++) {
+        append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
+        append_sysex_byte(buffer, &pos, max, LP_TOP_BUTTONS[i]);
+        append_sysex_byte(buffer, &pos, max, top_colors[i]);
+    }
 
     append_sysex_byte(buffer, &pos, max, LP_SYSEX_END);
     return pos;
@@ -402,7 +416,7 @@ static size_t build_launchpad_clear_sysex(uint8_t* buffer, size_t max) {
 
     for (uint8_t y = 0; y < 8; y++) {
         for (uint8_t x = 0; x < 8; x++) {
-            uint8_t note = lp_grid_to_note(x, y);
+            uint8_t note = lp_grid_note(y, x);
             append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
             append_sysex_byte(buffer, &pos, max, note);
             append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
@@ -410,16 +424,16 @@ static size_t build_launchpad_clear_sysex(uint8_t* buffer, size_t max) {
     }
 
     append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 93);
+    append_sysex_byte(buffer, &pos, max, LP_TOP_BUTTONS[2]);
     append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
     append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 94);
+    append_sysex_byte(buffer, &pos, max, LP_TOP_BUTTONS[3]);
     append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
     append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 91);
+    append_sysex_byte(buffer, &pos, max, LP_TOP_BUTTONS[0]);
     append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
     append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
-    append_sysex_byte(buffer, &pos, max, 92);
+    append_sysex_byte(buffer, &pos, max, LP_TOP_BUTTONS[1]);
     append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
 
     append_sysex_byte(buffer, &pos, max, LP_SYSEX_END);
@@ -431,15 +445,15 @@ static void send_launchpad_sysex(GridSeq* gs, const uint8_t* data, uint16_t size
         return;
     }
 
-    // Primary: Launchpad output
-    if (gs->launchpad_out && gs->launchpad_out->atom.size >= sizeof(LV2_Atom_Sequence_Body)) {
+    // Primary: Launchpad control output.
+    if (gs->launchpad_out) {
         lv2_atom_forge_frame_time(&gs->launchpad_forge, 0);
         lv2_atom_forge_atom(&gs->launchpad_forge, size, gs->midi_MidiEvent);
         lv2_atom_forge_write(&gs->launchpad_forge, data, size);
     }
 
-    // Fallback: also send via midi_out (SysEx is ignored by instruments)
-    if (gs->midi_out && gs->midi_out->atom.size >= sizeof(LV2_Atom_Sequence_Body)) {
+    // Fallback: SysEx only via midi_out (safe for instruments).
+    if (gs->midi_out) {
         lv2_atom_forge_frame_time(&gs->forge, 0);
         lv2_atom_forge_atom(&gs->forge, size, gs->midi_MidiEvent);
         lv2_atom_forge_write(&gs->forge, data, size);
@@ -449,16 +463,10 @@ static void send_launchpad_sysex(GridSeq* gs, const uint8_t* data, uint16_t size
 static void send_launchpad_msg(GridSeq* gs, uint8_t status, uint8_t data1, uint8_t data2) {
     uint8_t msg[3] = {status, data1, data2};
 
-    if (gs->launchpad_out && gs->launchpad_out->atom.size >= sizeof(LV2_Atom_Sequence_Body)) {
+    if (gs->launchpad_out) {
         lv2_atom_forge_frame_time(&gs->launchpad_forge, 0);
         lv2_atom_forge_atom(&gs->launchpad_forge, 3, gs->midi_MidiEvent);
         lv2_atom_forge_write(&gs->launchpad_forge, msg, 3);
-    }
-
-    if (gs->midi_out && gs->midi_out->atom.size >= sizeof(LV2_Atom_Sequence_Body)) {
-        lv2_atom_forge_frame_time(&gs->forge, 0);
-        lv2_atom_forge_atom(&gs->forge, 3, gs->midi_MidiEvent);
-        lv2_atom_forge_write(&gs->forge, msg, 3);
     }
 }
 
@@ -475,9 +483,9 @@ static void update_launchpad_leds_note_cc(GridSeq* gs) {
             if (actual_step >= gs->state.sequence_length) {
                 color = LP_COLOR_OFF;
             } else if (actual_step == gs->state.current_step) {
-                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_YELLOW : LP_COLOR_GREEN_DIM;
+                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_RED : LP_COLOR_GREEN;
             } else {
-                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_GREEN : LP_COLOR_OFF;
+                color = gs->state.grid[actual_step][actual_note] ? LP_COLOR_YELLOW : LP_COLOR_OFF;
             }
 
             send_launchpad_msg(gs, 0x90, note, color);
@@ -778,8 +786,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     // Setup forge for MIDI notes output
-    const bool midi_out_connected = gs->midi_out &&
-        gs->midi_out->atom.size >= sizeof(LV2_Atom_Sequence_Body);
+    const bool midi_out_connected = (gs->midi_out != NULL);
     if (midi_out_connected) {
         const uint32_t out_capacity = gs->midi_out->atom.size;
         lv2_atom_forge_set_buffer(&gs->forge,
@@ -788,8 +795,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     // Setup forge for Launchpad control output
-    const bool launchpad_connected = gs->launchpad_out &&
-        gs->launchpad_out->atom.size >= sizeof(LV2_Atom_Sequence_Body);
+    const bool launchpad_connected = (gs->launchpad_out != NULL);
     if (launchpad_connected) {
         const uint32_t lp_capacity = gs->launchpad_out->atom.size;
         lv2_atom_forge_set_buffer(&gs->launchpad_forge,
@@ -798,8 +804,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     // Setup forge for UI notifications
-    const bool notify_connected = gs->notify &&
-        gs->notify->atom.size >= sizeof(LV2_Atom_Sequence_Body);
+    const bool notify_connected = (gs->notify != NULL);
     if (notify_connected) {
         const uint32_t notify_capacity = gs->notify->atom.size;
         lv2_atom_forge_set_buffer(&gs->notify_forge,
@@ -895,11 +900,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         }
     }
 
-    // End MIDI note sequence
-    if (midi_out_connected) {
-        lv2_atom_forge_pop(&gs->forge, &frame);
-    }
-
     // Update Launchpad LEDs if grid changed or step changed
     if (gs->grid_dirty || gs->state.current_step != gs->prev_led_step) {
         fprintf(stderr, "grid-seq: Calling update_launchpad_leds (grid_dirty=%d, step=%d)\n",
@@ -933,6 +933,11 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
         gs->last_toggled_x = -1;
         gs->last_toggled_y = -1;
+    }
+
+    // End MIDI note sequence after LED updates so fallback writes still land.
+    if (midi_out_connected) {
+        lv2_atom_forge_pop(&gs->forge, &frame);
     }
 
     // End Launchpad control sequence
