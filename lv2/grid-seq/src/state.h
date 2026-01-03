@@ -22,6 +22,7 @@ typedef struct {
     uint8_t previous_step;
     uint8_t sequence_length;    // 2-16 steps
     uint8_t hardware_page;      // 0 or 1 for Launchpad paging
+    uint8_t scale_index;        // 0-7 scale selection
     double beats_per_bar;
     double sample_rate;
     bool playing;
@@ -55,5 +56,20 @@ void state_toggle_step(GridSeqState* state, uint8_t x, uint8_t y);
  * @param bpm Beats per minute
  */
 void state_update_tempo(GridSeqState* state, double bpm);
+
+/**
+ * Map a visible grid row (0-7) to a MIDI note based on the selected scale.
+ */
+uint8_t state_scale_row_to_note(const GridSeqState* state, uint8_t row);
+
+/**
+ * Get the display name of a scale by index.
+ */
+const char* state_scale_name(uint8_t index);
+
+/**
+ * Return the number of available scales.
+ */
+uint8_t state_scale_count(void);
 
 #endif // GRID_SEQ_STATE_H

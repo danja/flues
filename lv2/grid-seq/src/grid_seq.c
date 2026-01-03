@@ -58,6 +58,7 @@ static uint8_t lp_grid_note(uint8_t row, uint8_t col) {
     return LP_GRID_NOTES[row][col];
 }
 
+
 typedef enum {
     PORT_MIDI_IN = 0,
     PORT_MIDI_OUT = 1,
@@ -278,8 +279,7 @@ static void update_grid_row_ports(GridSeq* gs) {
         if (gs->grid_row[x]) {
             uint8_t row_value = 0;
             for (int y = 0; y < GRID_VISIBLE_ROWS; y++) {
-                // Map visible row to actual MIDI note using pitch_offset
-                uint8_t actual_note = gs->state.pitch_offset + y;
+                uint8_t actual_note = gs->state.pitch_offset + (uint8_t)y;
                 if (gs->state.grid[x][actual_note]) {
                     row_value |= (1 << y);
                 }
@@ -381,7 +381,8 @@ static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max
     for (uint8_t i = 0; i < 8; i++) {
         append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
         append_sysex_byte(buffer, &pos, max, LP_SIDE_BUTTONS[i]);
-        append_sysex_byte(buffer, &pos, max, LP_COLOR_OFF);
+        uint8_t side_color = (i == (gs->state.scale_index % state_scale_count())) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+        append_sysex_byte(buffer, &pos, max, side_color);
     }
 
     uint8_t top_colors[9];
@@ -475,7 +476,7 @@ static void update_launchpad_leds_note_cc(GridSeq* gs) {
 
     for (uint8_t x = 0; x < 8; x++) {
         for (uint8_t y = 0; y < 8; y++) {
-            uint8_t note = lp_grid_to_note(x, y);
+            uint8_t note = lp_grid_note(y, x);
             uint8_t actual_step = page_offset + x;
             uint8_t actual_note = gs->state.pitch_offset + y;
             uint8_t color;
@@ -496,6 +497,11 @@ static void update_launchpad_leds_note_cc(GridSeq* gs) {
     uint8_t right_color = (gs->state.sequence_length > 8 && gs->state.hardware_page == 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     uint8_t down_color = (gs->state.pitch_offset > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     uint8_t up_color = (gs->state.pitch_offset < (GRID_PITCH_RANGE - GRID_VISIBLE_ROWS)) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        uint8_t side_color = (i == (gs->state.scale_index % state_scale_count())) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+        send_launchpad_msg(gs, 0xB0, LP_SIDE_BUTTONS[i], side_color);
+    }
 
     send_launchpad_msg(gs, 0xB0, 93, left_color);
     send_launchpad_msg(gs, 0xB0, 94, right_color);
@@ -656,6 +662,18 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                                     gs->state.pitch_offset + GRID_VISIBLE_ROWS - 1);
                         }
                     }
+                    else {
+                        for (uint8_t i = 0; i < 8; i++) {
+                            if (cc == LP_SIDE_BUTTONS[i]) {
+                                gs->state.scale_index = i;
+                                gs->grid_dirty = true;
+                                fprintf(stderr, "grid-seq: Scale set to %s (index %u)\n",
+                                        state_scale_name(gs->state.scale_index),
+                                        gs->state.scale_index);
+                                break;
+                            }
+                        }
+                    }
                     // Top row buttons could be used for other functions if needed
                     // CC 93/94 are arrows, so top row would be different CCs
                 }
@@ -764,13 +782,13 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         }
 
         // If values changed and are valid, toggle the grid cell
-        // UI sends window-relative coordinates (0-7), we add pitch_offset to get absolute MIDI note
+        // UI sends window-relative coordinates (0-7), map through scale to MIDI note
         if ((x != gs->prev_grid_x || y != gs->prev_grid_y) &&
             x >= 0 && x < MAX_GRID_SIZE && y >= 0 && y < GRID_VISIBLE_ROWS) {
             uint8_t absolute_note = gs->state.pitch_offset + (uint8_t)y;
             if (absolute_note < GRID_PITCH_RANGE) {
-                fprintf(stderr, "grid-seq: Plugin toggling cell [%d,%d] (window row %d + offset %d = MIDI note %d), new value: %d\n",
-                        (int)x, absolute_note, (int)y, gs->state.pitch_offset, absolute_note,
+                fprintf(stderr, "grid-seq: Plugin toggling cell [%d,%d] (window row %d -> MIDI note %d), new value: %d\n",
+                        (int)x, absolute_note, (int)y, absolute_note,
                         !gs->state.grid[(int)x][absolute_note]);
                 state_toggle_step(&gs->state, (uint8_t)x, absolute_note);
 
@@ -920,7 +938,8 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         uint8_t grid_data[64];
         for (int x = 0; x < 8; x++) {
             for (int y = 0; y < 8; y++) {
-                grid_data[x * 8 + y] = gs->state.grid[x][y] ? 1 : 0;
+                uint8_t actual_note = gs->state.pitch_offset + (uint8_t)y;
+                grid_data[x * 8 + y] = gs->state.grid[x][actual_note] ? 1 : 0;
             }
         }
 

@@ -41,11 +41,16 @@ void sequencer_process_step(
     // Send Note On for current step
     uint8_t x = state->current_step;
 
-    // Play all active notes across full MIDI range
-    for (uint8_t note = 0; note < GRID_PITCH_RANGE; note++) {
-        if (state->grid[x][note]) {
+    // Play active rows in the visible window, mapped to the selected scale.
+    for (uint8_t row = 0; row < GRID_VISIBLE_ROWS; row++) {
+        uint8_t stored_note = state->pitch_offset + row;
+        if (stored_note >= GRID_PITCH_RANGE) {
+            continue;
+        }
+        if (state->grid[x][stored_note]) {
+            uint8_t note = state_scale_row_to_note(state, row);
             fprintf(stderr, "grid-seq: Step %d - SENDING NOTE ON: %d from grid[%d][%d]\n",
-                    x, note, x, note);
+                    x, note, x, stored_note);
             s_send_midi_message(forge, uris, frame_offset, 0x90, note, 100);
             state->active_notes[note] = true;
         }
