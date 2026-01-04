@@ -24,6 +24,9 @@
 #define MIN_SEQUENCE_LENGTH 2
 #define MAX_SEQUENCE_LENGTH 16
 #define DEFAULT_SEQUENCE_LENGTH 8
+#define MIN_BEATS_PER_BAR 1
+#define MAX_BEATS_PER_BAR 12
+#define DEFAULT_BEATS_PER_BAR 4
 
 #define PLUGIN_URI "http://github.com/danny/grid-seq"
 #define GRID_SEQ_URI PLUGIN_URI "#"

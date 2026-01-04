@@ -38,8 +38,9 @@ void state_init(GridSeqState* state, double sample_rate) {
     memset(state, 0, sizeof(GridSeqState));
     state->pitch_offset = DEFAULT_PITCH_OFFSET;  // Start at C2 (MIDI note 36)
     state->scale_index = 0;
-    state->beats_per_bar = 4.0;
+    state->beats_per_bar = DEFAULT_BEATS_PER_BAR;
     state->sample_rate = sample_rate;
+    state->bpm = 120.0;
     state->current_step = 0;
     state->previous_step = 0;
     state->sequence_length = DEFAULT_SEQUENCE_LENGTH;
@@ -47,9 +48,8 @@ void state_init(GridSeqState* state, double sample_rate) {
     state->playing = false;
     state->frame_counter = 0;
 
-    // Default to 120 BPM, 8 steps per 2 bars
-    // 2 bars at 4/4 = 8 beats, 8 steps = 1 beat per step
-    state_update_tempo(state, 120.0);
+    // Default to 120 BPM
+    state_update_tempo(state, state->bpm);
 }
 
 void state_toggle_step(GridSeqState* state, uint8_t x, uint8_t y) {
@@ -61,10 +61,15 @@ void state_toggle_step(GridSeqState* state, uint8_t x, uint8_t y) {
 void state_update_tempo(GridSeqState* state, double bpm) {
     if (!state || bpm <= 0.0) return;
 
-    // 1 beat per step, calculate frames per step
+    state->bpm = bpm;
+
+    // Steps are distributed across the current bar length.
     double beats_per_second = bpm / 60.0;
     double seconds_per_beat = 1.0 / beats_per_second;
-    state->frames_per_step = (uint64_t)(seconds_per_beat * state->sample_rate);
+    double beats_per_step = (state->sequence_length > 0)
+        ? ((double)state->beats_per_bar / (double)state->sequence_length)
+        : 1.0;
+    state->frames_per_step = (uint64_t)(seconds_per_beat * beats_per_step * state->sample_rate);
 }
 
 uint8_t state_scale_row_to_note(const GridSeqState* state, uint8_t row) {

@@ -41,6 +41,8 @@ Selected scale lights white. Scales affect **MIDI output only**; pad rows remain
 ### Launchpad Top Row (CC 91–99)
 - **CC 93**: Page left (steps 0–7)
 - **CC 94**: Page right (steps 8–15, when length > 8)
+- **CC 95**: Beats per bar down
+- **CC 96**: Beats per bar up
 - **CC 91**: Pitch down (semitone)
 - **CC 92**: Pitch up (semitone)
 
@@ -49,6 +51,9 @@ Arrow LEDs light white when available.
 ### UI Controls
 Grid:
 - Click cells to toggle steps.
+
+Readout:
+- **Beats/Bar** displays the current beats-per-bar value.
 
 Right button panel:
 ```
@@ -80,6 +85,7 @@ Settings dialog:
 - **Grid Row 0–15** (Control): Bit-packed pattern state
 - **Sequence Length** (Control): Active steps
 - **MIDI Filter** (Control): Note-On only mode
+- **Beats Per Bar** (Control): Current beats-per-bar value
 
 ## Requirements
 

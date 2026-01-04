@@ -85,7 +85,8 @@ typedef enum {
     PORT_GRID_ROW_14 = 22,
     PORT_GRID_ROW_15 = 23,
     PORT_SEQUENCE_LENGTH = 24,
-    PORT_MIDI_FILTER = 25
+    PORT_MIDI_FILTER = 25,
+    PORT_BEATS_PER_BAR = 26
 } PortIndex;
 
 typedef struct {
@@ -101,6 +102,7 @@ typedef struct {
     float* grid_row[MAX_GRID_SIZE];
     const float* sequence_length;
     const float* midi_filter;
+    float* beats_per_bar_port;
 
     // Features
     LV2_URID_Map* map;
@@ -270,6 +272,9 @@ static void connect_port(
         case PORT_MIDI_FILTER:
             gs->midi_filter = (const float*)data;
             break;
+        case PORT_BEATS_PER_BAR:
+            gs->beats_per_bar_port = (float*)data;
+            break;
     }
 }
 
@@ -376,8 +381,7 @@ static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max
         }
     }
 
-    // Light up arrow buttons based on current page and sequence length
-    // Left arrow (CC 93) - only lit if we can go left
+    // Light up side/top buttons for scale + beats per bar + pitch range
     for (uint8_t i = 0; i < 8; i++) {
         append_sysex_byte(buffer, &pos, max, LP_LED_TYPE_STATIC);
         append_sysex_byte(buffer, &pos, max, LP_SIDE_BUTTONS[i]);
@@ -391,6 +395,8 @@ static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max
     }
     top_colors[2] = (gs->state.hardware_page > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     top_colors[3] = (gs->state.sequence_length > 8 && gs->state.hardware_page == 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    top_colors[4] = (gs->state.beats_per_bar > MIN_BEATS_PER_BAR) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    top_colors[5] = (gs->state.beats_per_bar < MAX_BEATS_PER_BAR) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     top_colors[0] = (gs->state.pitch_offset > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     top_colors[1] = (gs->state.pitch_offset < (GRID_PITCH_RANGE - GRID_VISIBLE_ROWS)) ? LP_COLOR_WHITE : LP_COLOR_OFF;
 
@@ -497,6 +503,8 @@ static void update_launchpad_leds_note_cc(GridSeq* gs) {
     uint8_t right_color = (gs->state.sequence_length > 8 && gs->state.hardware_page == 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     uint8_t down_color = (gs->state.pitch_offset > 0) ? LP_COLOR_WHITE : LP_COLOR_OFF;
     uint8_t up_color = (gs->state.pitch_offset < (GRID_PITCH_RANGE - GRID_VISIBLE_ROWS)) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    uint8_t beats_down_color = (gs->state.beats_per_bar > MIN_BEATS_PER_BAR) ? LP_COLOR_WHITE : LP_COLOR_OFF;
+    uint8_t beats_up_color = (gs->state.beats_per_bar < MAX_BEATS_PER_BAR) ? LP_COLOR_WHITE : LP_COLOR_OFF;
 
     for (uint8_t i = 0; i < 8; i++) {
         uint8_t side_color = (i == (gs->state.scale_index % state_scale_count())) ? LP_COLOR_WHITE : LP_COLOR_OFF;
@@ -507,6 +515,8 @@ static void update_launchpad_leds_note_cc(GridSeq* gs) {
     send_launchpad_msg(gs, 0xB0, 94, right_color);
     send_launchpad_msg(gs, 0xB0, 91, down_color);
     send_launchpad_msg(gs, 0xB0, 92, up_color);
+    send_launchpad_msg(gs, 0xB0, 95, beats_down_color);
+    send_launchpad_msg(gs, 0xB0, 96, beats_up_color);
 }
 
 static void activate(LV2_Handle instance) {
@@ -538,6 +548,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         uint8_t new_length = (uint8_t)(*gs->sequence_length);
         if (new_length >= MIN_SEQUENCE_LENGTH && new_length <= MAX_SEQUENCE_LENGTH) {
             gs->state.sequence_length = new_length;
+            state_update_tempo(&gs->state, gs->state.bpm);
         }
     }
 
@@ -625,9 +636,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                     cc_log_count++;
                 }
 
-                // Handle arrow buttons and top row for sequence length
+                // Handle top-row controls (beats per bar, pitch shift) and side buttons (scale)
                 if (value > 0) {
-                    if (cc == 93) {  // Left arrow (CC 93)
+                    if (cc == 93) {  // Beats per bar down
                         if (gs->state.hardware_page > 0) {
                             gs->state.hardware_page--;
                             gs->grid_dirty = true;
@@ -635,11 +646,26 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         }
                     }
                     else if (cc == 94) {  // Right arrow (CC 94)
-                        // Only switch to page 1 if sequence length > 8
                         if (gs->state.sequence_length > 8 && gs->state.hardware_page == 0) {
                             gs->state.hardware_page = 1;
                             gs->grid_dirty = true;
                             fprintf(stderr, "grid-seq: Right arrow - switched to page 1 (steps 8-15)\n");
+                        }
+                    }
+                    else if (cc == 95) {  // Beats per bar down
+                        if (gs->state.beats_per_bar > MIN_BEATS_PER_BAR) {
+                            gs->state.beats_per_bar--;
+                            state_update_tempo(&gs->state, gs->state.bpm);
+                            gs->grid_dirty = true;
+                            fprintf(stderr, "grid-seq: Beats per bar down to %d\n", gs->state.beats_per_bar);
+                        }
+                    }
+                    else if (cc == 96) {  // Beats per bar up
+                        if (gs->state.beats_per_bar < MAX_BEATS_PER_BAR) {
+                            gs->state.beats_per_bar++;
+                            state_update_tempo(&gs->state, gs->state.bpm);
+                            gs->grid_dirty = true;
+                            fprintf(stderr, "grid-seq: Beats per bar up to %d\n", gs->state.beats_per_bar);
                         }
                     }
                     else if (cc == 91) {  // Shift pitch DOWN
@@ -675,7 +701,6 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                         }
                     }
                     // Top row buttons could be used for other functions if needed
-                    // CC 93/94 are arrows, so top row would be different CCs
                 }
             }
         }
@@ -836,6 +861,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
     if (gs->grid_changed) {
         *gs->grid_changed = (float)(gs->grid_change_counter % 1000000);
+    }
+    if (gs->beats_per_bar_port) {
+        *gs->beats_per_bar_port = (float)gs->state.beats_per_bar;
     }
 
     // Update grid row ports with current state

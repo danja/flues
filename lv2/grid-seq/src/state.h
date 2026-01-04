@@ -23,7 +23,8 @@ typedef struct {
     uint8_t sequence_length;    // 2-16 steps
     uint8_t hardware_page;      // 0 or 1 for Launchpad paging
     uint8_t scale_index;        // 0-7 scale selection
-    double beats_per_bar;
+    uint8_t beats_per_bar;
+    double bpm;
     double sample_rate;
     bool playing;
     bool first_run;

@@ -182,6 +182,15 @@ static void draw_grid(GridSeqX11UI* ui) {
         }
     }
 
+    // Beats per bar readout
+    cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 14);
+    char beats_text[32];
+    snprintf(beats_text, sizeof(beats_text), "Beats/Bar: %d", ui->state.beats_per_bar);
+    cairo_move_to(cr, GRID_MARGIN, GRID_MARGIN - 6);
+    cairo_show_text(cr, beats_text);
+
     // Draw buttons in vertical column on the right
     int button_size = 30;
     int button_spacing = 5;
@@ -803,6 +812,9 @@ static LV2UI_Handle instantiate(
 
         // Subscribe to midi_filter (port 25)
         ui->port_subscribe->subscribe(ui->port_subscribe->handle, 25, 0, NULL);
+
+        // Subscribe to beats_per_bar (port 26)
+        ui->port_subscribe->subscribe(ui->port_subscribe->handle, 26, 0, NULL);
     }
 
     *widget = (LV2UI_Widget)(uintptr_t)ui->window;
@@ -837,6 +849,9 @@ static void cleanup(LV2UI_Handle handle) {
 
         // Unsubscribe from midi_filter
         ui->port_subscribe->unsubscribe(ui->port_subscribe->handle, 25, 0, NULL);
+
+        // Unsubscribe from beats_per_bar
+        ui->port_subscribe->unsubscribe(ui->port_subscribe->handle, 26, 0, NULL);
     }
 
     // Close settings dialog if open
@@ -913,6 +928,17 @@ static void port_event(
         pthread_mutex_lock(&ui->mutex);
         ui->midi_filter_enabled = (filter_value > 0.5f);
         pthread_mutex_unlock(&ui->mutex);
+    }
+
+    // Beats per bar (port 26)
+    if (port_index == 26 && buffer) {
+        float beats = *(const float*)buffer;
+        if (beats >= MIN_BEATS_PER_BAR && beats <= MAX_BEATS_PER_BAR) {
+            pthread_mutex_lock(&ui->mutex);
+            ui->state.beats_per_bar = (uint8_t)beats;
+            ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
+        }
     }
 
     // Grid rows (ports 8-23)
