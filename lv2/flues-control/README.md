@@ -1,26 +1,27 @@
 # Flues Control LV2 Plugin
 
-A MIDI CC controller plugin specifically designed for controlling [flues-synth](../../flues-synth/). Provides 30 program presets and 9 parameter sliders that output MIDI Program Changes and CCs to control the synthesizer.
+A MIDI CC controller plugin specifically designed for controlling [flues-synth](../../flues-synth/). Provides 31 program presets and 9 parameter sliders that output MIDI Program Changes and CCs to control the synthesizer.
 
 ## Features
 
 - **MIDI Pass-Through**: All incoming MIDI note messages pass through unchanged
-- **30 Program Presets**: Switch between different synthesis modes in flues-synth (0-29)
+- **31 Program Presets**: Switch between different synthesis modes in flues-synth (0-30)
 - **9 Parameter Sliders**: Control context-dependent parameters that remap per program
 - **Hardware Controller Emulation**: Mirrors the behavior of a physical MIDI controller
-- **Default LV2 UI**: Works with any LV2 host's generic parameter UI
+- **Custom UI**: X11/Cairo panel with dynamic labels per program (falls back to generic UI)
 - **Efficient MIDI Output**: Sends messages only when controls change
 
 ## Controls
 
 ### Program Selector
-Dropdown menu with 30 synthesis programs:
-- **0-7**: Basic programs (Disyn Echo, Delays, Filter, Formant Voice, Hybrid, Physical Model, Direct)
+Dropdown menu with 31 synthesis programs:
+- **0-7**: Basic programs (Disyn Echo, Trajectory, Filter, Formant Voice, Hybrid, Physical Model, Direct)
 - **8-17**: Algorithm showcase (ModFM, DSF, PAF, Tanh, Hybrid, Feedback, Dirichlet, Multi-Algorithm, Spectral Sculptor)
 - **18-24**: Combination algorithms (Hybrid Formant, Cascaded, Parallel Bank, Feedback, Morphing, Inharmonic, Adaptive Filter)
 - **25-27**: Novel algorithms (Multi-Stage, Freq Asymmetry, Cross-Mod)
 - **28**: Vocal Morph - Complete vocal synthesis with formants + vocal modes
 - **29**: Taylor Series (Alg 17) - Educational Taylor series approximation with fundamental + 2nd harmonic blend
+- **30**: Disyn + Delays (Legacy) - Original delay-augmented distortion program
 
 For complete program descriptions, see [flues-synth/docs/PROGRAM_CHANGE.md](../../flues-synth/docs/PROGRAM_CHANGE.md).
 
@@ -49,7 +50,7 @@ The plugin processes MIDI on **MIDI Channel 1**:
 
 **Output**:
 - **Pass-through**: All incoming MIDI events (notes, etc.)
-- **Program Change** (0xC0): Sent when program selector changes
+- **Program Change** (0xC0): Sent when program selector changes (0-30)
 - **Control Change** (0xB0): Sent when sliders change (CCs: 73, 72, 28, 30, 74, 71, 1, 27, 7)
 
 ## Usage
@@ -98,6 +99,14 @@ The plugin passes through note messages while adding CC and Program Change messa
 - Slider 5 → Interface Intensity
 - Slider 6 → Tuning (-12 to +12 semitones)
 - Slider 7 → Delay Feedback
+- Slider 8 → Attack
+- Slider 9 → Release
+
+**Program 1: Trajectory Polygon**
+- Slider 1 → Sides (3-12)
+- Slider 2 → Start Position (0-360 degrees)
+- Slider 3 → Start Angle (0-360 degrees)
+- Slider 4 → Master Gain
 - Slider 8 → Attack
 - Slider 9 → Release
 
@@ -293,6 +302,6 @@ MIT License - See repository root for details
 ## Version History
 
 - **0.1** (2025-12-11): Initial release
-  - 8 programs, 9 sliders
+  - 31 programs, 9 sliders
   - MIDI Program Change and CC output
   - Default LV2 UI

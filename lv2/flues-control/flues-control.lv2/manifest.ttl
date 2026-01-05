@@ -1,7 +1,13 @@
 @prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
 
 <https://danja.github.io/flues/plugins/flues-control>
     a lv2:Plugin ;
     lv2:binary <flues_control.so> ;
     rdfs:seeAlso <flues-control.ttl> .
+
+<https://danja.github.io/flues/plugins/flues-control#ui>
+    a ui:X11UI ;
+    ui:binary <flues_control_ui.so> ;
+    rdfs:label "Flues Control Panel" .

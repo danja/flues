@@ -5,6 +5,7 @@
 @prefix midi: <http://lv2plug.in/ns/ext/midi#> .
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
 
 <https://danja.github.io/flues/plugins/flues-control>
@@ -18,8 +19,9 @@
     lv2:project <https://danja.github.io/flues> ;
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
+    ui:ui <https://danja.github.io/flues/plugins/flues-control#ui> ;
 
-    rdfs:comment "MIDI CC controller for flues-synth with 30 programs (0-29) and 9 parameter sliders" ;
+    rdfs:comment "MIDI CC controller for flues-synth with 31 programs (0-30) and 9 parameter sliders" ;
 
     lv2:port [
         # Port 0: MIDI Input
@@ -47,13 +49,13 @@
         lv2:name "Program" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
-        lv2:maximum 29 ;
+        lv2:maximum 30 ;
         lv2:portProperty lv2:integer, lv2:enumeration ;
         lv2:scalePoint [
             rdfs:label "Disyn Echo" ;
             rdf:value 0
         ] , [
-            rdfs:label "Disyn + Delays" ;
+            rdfs:label "Trajectory Polygon" ;
             rdf:value 1
         ] , [
             rdfs:label "Disyn + Filter" ;
@@ -89,7 +91,7 @@
             rdfs:label "Tanh Spectral" ;
             rdf:value 12
         ] , [
-            rdfs:label "Hybrid DSF→Formant" ;
+            rdfs:label "Hybrid DSF->Formant" ;
             rdf:value 13
         ] , [
             rdfs:label "Feedback ModFM" ;
@@ -139,10 +141,13 @@
         ] , [
             rdfs:label "Taylor Series (Alg 17)" ;
             rdf:value 29
+        ] , [
+            rdfs:label "Disyn + Delays (Legacy)" ;
+            rdf:value 30
         ] ;
         rdfs:comment "Synth program selector (remaps sliders to different parameters)" ;
     ] , [
-        # Port 3: Slider 1 → CC 73
+        # Port 3: Slider 1 -> CC 73
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 3 ;
         lv2:symbol "slider1" ;
@@ -152,7 +157,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Algorithm/Feedback/Filter Freq/F1 Jaw/etc." ;
     ] , [
-        # Port 4: Slider 2 → CC 72
+        # Port 4: Slider 2 -> CC 72
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 4 ;
         lv2:symbol "slider2" ;
@@ -162,7 +167,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Param1/Feedback/Filter Q/F2 Tongue/etc." ;
     ] , [
-        # Port 5: Slider 3 → CC 28
+        # Port 5: Slider 3 -> CC 28
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 5 ;
         lv2:symbol "slider3" ;
@@ -172,7 +177,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Param2/Filter Feedback/Filter Shape/F3 Lips/etc." ;
     ] , [
-        # Port 6: Slider 4 → CC 30
+        # Port 6: Slider 4 -> CC 30
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 6 ;
         lv2:symbol "slider4" ;
@@ -182,7 +187,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Interface Type/Disyn Level/F4 Quality/etc." ;
     ] , [
-        # Port 7: Slider 5 → CC 74
+        # Port 7: Slider 5 -> CC 74
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 7 ;
         lv2:symbol "slider5" ;
@@ -192,7 +197,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Intensity/Noise Level/Disyn Level/etc." ;
     ] , [
-        # Port 8: Slider 6 → CC 71
+        # Port 8: Slider 6 -> CC 71
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 8 ;
         lv2:symbol "slider6" ;
@@ -202,7 +207,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Tuning/Nasal/Master Gain/etc." ;
     ] , [
-        # Port 9: Slider 7 → CC 1
+        # Port 9: Slider 7 -> CC 1
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 9 ;
         lv2:symbol "slider7" ;
@@ -212,7 +217,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Program-dependent: Delay Feedback/Ratio/Master Gain/etc." ;
     ] , [
-        # Port 10: Slider 8 → CC 27 (Attack)
+        # Port 10: Slider 8 -> CC 27 (Attack)
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 10 ;
         lv2:symbol "slider8" ;
@@ -222,7 +227,7 @@
         lv2:maximum 1.0 ;
         rdfs:comment "Envelope attack time (1-1000ms exponential, fixed across all programs)" ;
     ] , [
-        # Port 11: Slider 9 → CC 7 (Release)
+        # Port 11: Slider 9 -> CC 7 (Release)
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 11 ;
         lv2:symbol "slider9" ;
