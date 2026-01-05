@@ -1,0 +1,18 @@
+{
+  "name": "trajectory",
+  "version": "0.1.0",
+  "description": "Trajectory polygon oscillator synthesizer experiment",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run --pool vmThreads --maxWorkers=1",
+    "postbuild": "node ./scripts/copy-worklet-modules.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.1",
+    "vite": "^7.1.10",
+    "vitest": "^3.2.4"
+  }
+}

@@ -6,12 +6,13 @@
   "scripts": {
     "dev": "npm run ghp && vite --open",
     "ghp": "npm run build:all && npm run copy:www",
-    "build:all": "npm run build:clarinet && npm run build:pm && npm run build:disyn && npm run build:chatterbox",
+    "build:all": "npm run build:clarinet && npm run build:pm && npm run build:disyn && npm run build:chatterbox && npm run build:trajectory",
     "build:clarinet": "cd experiments/clarinet-synth && npm run build",
     "build:pm": "cd experiments/pm-synth && npm run build",
     "build:disyn": "cd experiments/disyn && npm run build",
     "build:chatterbox": "cd experiments/chatterbox && npm run build",
-    "copy:www": "rm -rf www/clarinet-synth www/pm-synth www/disyn www/chatterbox && mkdir -p www/clarinet-synth www/pm-synth www/disyn www/chatterbox && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/ && cp -r experiments/pm-synth/dist/. www/pm-synth/ && cp -r experiments/disyn/dist/. www/disyn/ && cp -r experiments/chatterbox/dist/. www/chatterbox/"
+    "build:trajectory": "cd experiments/trajectory && npm run build",
+    "copy:www": "rm -rf www/clarinet-synth www/pm-synth www/disyn www/chatterbox www/trajectory && mkdir -p www/clarinet-synth www/pm-synth www/disyn www/chatterbox www/trajectory && cp -r experiments/clarinet-synth/dist/. www/clarinet-synth/ && cp -r experiments/pm-synth/dist/. www/pm-synth/ && cp -r experiments/disyn/dist/. www/disyn/ && cp -r experiments/chatterbox/dist/. www/chatterbox/ && cp -r experiments/trajectory/dist/. www/trajectory/"
   },
   "keywords": [],
   "author": "Danny Ayers",
