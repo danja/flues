@@ -69,21 +69,8 @@ static const SynthParameter PROGRAM_0_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 1: Trajectory Polygon
+// Program 1: Disyn + Filter
 static const SynthParameter PROGRAM_1_MAP[9] = {
-    PARAM_TRAJECTORY_SIDES,       // Slider 1 (CC 73)
-    PARAM_TRAJECTORY_START_POS,   // Slider 2 (CC 72)
-    PARAM_TRAJECTORY_START_ANGLE, // Slider 3 (CC 28)
-    PARAM_MASTER_GAIN,            // Slider 4 (CC 30)
-    PARAM_NONE,                   // Slider 5 (CC 74)
-    PARAM_NONE,                   // Slider 6 (CC 71)
-    PARAM_NONE,                   // Slider 7 (CC 1)
-    PARAM_ATTACK,                 // Slider 8 (CC 27)
-    PARAM_RELEASE                 // Slider 9 (CC 7)
-};
-
-// Program 2: Disyn + Filter
-static const SynthParameter PROGRAM_2_MAP[9] = {
     PARAM_FILTER_FREQ,      // Slider 1 (CC 73)
     PARAM_FILTER_Q,         // Slider 2 (CC 72)
     PARAM_FILTER_SHAPE,     // Slider 3 (CC 28)
@@ -93,6 +80,19 @@ static const SynthParameter PROGRAM_2_MAP[9] = {
     PARAM_RATIO,            // Slider 7 (CC 1)
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
+// Program 2: Trajectory Polygon
+static const SynthParameter PROGRAM_2_MAP[9] = {
+    PARAM_TRAJECTORY_SIDES,       // Slider 1 (CC 73)
+    PARAM_TRAJECTORY_START_POS,   // Slider 2 (CC 72)
+    PARAM_TRAJECTORY_START_ANGLE, // Slider 3 (CC 28)
+    PARAM_MASTER_GAIN,            // Slider 4 (CC 30)
+    PARAM_NONE,                   // Slider 5 (CC 74)
+    PARAM_NONE,                   // Slider 6 (CC 71)
+    PARAM_NONE,                   // Slider 7 (CC 1)
+    PARAM_ATTACK,                 // Slider 8 (CC 27)
+    PARAM_RELEASE                 // Slider 9 (CC 7)
 };
 
 // Program 3: Formant Voice

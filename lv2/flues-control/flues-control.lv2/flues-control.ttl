@@ -55,10 +55,10 @@
             rdfs:label "Disyn Echo" ;
             rdf:value 0
         ] , [
-            rdfs:label "Trajectory Polygon" ;
+            rdfs:label "Disyn + Filter" ;
             rdf:value 1
         ] , [
-            rdfs:label "Disyn + Filter" ;
+            rdfs:label "Trajectory Polygon" ;
             rdf:value 2
         ] , [
             rdfs:label "Formant Voice" ;

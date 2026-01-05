@@ -76,27 +76,7 @@ The MIDI controller has 9 sliders sending these CC numbers:
 
 ---
 
-### Program 1: Disyn + Delays
-**Signal Chain**: Disyn → Delay Lines (feedback enabled, no formants/filter)
-
-**Use Case**: Add echo/resonance to Disyn without formants
-
-**Slider Mappings**:
-- Slider 1: **Delay1 Feedback** (73→28) - Delay line 1 return
-- Slider 2: **Delay2 Feedback** (72→29) - Delay line 2 return
-- Slider 3: **Filter Feedback** (28→30) - Filter return (usually 0)
-- Slider 4: **Disyn Level** (30→19) - Disyn output level
-- Slider 5: **Intensity** (74→1) - Interface intensity
-- Slider 6: **Tuning** (71→26) - Pitch offset
-- Slider 7: **Ratio** (1→27) - Delay ratio
-- Slider 8: **Attack** (27→73)
-- Slider 9: **Release** (7→72)
-
-**Default Settings**: Disyn 0.6, Delay1/2 feedback 0.3
-
----
-
-### Program 2: Disyn + Filter
+### Program 1: Disyn + Filter
 **Signal Chain**: Disyn → Delay Lines → Filter (full chain except formants)
 
 **Use Case**: Shape Disyn with state-variable filter
@@ -113,6 +93,23 @@ The MIDI controller has 9 sliders sending these CC numbers:
 - Slider 9: **Release** (7→72)
 
 **Default Settings**: Disyn 0.5, delays 0.25, filter FB 0.2, freq 1kHz, Q=2
+
+---
+
+### Program 2: Trajectory Polygon
+**Signal Chain**: Trajectory Oscillator → Output (all other processing bypassed)
+
+**Use Case**: Polygonal bounce oscillator with pitch-coupled motion
+
+**Slider Mappings**:
+- Slider 1: **Sides** (73→traj) - 3 to 12 edges
+- Slider 2: **Start Position** (72→traj) - 0 to 360 degrees
+- Slider 3: **Start Angle** (28→traj) - 0 to 360 degrees
+- Slider 4: **Master Gain** (30→7)
+- Slider 8: **Attack** (27→73)
+- Slider 9: **Release** (7→72)
+
+**Default Settings**: 6 sides, start pos 0°, start angle 45°, master gain 0.7
 
 ---
 

@@ -114,8 +114,8 @@ static void notify_host(FluesControlUI* ui, uint32_t port, float value) {
 
 static const char* kProgramNames[PROGRAM_MAX + 1] = {
     "Disyn Echo",
-    "Trajectory Polygon",
     "Disyn + Filter",
+    "Trajectory Polygon",
     "Formant Voice",
     "Hybrid Speech",
     "Physical Model",
@@ -148,8 +148,8 @@ static const char* kProgramNames[PROGRAM_MAX + 1] = {
 
 static const char* kSliderLabels[PROGRAM_MAX + 1][SLIDER_COUNT] = {
     {"Alg", "Param1", "Param2", "Interface", "Intensity", "Tuning", "Delay1 FB", "Attack", "Release"},
-    {"Sides", "Start\nPos", "Start\nAngle", "Master", "-", "-", "-", "Attack", "Release"},
     {"Filter\nFreq", "Filter Q", "Filter\nShape", "Disyn\nLevel", "Intensity", "Tuning", "Ratio", "Attack", "Release"},
+    {"Sides", "Start\nPos", "Start\nAngle", "Master", "-", "-", "-", "Attack", "Release"},
     {"F1", "F2", "F3", "F4", "Noise", "Nasal", "Master", "Attack", "Release"},
     {"F1", "F2", "F3", "F4", "Disyn\nLevel", "Noise", "Master", "Attack", "Release"},
     {"Delay1 FB", "Delay2 FB", "Filter FB", "Interface", "Intensity", "Tuning", "Ratio", "Attack", "Release"},

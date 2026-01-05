@@ -15,7 +15,7 @@ A MIDI CC controller plugin specifically designed for controlling [flues-synth](
 
 ### Program Selector
 Dropdown menu with 31 synthesis programs:
-- **0-7**: Basic programs (Disyn Echo, Trajectory, Filter, Formant Voice, Hybrid, Physical Model, Direct)
+- **0-7**: Basic programs (Disyn Echo, Disyn + Filter, Trajectory, Formant Voice, Hybrid, Physical Model, Direct)
 - **8-17**: Algorithm showcase (ModFM, DSF, PAF, Tanh, Hybrid, Feedback, Dirichlet, Multi-Algorithm, Spectral Sculptor)
 - **18-24**: Combination algorithms (Hybrid Formant, Cascaded, Parallel Bank, Feedback, Morphing, Inharmonic, Adaptive Filter)
 - **25-27**: Novel algorithms (Multi-Stage, Freq Asymmetry, Cross-Mod)
@@ -102,11 +102,22 @@ The plugin passes through note messages while adding CC and Program Change messa
 - Slider 8 → Attack
 - Slider 9 → Release
 
-**Program 1: Trajectory Polygon**
+**Program 2: Trajectory Polygon**
 - Slider 1 → Sides (3-12)
 - Slider 2 → Start Position (0-360 degrees)
 - Slider 3 → Start Angle (0-360 degrees)
 - Slider 4 → Master Gain
+- Slider 8 → Attack
+- Slider 9 → Release
+
+**Program 1: Disyn + Filter**
+- Slider 1 → Filter Frequency
+- Slider 2 → Filter Q
+- Slider 3 → Filter Shape
+- Slider 4 → Disyn Level
+- Slider 5 → Intensity
+- Slider 6 → Tuning
+- Slider 7 → Ratio
 - Slider 8 → Attack
 - Slider 9 → Release
 

@@ -796,7 +796,7 @@ output = y * 0.9
 - Output uses y-position only, scaled for headroom.
 
 **Flues-synth Usage:**
-- **Program 1:** Trajectory Polygon oscillator (Disyn disabled).
+- **Program 2:** Trajectory Polygon oscillator (Disyn disabled).
 - **Derivation:** See `experiments/trajectory/README.md`.
 
 ---
