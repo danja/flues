@@ -77,6 +77,12 @@ typedef struct {
     uint8_t pending_length;
     bool pending_filter;
     bool midi_filter_enabled;
+    uint8_t pending_channel;
+    uint8_t midi_channel;
+
+    // Hover tooltip
+    bool hover_active;
+    char hover_text[64];
 
     LV2_URID_Map* map;
     const LV2UI_Port_Subscribe* port_subscribe;
@@ -190,6 +196,13 @@ static void draw_grid(GridSeqX11UI* ui) {
     snprintf(beats_text, sizeof(beats_text), "Beats/Bar: %d", ui->state.beats_per_bar);
     cairo_move_to(cr, GRID_MARGIN, GRID_MARGIN - 6);
     cairo_show_text(cr, beats_text);
+
+    if (ui->hover_active && ui->hover_text[0] != '\0') {
+        cairo_set_source_rgb(cr, 0.7, 0.7, 0.7);
+        cairo_set_font_size(cr, 12);
+        cairo_move_to(cr, GRID_MARGIN, ui->height - GRID_MARGIN + 14);
+        cairo_show_text(cr, ui->hover_text);
+    }
 
     // Draw buttons in vertical column on the right
     int button_size = 30;
@@ -320,13 +333,39 @@ static void draw_settings_dialog(GridSeqX11UI* ui) {
     cairo_move_to(cr, slider_x + slider_width + 15, slider_y + 10);
     cairo_show_text(cr, value_text);
 
+    // MIDI Channel label
+    cairo_move_to(cr, 20, 120);
+    cairo_show_text(cr, "MIDI Channel:");
+
+    int chan_x = 20;
+    int chan_y = 135;
+    int chan_width = 260;
+    int chan_height = 10;
+
+    cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
+    cairo_rectangle(cr, chan_x, chan_y, chan_width, chan_height);
+    cairo_fill(cr);
+
+    float chan_pos = (float)(ui->pending_channel - 1) / 15.0f;
+    int chan_thumb_x = chan_x + (int)(chan_pos * chan_width) - 5;
+
+    cairo_set_source_rgb(cr, 0.7, 0.7, 0.9);
+    cairo_rectangle(cr, chan_thumb_x, chan_y - 5, 10, chan_height + 10);
+    cairo_fill(cr);
+
+    char chan_text[16];
+    snprintf(chan_text, sizeof(chan_text), "Ch %d", ui->pending_channel);
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_move_to(cr, chan_x + chan_width + 15, chan_y + 10);
+    cairo_show_text(cr, chan_text);
+
     // MIDI Filter checkbox label
-    cairo_move_to(cr, 20, 130);
+    cairo_move_to(cr, 20, 170);
     cairo_show_text(cr, "MIDI Filter (Note-Ons Only):");
 
     // Draw checkbox
     int checkbox_x = 310;
-    int checkbox_y = 115;
+    int checkbox_y = 155;
     int checkbox_size = 20;
 
     cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);
@@ -350,7 +389,7 @@ static void draw_settings_dialog(GridSeqX11UI* ui) {
 
     // OK button
     int ok_x = 60;
-    int ok_y = 170;
+    int ok_y = 210;
     int button_width = 80;
     int button_height = 30;
 
@@ -382,6 +421,7 @@ static void open_settings_dialog(GridSeqX11UI* ui) {
     // Store current values
     ui->pending_length = ui->state.sequence_length;
     ui->pending_filter = ui->midi_filter_enabled;
+    ui->pending_channel = ui->midi_channel;
 
     // Create settings window
     XSetWindowAttributes attrs;
@@ -391,14 +431,14 @@ static void open_settings_dialog(GridSeqX11UI* ui) {
 
     ui->settings_window = XCreateWindow(
         ui->display, ui->window,
-        (WINDOW_WIDTH - 360) / 2, (WINDOW_HEIGHT - 220) / 2,
-        360, 220, 2,
+        (WINDOW_WIDTH - 360) / 2, (WINDOW_HEIGHT - 260) / 2,
+        360, 260, 2,
         CopyFromParent, InputOutput, CopyFromParent,
         CWBackPixel | CWEventMask | CWOverrideRedirect, &attrs
     );
 
     ui->settings_surface = cairo_xlib_surface_create(
-        ui->display, ui->settings_window, ui->visual, 360, 220
+        ui->display, ui->settings_window, ui->visual, 360, 260
     );
 
     XMapWindow(ui->display, ui->settings_window);
@@ -417,6 +457,12 @@ static void close_settings_dialog(GridSeqX11UI* ui, bool apply) {
         if (ui->pending_length != ui->state.sequence_length) {
             float length_value = (float)ui->pending_length;
             ui->write_function(ui->controller, 24, sizeof(float), 0, &length_value);
+        }
+
+        if (ui->pending_channel != ui->midi_channel) {
+            float channel_value = (float)ui->pending_channel;
+            ui->write_function(ui->controller, 27, sizeof(float), 0, &channel_value);
+            ui->midi_channel = ui->pending_channel;
         }
 
         // Write MIDI filter setting
@@ -467,9 +513,30 @@ static void handle_settings_click(GridSeqX11UI* ui, int mx, int my) {
         return;
     }
 
+    // MIDI channel slider
+    int chan_x = 20;
+    int chan_y = 135;
+    int chan_width = 260;
+    int chan_height = 10;
+
+    if (mx >= chan_x && mx <= chan_x + chan_width &&
+        my >= chan_y - 5 && my <= chan_y + chan_height + 5) {
+        float pos = (float)(mx - chan_x) / (float)chan_width;
+        if (pos < 0.0f) pos = 0.0f;
+        if (pos > 1.0f) pos = 1.0f;
+
+        ui->pending_channel = 1 + (uint8_t)(pos * 15.0f + 0.5f);
+        if (ui->pending_channel < 1) ui->pending_channel = 1;
+        if (ui->pending_channel > 16) ui->pending_channel = 16;
+
+        draw_settings_dialog(ui);
+        XFlush(ui->display);
+        return;
+    }
+
     // Checkbox interaction
     int checkbox_x = 310;
-    int checkbox_y = 115;
+    int checkbox_y = 155;
     int checkbox_size = 20;
 
     if (mx >= checkbox_x && mx <= checkbox_x + checkbox_size &&
@@ -482,7 +549,7 @@ static void handle_settings_click(GridSeqX11UI* ui, int mx, int my) {
 
     // OK button
     int ok_x = 60;
-    int ok_y = 170;
+    int ok_y = 210;
     int button_width = 80;
     int button_height = 30;
 
@@ -502,6 +569,35 @@ static void handle_settings_click(GridSeqX11UI* ui, int mx, int my) {
     }
 }
 
+static void update_hover(GridSeqX11UI* ui, int mx, int my) {
+    const int button_size = 30;
+    const int button_spacing = 5;
+    const int buttons_x = ui->width - button_size - 10;
+    const int buttons_start_y = 10;
+
+    ui->hover_active = false;
+    ui->hover_text[0] = '\0';
+
+    if (mx < buttons_x || mx > buttons_x + button_size) {
+        return;
+    }
+
+    int current_y = buttons_start_y;
+    const char* labels[] = {
+        "Settings", "Reset Launchpad", "Device Query",
+        "Clear Pattern", "Recenter Pitch", "Pitch Up", "Pitch Down"
+    };
+
+    for (int i = 0; i < 7; i++) {
+        if (my >= current_y && my <= current_y + button_size) {
+            ui->hover_active = true;
+            snprintf(ui->hover_text, sizeof(ui->hover_text), "%s", labels[i]);
+            ui->needs_redraw = true;
+            return;
+        }
+        current_y += button_size + button_spacing;
+    }
+}
 static void handle_button_press(GridSeqX11UI* ui, int mx, int my) {
     fprintf(stderr, "grid-seq: X11 button press at (%d, %d)\n", mx, my);
 
@@ -679,6 +775,11 @@ static void* event_thread_main(void* arg) {
                         ui->needs_redraw = true;
                     }
                     break;
+                case MotionNotify:
+                    if (!ui->settings_open) {
+                        update_hover(ui, event.xmotion.x, event.xmotion.y);
+                    }
+                    break;
                 case ConfigureNotify:
                     if (event.xconfigure.window == ui->window) {
                         handle_configure(ui, &event.xconfigure);
@@ -753,6 +854,10 @@ static LV2UI_Handle instantiate(
     ui->settings_window = 0;
     ui->settings_surface = NULL;
     ui->midi_filter_enabled = false;
+    ui->midi_channel = 1;
+    ui->pending_channel = ui->midi_channel;
+    ui->hover_active = false;
+    ui->hover_text[0] = '\0';
 
     ensure_xlib_threads();
 
@@ -775,7 +880,7 @@ static LV2UI_Handle instantiate(
     // Create window
     XSetWindowAttributes attrs;
     attrs.background_pixel = BlackPixel(ui->display, ui->screen);
-    attrs.event_mask = ButtonPressMask | ButtonReleaseMask | ExposureMask | StructureNotifyMask;
+    attrs.event_mask = ButtonPressMask | ButtonReleaseMask | ExposureMask | StructureNotifyMask | PointerMotionMask;
 
     ui->window = XCreateWindow(
         ui->display, parent ? (Window)(uintptr_t)parent : root,
@@ -815,6 +920,9 @@ static LV2UI_Handle instantiate(
 
         // Subscribe to beats_per_bar (port 26)
         ui->port_subscribe->subscribe(ui->port_subscribe->handle, 26, 0, NULL);
+
+        // Subscribe to midi_channel (port 27)
+        ui->port_subscribe->subscribe(ui->port_subscribe->handle, 27, 0, NULL);
     }
 
     *widget = (LV2UI_Widget)(uintptr_t)ui->window;
@@ -852,6 +960,9 @@ static void cleanup(LV2UI_Handle handle) {
 
         // Unsubscribe from beats_per_bar
         ui->port_subscribe->unsubscribe(ui->port_subscribe->handle, 26, 0, NULL);
+
+        // Unsubscribe from midi_channel
+        ui->port_subscribe->unsubscribe(ui->port_subscribe->handle, 27, 0, NULL);
     }
 
     // Close settings dialog if open
@@ -936,6 +1047,20 @@ static void port_event(
         if (beats >= MIN_BEATS_PER_BAR && beats <= MAX_BEATS_PER_BAR) {
             pthread_mutex_lock(&ui->mutex);
             ui->state.beats_per_bar = (uint8_t)beats;
+            ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
+        }
+    }
+
+    // MIDI channel (port 27)
+    if (port_index == 27 && buffer) {
+        float channel = *(const float*)buffer;
+        if (channel >= 1.0f && channel <= 16.0f) {
+            pthread_mutex_lock(&ui->mutex);
+            ui->midi_channel = (uint8_t)channel;
+            if (!ui->settings_open) {
+                ui->pending_channel = ui->midi_channel;
+            }
             ui->needs_redraw = true;
             pthread_mutex_unlock(&ui->mutex);
         }

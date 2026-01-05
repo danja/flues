@@ -86,7 +86,8 @@ typedef enum {
     PORT_GRID_ROW_15 = 23,
     PORT_SEQUENCE_LENGTH = 24,
     PORT_MIDI_FILTER = 25,
-    PORT_BEATS_PER_BAR = 26
+    PORT_BEATS_PER_BAR = 26,
+    PORT_MIDI_CHANNEL = 27
 } PortIndex;
 
 typedef struct {
@@ -103,6 +104,7 @@ typedef struct {
     const float* sequence_length;
     const float* midi_filter;
     float* beats_per_bar_port;
+    const float* midi_channel;
 
     // Features
     LV2_URID_Map* map;
@@ -274,6 +276,9 @@ static void connect_port(
             break;
         case PORT_BEATS_PER_BAR:
             gs->beats_per_bar_port = (float*)data;
+            break;
+        case PORT_MIDI_CHANNEL:
+            gs->midi_channel = (const float*)data;
             break;
     }
 }
@@ -855,6 +860,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                                   notify_capacity);
     }
 
+
     // Update output ports BEFORE processing
     if (gs->current_step) {
         *gs->current_step = (float)gs->state.current_step;
@@ -911,17 +917,25 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     uint64_t old_step_frame = old_frame % gs->state.frames_per_step;
     bool was_before_half = old_step_frame < (gs->state.frames_per_step / 2);
 
+    uint8_t midi_channel = 1;
+    if (gs->midi_channel) {
+        uint8_t channel_value = (uint8_t)(*gs->midi_channel);
+        if (channel_value >= 1 && channel_value <= 16) {
+            midi_channel = channel_value;
+        }
+    }
+
     // Always trigger first step on first run
     if (gs->state.first_run) {
         if (midi_out_connected) {
-            sequencer_process_step(&gs->state, &gs->forge, &gs->seq_uris, 0);
+            sequencer_process_step(&gs->state, &gs->forge, &gs->seq_uris, 0, midi_channel);
         }
         gs->state.first_run = false;
     }
     // Check if we crossed a step boundary
     else if (sequencer_advance(&gs->state, n_samples)) {
         if (midi_out_connected) {
-            sequencer_process_step(&gs->state, &gs->forge, &gs->seq_uris, 0);
+            sequencer_process_step(&gs->state, &gs->forge, &gs->seq_uris, 0, midi_channel);
         }
         gs->grid_dirty = true;  // Update LEDs when step changes
     }
@@ -941,7 +955,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         bool filter_enabled = (gs->midi_filter && *gs->midi_filter > 0.5f);
         if (!filter_enabled) {
             if (midi_out_connected) {
-                sequencer_process_note_offs(&gs->state, &gs->forge, &gs->seq_uris, offset);
+                sequencer_process_note_offs(&gs->state, &gs->forge, &gs->seq_uris, offset, midi_channel);
             }
         }
     }

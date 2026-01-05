@@ -33,7 +33,8 @@ void sequencer_process_step(
     GridSeqState* state,
     LV2_Atom_Forge* forge,
     const SequencerURIDs* uris,
-    uint32_t frame_offset
+    uint32_t frame_offset,
+    uint8_t midi_channel
 );
 
 /**
@@ -48,7 +49,8 @@ void sequencer_process_note_offs(
     GridSeqState* state,
     LV2_Atom_Forge* forge,
     const SequencerURIDs* uris,
-    uint32_t frame_offset
+    uint32_t frame_offset,
+    uint8_t midi_channel
 );
 
 /**

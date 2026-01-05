@@ -34,12 +34,15 @@ void sequencer_process_step(
     GridSeqState* state,
     LV2_Atom_Forge* forge,
     const SequencerURIDs* uris,
-    uint32_t frame_offset
+    uint32_t frame_offset,
+    uint8_t midi_channel
 ) {
     if (!state || !forge || !uris) return;
 
     // Send Note On for current step
     uint8_t x = state->current_step;
+    uint8_t channel = (midi_channel > 0 && midi_channel <= 16) ? (uint8_t)(midi_channel - 1) : 0;
+    uint8_t status = (uint8_t)(0x90 | channel);
 
     // Play active rows in the visible window, mapped to the selected scale.
     for (uint8_t row = 0; row < GRID_VISIBLE_ROWS; row++) {
@@ -51,7 +54,7 @@ void sequencer_process_step(
             uint8_t note = state_scale_row_to_note(state, row);
             fprintf(stderr, "grid-seq: Step %d - SENDING NOTE ON: %d from grid[%d][%d]\n",
                     x, note, x, stored_note);
-            s_send_midi_message(forge, uris, frame_offset, 0x90, note, 100);
+            s_send_midi_message(forge, uris, frame_offset, status, note, 100);
             state->active_notes[note] = true;
         }
     }
@@ -64,14 +67,18 @@ void sequencer_process_note_offs(
     GridSeqState* state,
     LV2_Atom_Forge* forge,
     const SequencerURIDs* uris,
-    uint32_t frame_offset
+    uint32_t frame_offset,
+    uint8_t midi_channel
 ) {
     if (!state || !forge || !uris) return;
+
+    uint8_t channel = (midi_channel > 0 && midi_channel <= 16) ? (uint8_t)(midi_channel - 1) : 0;
+    uint8_t status = (uint8_t)(0x80 | channel);
 
     // Send Note Off for all currently active notes
     for (uint8_t note = 0; note < 128; note++) {
         if (state->active_notes[note]) {
-            s_send_midi_message(forge, uris, frame_offset, 0x80, note, 0);
+            s_send_midi_message(forge, uris, frame_offset, status, note, 0);
             state->active_notes[note] = false;
         }
     }

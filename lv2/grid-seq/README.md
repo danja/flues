@@ -86,6 +86,7 @@ Settings dialog:
 - **Sequence Length** (Control): Active steps
 - **MIDI Filter** (Control): Note-On only mode
 - **Beats Per Bar** (Control): Current beats-per-bar value
+- **MIDI Channel** (Control): 1–16 output channel for note events
 
 ## Requirements
 
