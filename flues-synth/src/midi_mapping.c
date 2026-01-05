@@ -1,6 +1,6 @@
 // midi_mapping.c
 // MIDI CC to parameter mapping tables
-// Clean, maintainable mapping system for all 18 programs
+// Clean, maintainable mapping system for all 31 programs
 
 #include "midi_mapping.h"
 #include <stddef.h>
@@ -446,8 +446,21 @@ static const SynthParameter PROGRAM_29_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
+// Program 30: Disyn + Delays (legacy)
+static const SynthParameter PROGRAM_30_MAP[9] = {
+    PARAM_DELAY1_FEEDBACK,  // Slider 1 (CC 73)
+    PARAM_DELAY2_FEEDBACK,  // Slider 2 (CC 72)
+    PARAM_FILTER_FEEDBACK,  // Slider 3 (CC 28)
+    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30)
+    PARAM_INTENSITY,        // Slider 5 (CC 74)
+    PARAM_TUNING,           // Slider 6 (CC 71)
+    PARAM_RATIO,            // Slider 7 (CC 1)
+    PARAM_ATTACK,           // Slider 8 (CC 27)
+    PARAM_RELEASE           // Slider 9 (CC 7)
+};
+
 // Master program table (array of pointers)
-static const SynthParameter* PROGRAM_MAPS[30] = {
+static const SynthParameter* PROGRAM_MAPS[31] = {
     PROGRAM_0_MAP,
     PROGRAM_1_MAP,
     PROGRAM_2_MAP,
@@ -477,12 +490,13 @@ static const SynthParameter* PROGRAM_MAPS[30] = {
     PROGRAM_26_MAP,
     PROGRAM_27_MAP,
     PROGRAM_28_MAP,
-    PROGRAM_29_MAP
+    PROGRAM_29_MAP,
+    PROGRAM_30_MAP
 };
 
 // Get parameter for program/slider combination
 SynthParameter midi_get_slider_parameter(uint8_t program, uint8_t slider_index) {
-    if (program >= 30 || slider_index >= 9) {
+    if (program >= 31 || slider_index >= 9) {
         return PARAM_NONE;
     }
     return PROGRAM_MAPS[program][slider_index];

@@ -615,6 +615,21 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_master_gain(synth, 0.7f);
             break;
 
+        case 30:  // Disyn + Delays - Add delay lines to Disyn
+            printf("Program 30: Disyn + Delays\n");
+            printf("  - Disyn + delay lines, feedback enabled\n");
+            printf("  - Sliders: Dly1(73→28), Dly2(72→29), Filt(28→30), Level(30→19), Intensity(74→1), Tuning(71→26), Ratio(1→27), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, true);
+            synth_engine_enable_noise(synth, false);
+            synth_engine_enable_formants(synth, false);
+            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_filter(synth, false);
+            synth_engine_set_disyn_level(synth, 0.6f);
+            synth_engine_set_delay1_feedback(synth, 0.3f);
+            synth_engine_set_delay2_feedback(synth, 0.3f);
+            synth_engine_set_filter_feedback(synth, 0.0f);
+            break;
+
         default:
             printf("Program %d: Unknown (using program 0)\n", program);
             handle_program_change(0, synth);

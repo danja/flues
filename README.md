@@ -6,8 +6,34 @@
 
 ---
 
+## Experiments Index
+
+### Web
+- **[Stove](https://danja.github.io/flues/pm-synth/)** — Physical modeling synth with 12 interface types.
+- **[Chatterbox](https://danja.github.io/flues/chatterbox/)** — Formant speech synth with IPA vowel quadrilateral.
+- **[Clarinet](https://danja.github.io/flues/clarinet-synth/)** — Digital waveguide clarinet (the original experiment).
+- **[Trajectory](https://danja.github.io/flues/trajectory/)** — Polygon bounce oscillator driven by the y-position.
+
+### LV2
+- **[PM-Synth](lv2/pm-synth/)** — Physical modeling plugin based on Stove.
+- **[Disyn](lv2/disyn/)** — Distortion synthesis plugin with 17 algorithms.
+- **[Chatterbox](lv2/chatterbox/)** — Speech synthesis plugin with formant controls.
+- **[ChatGen](lv2/chatgen/)** — Text-to-speech MIDI controller for Chatterbox.
+- **[Floozy](lv2/floozy/)** — Hybrid Disyn + physical modeling instrument.
+- **[Floozy Poly](lv2/floozy-poly/)** — 8-voice hybrid instrument.
+- **[Drumkit](lv2/drumkit/)** — Industrial drum synth with master FX.
+- **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
+- **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
+
+### Raspberry Pi
+- **[Flues-Synth](flues-synth/)** — Headless ALSA synth with 31 MIDI programs.
+
+### Native
+- **[PM-Synth GTK](gtk-synth/)** — GTK4 desktop app port of the physical model synth.
+
 ## Contents
 
+- [Experiments Index](#experiments-index)
 - [What is this?](#what-is-this)
 - [Try It Now - Live Web Experiments](#-try-it-now---live-web-experiments)
 - [The Experimental Journey](#the-experimental-journey)
@@ -35,6 +61,7 @@ No installation required - these run entirely in your browser:
 | **[Stove](https://danja.github.io/flues/pm-synth/)** | Physical Modeling | 12 interface types (reed, pluck, bow, brass, etc.) with waveguide synthesis |
 | **[Chatterbox](https://danja.github.io/flues/chatterbox/)** | Speech Synthesis | Formant-based vocal synthesis with IPA vowel quadrilateral control |
 | **[Clarinet](https://danja.github.io/flues/clarinet-synth/)** | Physical Modeling | Digital waveguide clarinet (the original experiment) |
+| **[Trajectory](https://danja.github.io/flues/trajectory/)** | Polygon Oscillator | Bouncing point inside a polygon, output driven by the y-position |
 
 All web experiments support MIDI input, keyboard control, and touch/mouse interaction.
 
