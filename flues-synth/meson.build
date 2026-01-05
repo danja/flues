@@ -29,6 +29,7 @@ core_sources = [
 
     # DSP Modules
     'src/audio/modules/disyn_wrapper.cpp',  # C++ wrapper
+    'src/audio/modules/trajectory_module.c',
     'src/audio/modules/sources_module.c',
     'src/audio/modules/envelope_module.c',
     'src/audio/modules/formant_module.c',

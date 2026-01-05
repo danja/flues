@@ -23,6 +23,21 @@ void disyn_set_param2(DisynModule* disyn, float value);
 void disyn_set_param3(DisynModule* disyn, float value);
 
 // ============================================================================
+// Trajectory Module (Polygon bounce oscillator)
+// ============================================================================
+
+typedef struct TrajectoryModule TrajectoryModule;
+
+TrajectoryModule* trajectory_create(float sample_rate);
+void trajectory_destroy(TrajectoryModule* traj);
+float trajectory_process(TrajectoryModule* traj);
+void trajectory_reset(TrajectoryModule* traj);
+void trajectory_set_frequency(TrajectoryModule* traj, float frequency);
+void trajectory_set_sides(TrajectoryModule* traj, int sides);
+void trajectory_set_start_position_deg(TrajectoryModule* traj, float degrees);
+void trajectory_set_start_angle_deg(TrajectoryModule* traj, float degrees);
+
+// ============================================================================
 // Sources Module (from PM-Synth)
 // ============================================================================
 

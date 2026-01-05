@@ -14,6 +14,15 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+static float clamp01(float value)
+{
+    if (value < 0.0f)
+        return 0.0f;
+    if (value > 1.0f)
+        return 1.0f;
+    return value;
+}
+
 // Voice structure (Phase 2: Polyphonic)
 typedef struct
 {
@@ -29,6 +38,7 @@ typedef struct
 
     // DSP Modules
     DisynModule *disyn;
+    TrajectoryModule *trajectory;
     SourcesModule *sources;
     EnvelopeModule *envelope;
     FormantBankModule *formant_bank;
@@ -78,6 +88,7 @@ struct SynthEngine
 
     // Debug toggles for isolating noise sources
     bool enable_disyn;
+    bool enable_trajectory;
     bool enable_noise;
     bool enable_feedback;
     bool enable_formants;
@@ -91,6 +102,7 @@ static void voice_init(Voice *voice, float sample_rate)
     memset(voice, 0, sizeof(Voice));
 
     voice->disyn = disyn_create(sample_rate);
+    voice->trajectory = trajectory_create(sample_rate);
     voice->sources = sources_create(sample_rate);
     voice->envelope = envelope_create(sample_rate);
     voice->formant_bank = formant_bank_create(sample_rate);
@@ -115,6 +127,7 @@ static void voice_init(Voice *voice, float sample_rate)
 static void voice_destroy(Voice *voice)
 {
     disyn_destroy(voice->disyn);
+    trajectory_destroy(voice->trajectory);
     sources_destroy(voice->sources);
     envelope_destroy(voice->envelope);
     formant_bank_destroy(voice->formant_bank);
@@ -181,16 +194,18 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
         }
     }
 
-    // 4. Disyn Oscillator + DC Blocker (catch DC at source)
+    // 4. Oscillators (Disyn + Trajectory) + DC Blocker (catch DC at source)
     float disyn_out = engine->enable_disyn ? disyn_process(voice->disyn, frequency) : 0.0f;
-    disyn_out = dc_blocker_process(&voice->dc_blocker_disyn, disyn_out);
-    disyn_out *= engine->disyn_level;
+    float trajectory_out = engine->enable_trajectory ? trajectory_process(voice->trajectory) : 0.0f;
+    float osc_out = disyn_out + trajectory_out;
+    osc_out = dc_blocker_process(&voice->dc_blocker_disyn, osc_out);
+    osc_out *= engine->disyn_level;
 
     // 5. Sources (Noise + DC)
     float sources_out = engine->enable_noise ? sources_process(voice->sources) : 0.0f;
 
     // 6. Mix: Disyn + Noise + DC
-    float excitation = disyn_out + sources_out;
+    float excitation = osc_out + sources_out;
 
     // 7. Envelope with velocity scaling
     float env = envelope_process(voice->envelope);
@@ -276,6 +291,7 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->sing_enabled = false;
     engine->fry_enabled = false;
     engine->enable_disyn = true;
+    engine->enable_trajectory = false;
     engine->enable_noise = true;
     engine->enable_feedback = true;
     engine->enable_formants = true;
@@ -479,6 +495,8 @@ void synth_engine_note_on(SynthEngine *engine, int midi_note, float frequency, u
     envelope_set_gate(voice->envelope, true);
     delay_lines_note_on(voice->delay_lines, frequency);
     interface_set_gate(voice->interface, 1.0f);
+    trajectory_set_frequency(voice->trajectory, frequency);
+    trajectory_reset(voice->trajectory);
 
     // Clear feedback state and DC blockers
     voice->prev_delay1_out = 0.0f;
@@ -535,6 +553,7 @@ void synth_engine_reset(SynthEngine *engine)
     engine->sing_enabled = false;
     engine->fry_enabled = false;
     engine->enable_disyn = true;
+    engine->enable_trajectory = false;
     engine->enable_noise = true;
     engine->enable_feedback = true;
     engine->enable_formants = true;
@@ -550,6 +569,9 @@ void synth_engine_reset(SynthEngine *engine)
     synth_engine_set_disyn_param2(engine, 0.5f);
     synth_engine_set_noise_level(engine, 0.15f);
     synth_engine_set_dc_level(engine, 0.0f);
+    synth_engine_set_trajectory_sides(engine, 0.33f);
+    synth_engine_set_trajectory_start_pos(engine, 0.0f);
+    synth_engine_set_trajectory_start_angle(engine, 0.125f);
 
     // Formants (neutral vowel)
     synth_engine_set_f1(engine, 500.0f);
@@ -659,6 +681,33 @@ void synth_engine_set_dc_level(SynthEngine *engine, float value)
     for (int i = 0; i < MAX_VOICES; i++)
     {
         sources_set_dc_level(engine->voices[i].sources, value);
+    }
+}
+
+void synth_engine_set_trajectory_sides(SynthEngine *engine, float normalized)
+{
+    int sides = 3 + (int)roundf(clamp01(normalized) * 9.0f);
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        trajectory_set_sides(engine->voices[i].trajectory, sides);
+    }
+}
+
+void synth_engine_set_trajectory_start_pos(SynthEngine *engine, float normalized)
+{
+    float degrees = clamp01(normalized) * 360.0f;
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        trajectory_set_start_position_deg(engine->voices[i].trajectory, degrees);
+    }
+}
+
+void synth_engine_set_trajectory_start_angle(SynthEngine *engine, float normalized)
+{
+    float degrees = clamp01(normalized) * 360.0f;
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        trajectory_set_start_angle_deg(engine->voices[i].trajectory, degrees);
     }
 }
 
@@ -867,6 +916,11 @@ void synth_engine_enable_disyn(SynthEngine *engine, bool enabled)
     engine->enable_disyn = enabled;
 }
 
+void synth_engine_enable_trajectory(SynthEngine *engine, bool enabled)
+{
+    engine->enable_trajectory = enabled;
+}
+
 void synth_engine_enable_noise(SynthEngine *engine, bool enabled)
 {
     engine->enable_noise = enabled;
@@ -938,6 +992,11 @@ bool synth_engine_is_noise_enabled(SynthEngine *engine)
 bool synth_engine_is_disyn_enabled(SynthEngine *engine)
 {
     return engine->enable_disyn;
+}
+
+bool synth_engine_is_trajectory_enabled(SynthEngine *engine)
+{
+    return engine->enable_trajectory;
 }
 
 bool synth_engine_is_feedback_enabled(SynthEngine *engine)

@@ -27,6 +27,9 @@ static const char* PARAMETER_NAMES[] = {
     [PARAM_DISYN_LEVEL]       = "Disyn Level",
     [PARAM_NOISE_LEVEL]       = "Noise Level",
     [PARAM_DC_LEVEL]          = "DC Level",
+    [PARAM_TRAJECTORY_SIDES]  = "Trajectory Sides",
+    [PARAM_TRAJECTORY_START_POS] = "Trajectory Start Pos",
+    [PARAM_TRAJECTORY_START_ANGLE] = "Trajectory Start Angle",
     [PARAM_INTENSITY]         = "Intensity",
     [PARAM_TUNING]            = "Tuning",
     [PARAM_RATIO]             = "Delay Ratio",
@@ -66,17 +69,17 @@ static const SynthParameter PROGRAM_0_MAP[9] = {
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
 
-// Program 1: Disyn + Delays
+// Program 1: Trajectory Polygon
 static const SynthParameter PROGRAM_1_MAP[9] = {
-    PARAM_DELAY1_FEEDBACK,  // Slider 1 (CC 73)
-    PARAM_DELAY2_FEEDBACK,  // Slider 2 (CC 72)
-    PARAM_FILTER_FEEDBACK,  // Slider 3 (CC 28)
-    PARAM_DISYN_LEVEL,      // Slider 4 (CC 30)
-    PARAM_INTENSITY,        // Slider 5 (CC 74)
-    PARAM_TUNING,           // Slider 6 (CC 71)
-    PARAM_RATIO,            // Slider 7 (CC 1)
-    PARAM_ATTACK,           // Slider 8 (CC 27)
-    PARAM_RELEASE           // Slider 9 (CC 7)
+    PARAM_TRAJECTORY_SIDES,       // Slider 1 (CC 73)
+    PARAM_TRAJECTORY_START_POS,   // Slider 2 (CC 72)
+    PARAM_TRAJECTORY_START_ANGLE, // Slider 3 (CC 28)
+    PARAM_MASTER_GAIN,            // Slider 4 (CC 30)
+    PARAM_NONE,                   // Slider 5 (CC 74)
+    PARAM_NONE,                   // Slider 6 (CC 71)
+    PARAM_NONE,                   // Slider 7 (CC 1)
+    PARAM_ATTACK,                 // Slider 8 (CC 27)
+    PARAM_RELEASE                 // Slider 9 (CC 7)
 };
 
 // Program 2: Disyn + Filter

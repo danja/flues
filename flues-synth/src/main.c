@@ -97,6 +97,8 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
     printf("\n═══════════════════════════════════════════════════════════\n");
     printf("PROGRAM CHANGE: %d\n", program);
 
+    synth_engine_enable_trajectory(synth, false);
+
     switch (program) {
         case 0:  // Disyn Echo - Disyn through single delay line
             printf("Program 0: Disyn Echo\n");
@@ -116,19 +118,21 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_master_gain(synth, 0.6f);
             break;
 
-        case 1:  // Disyn + Delays - Add delay lines to Disyn
-            printf("Program 1: Disyn + Delays\n");
-            printf("  - Disyn + delay lines, feedback enabled\n");
-            printf("  - Sliders: Dly1(73→28), Dly2(72→29), Filt(28→30), Level(30→19), Intensity(74→1), Tuning(71→26), Ratio(1→27), Attack(27→73), Release(7→72)\n");
-            synth_engine_enable_disyn(synth, true);
+        case 1:  // Trajectory Polygon - Bouncing point oscillator
+            printf("Program 1: Trajectory Polygon\n");
+            printf("  - Polygon bounce oscillator straight to output\n");
+            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Master(30→7), Attack(27→73), Release(7→72)\n");
+            synth_engine_enable_disyn(synth, false);
+            synth_engine_enable_trajectory(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
-            synth_engine_enable_feedback(synth, true);
+            synth_engine_enable_feedback(synth, false);
             synth_engine_enable_filter(synth, false);
-            synth_engine_set_disyn_level(synth, 0.6f);
-            synth_engine_set_delay1_feedback(synth, 0.3f);
-            synth_engine_set_delay2_feedback(synth, 0.3f);
-            synth_engine_set_filter_feedback(synth, 0.0f);
+            synth_engine_set_disyn_level(synth, 0.7f);
+            synth_engine_set_trajectory_sides(synth, 0.33f);       // 6 sides
+            synth_engine_set_trajectory_start_pos(synth, 0.0f);    // 0 deg
+            synth_engine_set_trajectory_start_angle(synth, 0.125f); // 45 deg
+            synth_engine_set_master_gain(synth, 0.7f);
             break;
 
         case 2:  // Disyn + Filter - Add state-variable filter
@@ -644,6 +648,15 @@ static void apply_parameter(SynthEngine* synth, SynthParameter param, float valu
             break;
         case PARAM_DC_LEVEL:
             synth_engine_set_dc_level(synth, value);
+            break;
+        case PARAM_TRAJECTORY_SIDES:
+            synth_engine_set_trajectory_sides(synth, value);
+            break;
+        case PARAM_TRAJECTORY_START_POS:
+            synth_engine_set_trajectory_start_pos(synth, value);
+            break;
+        case PARAM_TRAJECTORY_START_ANGLE:
+            synth_engine_set_trajectory_start_angle(synth, value);
             break;
         case PARAM_INTENSITY:
             synth_engine_set_intensity(synth, value);

@@ -34,6 +34,11 @@ void synth_engine_set_disyn_level(SynthEngine* engine, float value);  // 0-1
 void synth_engine_set_noise_level(SynthEngine* engine, float value);  // 0-1
 void synth_engine_set_dc_level(SynthEngine* engine, float value);  // 0-1
 
+// Trajectory Oscillator (polygon bounce)
+void synth_engine_set_trajectory_sides(SynthEngine* engine, float normalized);  // 0-1 -> 3-12 sides
+void synth_engine_set_trajectory_start_pos(SynthEngine* engine, float normalized);  // 0-1 -> 0-360 deg
+void synth_engine_set_trajectory_start_angle(SynthEngine* engine, float normalized);  // 0-1 -> 0-360 deg
+
 // Formants
 void synth_engine_set_f1(SynthEngine* engine, float frequency);  // 200-1000 Hz
 void synth_engine_set_f2(SynthEngine* engine, float frequency);  // 500-3000 Hz
@@ -82,6 +87,7 @@ int synth_engine_get_active_voice_count(SynthEngine* engine);
 
 // Debug/diagnostic toggles (bypass parts of the chain)
 void synth_engine_enable_disyn(SynthEngine* engine, bool enabled);
+void synth_engine_enable_trajectory(SynthEngine* engine, bool enabled);
 void synth_engine_enable_noise(SynthEngine* engine, bool enabled);
 void synth_engine_enable_feedback(SynthEngine* engine, bool enabled);
 void synth_engine_enable_formants(SynthEngine* engine, bool enabled);
@@ -89,6 +95,7 @@ void synth_engine_enable_filter(SynthEngine* engine, bool enabled);
 void synth_engine_hard_mute(SynthEngine* engine, bool enabled);
 bool synth_engine_is_noise_enabled(SynthEngine* engine);
 bool synth_engine_is_disyn_enabled(SynthEngine* engine);
+bool synth_engine_is_trajectory_enabled(SynthEngine* engine);
 bool synth_engine_is_feedback_enabled(SynthEngine* engine);
 bool synth_engine_is_formants_enabled(SynthEngine* engine);
 bool synth_engine_is_filter_enabled(SynthEngine* engine);
