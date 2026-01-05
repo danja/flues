@@ -2,7 +2,7 @@
 
 ## Algorithm
 
-Trajectory is a synthesizer whose oscillator is driven by a point bouncing inside a regular polygon. The point moves in straight lines, reflects perfectly off the edges, and the oscillator output is the point's y-position. Changing the polygon sides and the two angular parameters reshapes the orbit, producing tones that range from stable to quasi-chaotic.
+Trajectory is a synthesizer whose oscillator is driven by a point bouncing inside a regular polygon. The point moves in straight lines, reflects perfectly off the edges, and the oscillator output is taken from the point's x- and y-position. Changing the polygon sides and the two angular parameters reshapes the orbit, producing tones that range from stable to quasi-chaotic.
 
 The core controls are:
 - Sides: number of polygon edges (3-12)
