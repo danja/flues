@@ -37,6 +37,8 @@ struct TrajectoryModule {
     TrajVec2 vertices[TRAJECTORY_MAX_SIDES];
     TrajEdge edges[TRAJECTORY_MAX_SIDES];
     int edge_count;
+    float mix_x;
+    float mix_y;
 };
 
 static float traj_clamp(float value, float min, float max) {
@@ -184,6 +186,8 @@ TrajectoryModule* trajectory_create(float sample_rate) {
     traj->start_angle = traj_deg_to_rad(45.0f);
     traj->frequency = 440.0f;
     traj->speed = traj_compute_speed(traj->frequency, traj->sample_rate);
+    traj->mix_x = 0.0f;
+    traj->mix_y = 1.0f;
     traj_rebuild_polygon(traj);
     trajectory_reset(traj);
     return traj;
@@ -231,6 +235,16 @@ void trajectory_set_start_angle_deg(TrajectoryModule* traj, float degrees) {
     traj_update_velocity(traj);
 }
 
+void trajectory_set_mix_x(TrajectoryModule* traj, float mix) {
+    if (!traj) return;
+    traj->mix_x = traj_clamp(mix, 0.0f, 1.0f);
+}
+
+void trajectory_set_mix_y(TrajectoryModule* traj, float mix) {
+    if (!traj) return;
+    traj->mix_y = traj_clamp(mix, 0.0f, 1.0f);
+}
+
 float trajectory_process(TrajectoryModule* traj) {
     if (!traj || traj->edge_count == 0) {
         return 0.0f;
@@ -263,5 +277,6 @@ float trajectory_process(TrajectoryModule* traj) {
     traj->position = position;
     traj->velocity = velocity;
 
-    return position.y * TRAJECTORY_OUTPUT_GAIN;
+    const float output = position.x * traj->mix_x + position.y * traj->mix_y;
+    return output * TRAJECTORY_OUTPUT_GAIN;
 }

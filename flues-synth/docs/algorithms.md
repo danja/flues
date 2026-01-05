@@ -773,14 +773,14 @@ float dc_blocker_process(DCBlocker* blocker, float input) {
 
 ### Trajectory Oscillator (Polygon Bounce)
 
-**Principle:** A point moves inside a regular polygon, reflecting perfectly off edges. The oscillator output is the point's y-position. The motion speed is derived from note frequency, so pitch drives the rate of traversal.
+**Principle:** A point moves inside a regular polygon, reflecting perfectly off edges. The oscillator output is a weighted sum of the point's x- and y-positions. The motion speed is derived from note frequency, so pitch drives the rate of traversal.
 
 **Core Idea:**
 ```
 speed = (frequency * 4) / sampleRate
 position[n+1] = position[n] + velocity
 if outside polygon: reflect velocity and push point back inside
-output = y * 0.9
+output = (x * mixX + y * mixY) * 1.0
 ```
 
 **Parameters:**
@@ -788,12 +788,14 @@ output = y * 0.9
   - Mapped: `sides = 3 + round(norm * 9)`
 - **Start Position:** Angle from center to start point (0-360 deg)
 - **Start Angle:** Launch direction (0-360 deg)
+- **Mix X:** Weight of x-position contribution (0-1)
+- **Mix Y:** Weight of y-position contribution (0-1)
 
 **Implementation Notes:**
 - Polygon is unit radius, centered at origin, rotated by `pi / sides`.
 - Reflection uses half-space correction: the most-penetrated edge normal reflects the velocity.
 - A small inward nudge prevents edge re-collisions.
-- Output uses y-position only, scaled for headroom.
+- Output uses a mix of x/y positions, scaled for headroom.
 
 **Flues-synth Usage:**
 - **Program 2:** Trajectory Polygon oscillator (Disyn disabled).

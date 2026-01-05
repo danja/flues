@@ -149,7 +149,7 @@ static const char* kProgramNames[PROGRAM_MAX + 1] = {
 static const char* kSliderLabels[PROGRAM_MAX + 1][SLIDER_COUNT] = {
     {"Alg", "Param1", "Param2", "Interface", "Intensity", "Tuning", "Delay1 FB", "Attack", "Release"},
     {"Filter\nFreq", "Filter Q", "Filter\nShape", "Disyn\nLevel", "Intensity", "Tuning", "Ratio", "Attack", "Release"},
-    {"Sides", "Start\nPos", "Start\nAngle", "Master", "Clip", "-", "-", "Attack", "Release"},
+    {"Sides", "Start\nPos", "Start\nAngle", "Master", "Clip", "Mix X", "Mix Y", "Attack", "Release"},
     {"F1", "F2", "F3", "F4", "Noise", "Nasal", "Master", "Attack", "Release"},
     {"F1", "F2", "F3", "F4", "Disyn\nLevel", "Noise", "Master", "Attack", "Release"},
     {"Delay1 FB", "Delay2 FB", "Filter FB", "Interface", "Intensity", "Tuning", "Ratio", "Attack", "Release"},
@@ -289,6 +289,12 @@ static void format_slider_value(char* out, size_t out_size, int program, int sli
             case 4: {
                 float drive = 1.0f + t * 4.0f;
                 snprintf(out, out_size, "x%.1f", drive);
+                return;
+            }
+            case 5:
+            case 6: {
+                int percent = (int)roundf(t * 100.0f);
+                snprintf(out, out_size, "%d%%", percent);
                 return;
             }
             default:

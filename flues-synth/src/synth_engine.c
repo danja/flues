@@ -96,6 +96,8 @@ struct SynthEngine
     bool hard_mute;
 
     float trajectory_clip_drive;
+    float trajectory_mix_x;
+    float trajectory_mix_y;
 };
 
 // Initialize voice
@@ -304,6 +306,8 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->enable_filter = true;
     engine->hard_mute = false;
     engine->trajectory_clip_drive = 1.0f;
+    engine->trajectory_mix_x = 0.0f;
+    engine->trajectory_mix_y = 1.0f;
     engine->watchdog_enabled = false;
     engine->fixed_duration_enabled = false;
     engine->watchdog_samples = 0;
@@ -580,6 +584,8 @@ void synth_engine_reset(SynthEngine *engine)
     synth_engine_set_trajectory_start_pos(engine, 0.0f);
     synth_engine_set_trajectory_start_angle(engine, 0.125f);
     synth_engine_set_trajectory_clip(engine, 0.0f);
+    synth_engine_set_trajectory_mix_x(engine, 0.0f);
+    synth_engine_set_trajectory_mix_y(engine, 1.0f);
 
     // Formants (neutral vowel)
     synth_engine_set_f1(engine, 500.0f);
@@ -723,6 +729,26 @@ void synth_engine_set_trajectory_clip(SynthEngine *engine, float normalized)
 {
     float drive = 1.0f + clamp01(normalized) * 4.0f;
     engine->trajectory_clip_drive = drive;
+}
+
+void synth_engine_set_trajectory_mix_x(SynthEngine *engine, float normalized)
+{
+    float mix = clamp01(normalized);
+    engine->trajectory_mix_x = mix;
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        trajectory_set_mix_x(engine->voices[i].trajectory, mix);
+    }
+}
+
+void synth_engine_set_trajectory_mix_y(SynthEngine *engine, float normalized)
+{
+    float mix = clamp01(normalized);
+    engine->trajectory_mix_y = mix;
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        trajectory_set_mix_y(engine->voices[i].trajectory, mix);
+    }
 }
 
 // Formants

@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 
 // Global state for signal handler
 static volatile bool running = true;
@@ -138,7 +139,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
         case 2:  // Trajectory Polygon - Bouncing point oscillator
             printf("Program 2: Trajectory Polygon\n");
             printf("  - Polygon bounce oscillator straight to output\n");
-            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Master(30→7), Clip(74→traj), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Master(30→7), Clip(74→traj), MixX(71→traj), MixY(1→traj), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, false);
             synth_engine_enable_trajectory(synth, true);
             synth_engine_enable_noise(synth, false);
@@ -150,6 +151,8 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_trajectory_start_pos(synth, 0.0f);    // 0 deg
             synth_engine_set_trajectory_start_angle(synth, 0.125f); // 45 deg
             synth_engine_set_trajectory_clip(synth, 0.0f);
+            synth_engine_set_trajectory_mix_x(synth, 0.0f);
+            synth_engine_set_trajectory_mix_y(synth, 1.0f);
             synth_engine_set_master_gain(synth, 0.85f);
             break;
 
@@ -670,12 +673,38 @@ static void apply_parameter(SynthEngine* synth, SynthParameter param, float valu
             break;
         case PARAM_TRAJECTORY_START_POS:
             synth_engine_set_trajectory_start_pos(synth, value);
+            if (g_current_program == 2) {
+                int degrees = (int)lroundf(value * 360.0f);
+                printf("Trajectory Start Pos: %d deg\n", degrees);
+            }
             break;
         case PARAM_TRAJECTORY_START_ANGLE:
             synth_engine_set_trajectory_start_angle(synth, value);
+            if (g_current_program == 2) {
+                int degrees = (int)lroundf(value * 360.0f);
+                printf("Trajectory Start Angle: %d deg\n", degrees);
+            }
             break;
         case PARAM_TRAJECTORY_CLIP:
             synth_engine_set_trajectory_clip(synth, value);
+            if (g_current_program == 2) {
+                float drive = 1.0f + value * 4.0f;
+                printf("Trajectory Clip Drive: x%.2f\n", drive);
+            }
+            break;
+        case PARAM_TRAJECTORY_MIX_X:
+            synth_engine_set_trajectory_mix_x(synth, value);
+            if (g_current_program == 2) {
+                int percent = (int)lroundf(value * 100.0f);
+                printf("Trajectory Mix X: %d%%\n", percent);
+            }
+            break;
+        case PARAM_TRAJECTORY_MIX_Y:
+            synth_engine_set_trajectory_mix_y(synth, value);
+            if (g_current_program == 2) {
+                int percent = (int)lroundf(value * 100.0f);
+                printf("Trajectory Mix Y: %d%%\n", percent);
+            }
             break;
         case PARAM_INTENSITY:
             synth_engine_set_intensity(synth, value);
