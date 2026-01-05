@@ -107,6 +107,7 @@ The plugin passes through note messages while adding CC and Program Change messa
 - Slider 2 → Start Position (0-360 degrees)
 - Slider 3 → Start Angle (0-360 degrees)
 - Slider 4 → Master Gain
+- Slider 5 → Clip Drive (tanh soft clip, 1.0x-5.0x)
 - Slider 8 → Attack
 - Slider 9 → Release
 

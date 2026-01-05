@@ -12,7 +12,7 @@
 #define TRAJECTORY_MAX_SIDES 12
 #define TRAJECTORY_MIN_SIDES 3
 #define TRAJECTORY_EPSILON 1e-6f
-#define TRAJECTORY_OUTPUT_GAIN 0.9f
+#define TRAJECTORY_OUTPUT_GAIN 1.0f
 
 typedef struct {
     float x;

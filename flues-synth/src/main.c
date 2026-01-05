@@ -138,18 +138,19 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
         case 2:  // Trajectory Polygon - Bouncing point oscillator
             printf("Program 2: Trajectory Polygon\n");
             printf("  - Polygon bounce oscillator straight to output\n");
-            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Master(30→7), Clip(74→traj), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, false);
             synth_engine_enable_trajectory(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
             synth_engine_enable_feedback(synth, false);
             synth_engine_enable_filter(synth, false);
-            synth_engine_set_disyn_level(synth, 0.7f);
+            synth_engine_set_disyn_level(synth, 1.0f);
             synth_engine_set_trajectory_sides(synth, 0.33f);       // 6 sides
             synth_engine_set_trajectory_start_pos(synth, 0.0f);    // 0 deg
             synth_engine_set_trajectory_start_angle(synth, 0.125f); // 45 deg
-            synth_engine_set_master_gain(synth, 0.7f);
+            synth_engine_set_trajectory_clip(synth, 0.0f);
+            synth_engine_set_master_gain(synth, 0.85f);
             break;
 
         case 3:  // Formant Voice - Vocal formants only
@@ -672,6 +673,9 @@ static void apply_parameter(SynthEngine* synth, SynthParameter param, float valu
             break;
         case PARAM_TRAJECTORY_START_ANGLE:
             synth_engine_set_trajectory_start_angle(synth, value);
+            break;
+        case PARAM_TRAJECTORY_CLIP:
+            synth_engine_set_trajectory_clip(synth, value);
             break;
         case PARAM_INTENSITY:
             synth_engine_set_intensity(synth, value);

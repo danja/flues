@@ -38,6 +38,7 @@ void synth_engine_set_dc_level(SynthEngine* engine, float value);  // 0-1
 void synth_engine_set_trajectory_sides(SynthEngine* engine, float normalized);  // 0-1 -> 3-12 sides
 void synth_engine_set_trajectory_start_pos(SynthEngine* engine, float normalized);  // 0-1 -> 0-360 deg
 void synth_engine_set_trajectory_start_angle(SynthEngine* engine, float normalized);  // 0-1 -> 0-360 deg
+void synth_engine_set_trajectory_clip(SynthEngine* engine, float normalized);  // 0-1 -> drive 1-5
 
 // Formants
 void synth_engine_set_f1(SynthEngine* engine, float frequency);  // 200-1000 Hz

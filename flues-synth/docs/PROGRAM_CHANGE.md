@@ -106,10 +106,11 @@ The MIDI controller has 9 sliders sending these CC numbers:
 - Slider 2: **Start Position** (72→traj) - 0 to 360 degrees
 - Slider 3: **Start Angle** (28→traj) - 0 to 360 degrees
 - Slider 4: **Master Gain** (30→7)
+- Slider 5: **Clip Drive** (74→traj) - Soft clip drive (1.0x-5.0x)
 - Slider 8: **Attack** (27→73)
 - Slider 9: **Release** (7→72)
 
-**Default Settings**: 6 sides, start pos 0°, start angle 45°, master gain 0.7
+**Default Settings**: 6 sides, start pos 0°, start angle 45°, master gain 0.85, clip drive 1.0x
 
 ---
 

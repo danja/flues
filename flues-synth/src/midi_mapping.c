@@ -30,6 +30,7 @@ static const char* PARAMETER_NAMES[] = {
     [PARAM_TRAJECTORY_SIDES]  = "Trajectory Sides",
     [PARAM_TRAJECTORY_START_POS] = "Trajectory Start Pos",
     [PARAM_TRAJECTORY_START_ANGLE] = "Trajectory Start Angle",
+    [PARAM_TRAJECTORY_CLIP]  = "Trajectory Clip",
     [PARAM_INTENSITY]         = "Intensity",
     [PARAM_TUNING]            = "Tuning",
     [PARAM_RATIO]             = "Delay Ratio",
@@ -88,7 +89,7 @@ static const SynthParameter PROGRAM_2_MAP[9] = {
     PARAM_TRAJECTORY_START_POS,   // Slider 2 (CC 72)
     PARAM_TRAJECTORY_START_ANGLE, // Slider 3 (CC 28)
     PARAM_MASTER_GAIN,            // Slider 4 (CC 30)
-    PARAM_NONE,                   // Slider 5 (CC 74)
+    PARAM_TRAJECTORY_CLIP,        // Slider 5 (CC 74)
     PARAM_NONE,                   // Slider 6 (CC 71)
     PARAM_NONE,                   // Slider 7 (CC 1)
     PARAM_ATTACK,                 // Slider 8 (CC 27)

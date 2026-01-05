@@ -94,6 +94,8 @@ struct SynthEngine
     bool enable_formants;
     bool enable_filter;
     bool hard_mute;
+
+    float trajectory_clip_drive;
 };
 
 // Initialize voice
@@ -196,7 +198,11 @@ static float voice_process_sample(Voice *voice, SynthEngine *engine)
 
     // 4. Oscillators (Disyn + Trajectory) + DC Blocker (catch DC at source)
     float disyn_out = engine->enable_disyn ? disyn_process(voice->disyn, frequency) : 0.0f;
-    float trajectory_out = engine->enable_trajectory ? trajectory_process(voice->trajectory) : 0.0f;
+    float trajectory_out = 0.0f;
+    if (engine->enable_trajectory) {
+        trajectory_out = trajectory_process(voice->trajectory);
+        trajectory_out = soft_clip_drive(trajectory_out, engine->trajectory_clip_drive);
+    }
     float osc_out = disyn_out + trajectory_out;
     osc_out = dc_blocker_process(&voice->dc_blocker_disyn, osc_out);
     osc_out *= engine->disyn_level;
@@ -297,6 +303,7 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->enable_formants = true;
     engine->enable_filter = true;
     engine->hard_mute = false;
+    engine->trajectory_clip_drive = 1.0f;
     engine->watchdog_enabled = false;
     engine->fixed_duration_enabled = false;
     engine->watchdog_samples = 0;
@@ -572,6 +579,7 @@ void synth_engine_reset(SynthEngine *engine)
     synth_engine_set_trajectory_sides(engine, 0.33f);
     synth_engine_set_trajectory_start_pos(engine, 0.0f);
     synth_engine_set_trajectory_start_angle(engine, 0.125f);
+    synth_engine_set_trajectory_clip(engine, 0.0f);
 
     // Formants (neutral vowel)
     synth_engine_set_f1(engine, 500.0f);
@@ -709,6 +717,12 @@ void synth_engine_set_trajectory_start_angle(SynthEngine *engine, float normaliz
     {
         trajectory_set_start_angle_deg(engine->voices[i].trajectory, degrees);
     }
+}
+
+void synth_engine_set_trajectory_clip(SynthEngine *engine, float normalized)
+{
+    float drive = 1.0f + clamp01(normalized) * 4.0f;
+    engine->trajectory_clip_drive = drive;
 }
 
 // Formants
