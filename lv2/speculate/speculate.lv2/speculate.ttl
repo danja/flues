@@ -1,0 +1,108 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/speculate>
+    a lv2:Plugin , lv2:EffectPlugin ;
+    doap:name "Speculate" ;
+    doap:description "Spectral modulator with FFT shift, blur, freeze, and tempo sync" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        a foaf:Person ;
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://github.com/danja> ;
+    ] ;
+    lv2:project [
+        a doap:Project ;
+        doap:name "Flues Synthesizers" ;
+    ] ;
+
+    lv2:requiredFeature urid:map ;
+
+    lv2:port [
+        a lv2:InputPort , atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports time:Position ;
+        lv2:index 0 ;
+        lv2:symbol "control_in" ;
+        lv2:name "Control In" ;
+        rdfs:comment "Transport sync for tempo-based modulation" ;
+    ] , [
+        a lv2:InputPort , lv2:AudioPort ;
+        lv2:index 1 ;
+        lv2:symbol "in_l" ;
+        lv2:name "Input L" ;
+    ] , [
+        a lv2:InputPort , lv2:AudioPort ;
+        lv2:index 2 ;
+        lv2:symbol "in_r" ;
+        lv2:name "Input R" ;
+    ] , [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 3 ;
+        lv2:symbol "out_l" ;
+        lv2:name "Output L" ;
+    ] , [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 4 ;
+        lv2:symbol "out_r" ;
+        lv2:name "Output R" ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "dry_wet" ;
+        lv2:name "Dry/Wet" ;
+        lv2:default 0.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Mix between dry input and spectral output" ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "shift" ;
+        lv2:name "Shift" ;
+        lv2:default 0.0 ;
+        lv2:minimum -0.2 ;
+        lv2:maximum 0.2 ;
+        rdfs:comment "Spectral bin shift (-0.2 = down, +0.2 = up)" ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "blur" ;
+        lv2:name "Blur" ;
+        lv2:default 0.2 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Smooths adjacent FFT bins" ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "freeze" ;
+        lv2:name "Freeze" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Blends in previous spectrum magnitudes" ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "mod_depth" ;
+        lv2:name "Mod Depth" ;
+        lv2:default 0.3 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        rdfs:comment "Tempo-synced shift modulation depth" ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "mod_factor" ;
+        lv2:name "Mod Factor" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.02 ;
+        lv2:maximum 8.0 ;
+        rdfs:comment "Multiplier on tempo rate for shift modulation" ;
+    ] .

@@ -1,0 +1,13 @@
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+
+<http://github.com/danny/grid-seq>
+    a lv2:Plugin ;
+    lv2:binary <grid_seq.so> ;
+    rdfs:seeAlso <grid_seq.ttl> .
+
+<http://github.com/danny/grid-seq#ui>
+    a ui:X11UI ;
+    ui:binary <grid_seq_ui.so> ;
+    rdfs:seeAlso <grid_seq.ttl> .

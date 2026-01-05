@@ -105,9 +105,12 @@ Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjourna
 
 11 synthesized voices (kick, snare, clap, toms, hi-hats, crash, bash, cowbell, clave) using pitch envelopes, resonant filters, noise bursts, and inharmonic oscillators. The Euclid companion generates Euclidean/stochastic rhythms for Drumkit. Master FX chain includes bit crushing, distortion, and reverb for aggressive, metallic tones.
 
+The Euclidean Gate experiment applies those rhythm concepts to any audio source by opening or muting audio with an AD envelope.
+
 **Available as:**
 - 🔌 **LV2 plugin** - 11 voices, 43 parameters, drum synth mapping ([lv2/drumkit/](lv2/drumkit/))
 - 🔌 **LV2 plugin** - Euclidean rhythm generator for Drumkit ([lv2/euclid/](lv2/euclid/))
+- 🔌 **LV2 plugin** - Euclidean gate (audio effect) for rhythmic chopping ([lv2/euclidean-gate/](lv2/euclidean-gate/))
 
 ---
 
@@ -189,7 +192,9 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/floozy-poly/README.md](lv2/floozy-poly/README.md) - Hybrid poly
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
+- [lv2/euclidean-gate/README.md](lv2/euclidean-gate/README.md) - Euclidean gate effect
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
+- [lv2/padseq/README.md](lv2/padseq/README.md) - Launchpad drum sequencer
 
 ### Build Native Apps
 
