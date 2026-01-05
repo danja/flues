@@ -25,6 +25,22 @@ export const TRAJECTORY_PARAMS = [
     default: 0.125,
     format: (value) => `${Math.round(value)}deg`,
   },
+  {
+    id: 'mixX',
+    label: 'X Level',
+    min: 0,
+    max: 1,
+    default: 0.0,
+    format: (value) => `${Math.round(value * 100)}%`,
+  },
+  {
+    id: 'mixY',
+    label: 'Y Level',
+    min: 0,
+    max: 1,
+    default: 1.0,
+    format: (value) => `${Math.round(value * 100)}%`,
+  },
 ];
 
 export const getDefaultParamState = () => {

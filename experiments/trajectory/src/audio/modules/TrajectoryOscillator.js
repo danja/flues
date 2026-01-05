@@ -1,6 +1,6 @@
 const TWO_PI = Math.PI * 2;
 const EPSILON = 1e-6;
-const OUTPUT_GAIN = 0.9;
+const OUTPUT_GAIN = 1.0;
 
 export class TrajectoryOscillator {
   constructor(sampleRate) {
@@ -14,6 +14,8 @@ export class TrajectoryOscillator {
     this.edges = [];
     this.position = { x: 0, y: 0 };
     this.velocity = { x: this.speed, y: 0 };
+    this.mixX = 0;
+    this.mixY = 1;
     this.rebuildPolygon();
     this.reset();
   }
@@ -27,6 +29,8 @@ export class TrajectoryOscillator {
     const sides = this.clampInt(params.sides?.mapped ?? 6, 3, 12);
     const startPositionAngle = this.degToRad(params.startPosition?.mapped ?? 0);
     const startAngle = this.degToRad(params.startAngle?.mapped ?? 0);
+    this.mixX = params.mixX?.mapped ?? 0;
+    this.mixY = params.mixY?.mapped ?? 1;
 
     const needsRebuild = sides !== this.sides;
     const needsReset =
@@ -90,7 +94,8 @@ export class TrajectoryOscillator {
     this.position = position;
     this.velocity = velocity;
 
-    return this.position.y * OUTPUT_GAIN;
+    const output = this.position.x * this.mixX + this.position.y * this.mixY;
+    return output * OUTPUT_GAIN;
   }
 
   computeSpeed(frequency) {

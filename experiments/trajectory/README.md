@@ -8,6 +8,8 @@ The core controls are:
 - Sides: number of polygon edges (3-12)
 - Start Position: angle from the center to the starting point on the polygon boundary
 - Start Angle: launch direction of the moving point
+- X Level: mix amount of the x-position contribution
+- Y Level: mix amount of the y-position contribution
 
 Velocity is derived from the played note so the motion rate tracks pitch.
 
@@ -18,6 +20,7 @@ Velocity is derived from the played note so the motion rate tracks pitch.
 - Reflection uses a half-space correction: when a step leaves the polygon, the most-penetrated edge normal is used to reflect and nudge back inside.
 - The output waveform is the y-coordinate scaled for audio headroom.
 - Parameter updates rebuild the polygon or reset the point and velocity as needed for stable trajectories.
+- Default mix: X=0%, Y=100% (pure y-axis output).
 
 ## Deeper derivation
 
@@ -71,8 +74,8 @@ The `eps` nudge prevents the point from sitting exactly on the boundary, which a
 
 ### Output signal
 
-The oscillator output is the y-position:
+The oscillator output is a mix of x and y:
 ```
-output = y * 0.9
+output = (x * mixX + y * mixY) * 1.0
 ```
 This keeps the waveform centered and leaves headroom for downstream processing.
