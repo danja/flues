@@ -263,11 +263,35 @@ static void draw_slider(cairo_t* cr, const Slider* slider, const char* label) {
 
     cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
     draw_multiline(cr, slider->x - 2, slider->y + slider->height + 16, label, 12.0f);
+}
 
-    char value_text[16];
-    snprintf(value_text, sizeof(value_text), "%d", (int)roundf(t * 127.0f));
-    cairo_move_to(cr, slider->x + 12, slider->y - 8);
-    cairo_show_text(cr, value_text);
+static void format_slider_value(char* out, size_t out_size, int program, int slider_index, float value) {
+    const float t = clamp01(value);
+
+    if (program == 2) {
+        switch (slider_index) {
+            case 0: {
+                int sides = 3 + (int)roundf(t * 9.0f);
+                snprintf(out, out_size, "%d", sides);
+                return;
+            }
+            case 1:
+            case 2: {
+                int degrees = (int)roundf(t * 360.0f);
+                snprintf(out, out_size, "%d", degrees);
+                return;
+            }
+            case 3: {
+                int percent = (int)roundf(t * 100.0f);
+                snprintf(out, out_size, "%d%%", percent);
+                return;
+            }
+            default:
+                break;
+        }
+    }
+
+    snprintf(out, out_size, "%d", (int)roundf(t * 127.0f));
 }
 
 static void draw_ui(FluesControlUI* ui) {
@@ -314,6 +338,12 @@ static void draw_ui(FluesControlUI* ui) {
 
     for (int i = 0; i < SLIDER_COUNT; i++) {
         draw_slider(cr, &ui->sliders[i], kSliderLabels[ui->program_index][i]);
+
+        char value_text[32];
+        format_slider_value(value_text, sizeof(value_text), ui->program_index, i, ui->sliders[i].value);
+        cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
+        cairo_move_to(cr, ui->sliders[i].x + 8, ui->sliders[i].y - 8);
+        cairo_show_text(cr, value_text);
     }
 
     cairo_destroy(cr);

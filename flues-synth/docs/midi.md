@@ -7,7 +7,7 @@
 Flues-synth provides comprehensive MIDI control via:
 - **29 MIDI Continuous Controllers (CCs)** for real-time parameter modulation
 - **6 Control Notes (36-41)** for toggling signal chain modules
-- **30 MIDI Program Changes (0-29)** for switching synthesis configurations
+- **31 MIDI Program Changes (0-30)** for switching synthesis configurations
 - **MIDI Note On/Off** for monophonic voice triggering (velocity-sensitive)
 - **MIDI All Notes Off** for emergency silence
 
@@ -24,8 +24,8 @@ Program Changes dynamically reconfigure the signal chain and remap hardware slid
 | Program | Name | Signal Chain | Use Case |
 |---------|------|--------------|----------|
 | 0 | Disyn Direct | Disyn → Output | Raw distortion synthesis |
-| 1 | Disyn + Delays | Disyn → Delays | Echo/resonance |
-| 2 | Disyn + Filter | Disyn → Delays → Filter | Filtered distortion |
+| 1 | Disyn + Filter | Disyn → Delays → Filter | Filtered distortion |
+| 2 | Trajectory Polygon | Trajectory → Output | Polygon bounce oscillator |
 | 3 | Formant Voice | Noise → Formants | Pure vocal synthesis |
 | 4 | Hybrid Speech | Disyn + Noise → Formants | Voiced speech |
 | 5 | Physical Model | Noise → Interface → Delays → Filter | Classic PM |
