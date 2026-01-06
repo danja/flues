@@ -8,6 +8,7 @@ export class TrajectoryOscillator {
     this.sides = 6;
     this.startAngle = 0;
     this.startPositionAngle = 0;
+    this.bounceJitter = 0;
     this.frequency = 440;
     this.speed = this.computeSpeed(this.frequency);
     this.vertices = [];
@@ -29,6 +30,7 @@ export class TrajectoryOscillator {
     const sides = this.clampInt(params.sides?.mapped ?? 6, 3, 12);
     const startPositionAngle = this.degToRad(params.startPosition?.mapped ?? 0);
     const startAngle = this.degToRad(params.startAngle?.mapped ?? 0);
+    const bounceJitter = this.degToRad(params.bounceJitter?.mapped ?? 0);
     this.mixX = params.mixX?.mapped ?? 0;
     this.mixY = params.mixY?.mapped ?? 1;
 
@@ -41,6 +43,7 @@ export class TrajectoryOscillator {
     this.sides = sides;
     this.startPositionAngle = startPositionAngle;
     this.startAngle = startAngle;
+    this.bounceJitter = bounceJitter;
 
     if (needsRebuild) {
       this.rebuildPolygon();
@@ -83,12 +86,13 @@ export class TrajectoryOscillator {
       }
 
       const reflected = this.reflect(velocity, hit.normal);
+      const jittered = this.applyBounceJitter(reflected);
       const nudge = 1e-4;
       position = {
         x: next.x - hit.normal.x * (hit.distance + nudge),
         y: next.y - hit.normal.y * (hit.distance + nudge),
       };
-      velocity = reflected;
+      velocity = jittered;
     }
 
     this.position = position;
@@ -289,6 +293,19 @@ export class TrajectoryOscillator {
     return {
       x: vector.x - 2 * dot * normal.x,
       y: vector.y - 2 * dot * normal.y,
+    };
+  }
+
+  applyBounceJitter(vector) {
+    if (this.bounceJitter <= 0) {
+      return vector;
+    }
+    const angle = (Math.random() * 2 - 1) * this.bounceJitter;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return {
+      x: vector.x * cos - vector.y * sin,
+      y: vector.x * sin + vector.y * cos,
     };
   }
 

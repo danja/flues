@@ -26,6 +26,14 @@ export const TRAJECTORY_PARAMS = [
     format: (value) => `${Math.round(value)}deg`,
   },
   {
+    id: 'bounceJitter',
+    label: 'Bounce Jitter',
+    min: 0,
+    max: 10,
+    default: 0.0,
+    format: (value) => `${value.toFixed(1)}deg`,
+  },
+  {
     id: 'mixX',
     label: 'X Level',
     min: 0,
