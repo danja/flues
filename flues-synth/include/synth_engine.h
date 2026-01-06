@@ -39,6 +39,7 @@ void synth_engine_set_trajectory_sides(SynthEngine* engine, float normalized);  
 void synth_engine_set_trajectory_start_pos(SynthEngine* engine, float normalized);  // 0-1 -> 0-360 deg
 void synth_engine_set_trajectory_start_angle(SynthEngine* engine, float normalized);  // 0-1 -> 0-360 deg
 void synth_engine_set_trajectory_clip(SynthEngine* engine, float normalized);  // 0-1 -> drive 1-5
+void synth_engine_set_trajectory_jitter(SynthEngine* engine, float normalized);  // 0-1 -> 0-10 deg
 void synth_engine_set_trajectory_mix_x(SynthEngine* engine, float normalized);  // 0-1 -> mix 0-1
 void synth_engine_set_trajectory_mix_y(SynthEngine* engine, float normalized);  // 0-1 -> mix 0-1
 

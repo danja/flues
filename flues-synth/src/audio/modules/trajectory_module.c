@@ -30,6 +30,7 @@ struct TrajectoryModule {
     int sides;
     float start_position_angle;
     float start_angle;
+    float bounce_jitter;
     float frequency;
     float speed;
     TrajVec2 position;
@@ -74,6 +75,21 @@ static float traj_cross(TrajVec2 a, TrajVec2 b) {
 static TrajVec2 traj_reflect(TrajVec2 v, TrajVec2 n) {
     float dot = v.x * n.x + v.y * n.y;
     TrajVec2 out = {v.x - 2.0f * dot * n.x, v.y - 2.0f * dot * n.y};
+    return out;
+}
+
+static TrajVec2 traj_apply_jitter(const TrajectoryModule* traj, TrajVec2 v) {
+    if (traj->bounce_jitter <= 0.0f) {
+        return v;
+    }
+    float rand_unit = (float)rand() / (float)RAND_MAX;
+    float angle = (rand_unit * 2.0f - 1.0f) * traj->bounce_jitter;
+    float c = cosf(angle);
+    float s = sinf(angle);
+    TrajVec2 out = {
+        v.x * c - v.y * s,
+        v.x * s + v.y * c
+    };
     return out;
 }
 
@@ -184,6 +200,7 @@ TrajectoryModule* trajectory_create(float sample_rate) {
     traj->sides = 6;
     traj->start_position_angle = 0.0f;
     traj->start_angle = traj_deg_to_rad(45.0f);
+    traj->bounce_jitter = 0.0f;
     traj->frequency = 440.0f;
     traj->speed = traj_compute_speed(traj->frequency, traj->sample_rate);
     traj->mix_x = 0.0f;
@@ -235,6 +252,12 @@ void trajectory_set_start_angle_deg(TrajectoryModule* traj, float degrees) {
     traj_update_velocity(traj);
 }
 
+void trajectory_set_bounce_jitter_deg(TrajectoryModule* traj, float degrees) {
+    if (!traj) return;
+    float deg = traj_clamp(degrees, 0.0f, 10.0f);
+    traj->bounce_jitter = traj_deg_to_rad(deg);
+}
+
 void trajectory_set_mix_x(TrajectoryModule* traj, float mix) {
     if (!traj) return;
     traj->mix_x = traj_clamp(mix, 0.0f, 1.0f);
@@ -268,10 +291,11 @@ float trajectory_process(TrajectoryModule* traj) {
         }
 
         TrajVec2 reflected = traj_reflect(velocity, normal);
+        TrajVec2 jittered = traj_apply_jitter(traj, reflected);
         float nudge = 1e-4f;
         position.x = next.x - normal.x * (distance + nudge);
         position.y = next.y - normal.y * (distance + nudge);
-        velocity = reflected;
+        velocity = jittered;
     }
 
     traj->position = position;

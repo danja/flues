@@ -45,7 +45,7 @@ typedef enum {
     PARAM_LFO_FREQ,
     PARAM_AM_FM_DEPTH,
     PARAM_INTERFACE_TYPE,
-    PARAM_MASTER_GAIN,
+    PARAM_TRAJECTORY_JITTER,
     PARAM_NONE  // No parameter mapped
 } SynthParameter;
 

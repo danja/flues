@@ -96,6 +96,7 @@ struct SynthEngine
     bool hard_mute;
 
     float trajectory_clip_drive;
+    float trajectory_jitter_deg;
     float trajectory_mix_x;
     float trajectory_mix_y;
 };
@@ -293,7 +294,7 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->global_note_counter = 0; // Initialize voice age counter
     engine->sample_counter = 0;
     engine->last_midi_event_sample = 0;
-    engine->master_gain = 0.95f;     // Increased from 0.8 for better S16_LE bit depth usage (~81% vs 56%)
+    engine->master_gain = 1.0f;     // Fixed at maximum safe output
     // danny tweak
     engine->disyn_level = 0.8f; // Safe with formants (boost via CC19 to 0.5-1.0 when testing without formants)
     engine->sing_enabled = false;
@@ -306,6 +307,7 @@ SynthEngine *synth_engine_create(float sample_rate)
     engine->enable_filter = true;
     engine->hard_mute = false;
     engine->trajectory_clip_drive = 1.0f;
+    engine->trajectory_jitter_deg = 0.0f;
     engine->trajectory_mix_x = 0.0f;
     engine->trajectory_mix_y = 1.0f;
     engine->watchdog_enabled = false;
@@ -559,7 +561,7 @@ void synth_engine_reset(SynthEngine *engine)
     synth_engine_all_notes_off(engine);
 
     // 2. Reset global parameters
-    engine->master_gain = 0.95f;
+    engine->master_gain = 1.0f;
     engine->disyn_level = 0.8f;
     engine->sing_enabled = false;
     engine->fry_enabled = false;
@@ -584,6 +586,7 @@ void synth_engine_reset(SynthEngine *engine)
     synth_engine_set_trajectory_start_pos(engine, 0.0f);
     synth_engine_set_trajectory_start_angle(engine, 0.125f);
     synth_engine_set_trajectory_clip(engine, 0.0f);
+    synth_engine_set_trajectory_jitter(engine, 0.0f);
     synth_engine_set_trajectory_mix_x(engine, 0.0f);
     synth_engine_set_trajectory_mix_y(engine, 1.0f);
 
@@ -729,6 +732,16 @@ void synth_engine_set_trajectory_clip(SynthEngine *engine, float normalized)
 {
     float drive = 1.0f + clamp01(normalized) * 4.0f;
     engine->trajectory_clip_drive = drive;
+}
+
+void synth_engine_set_trajectory_jitter(SynthEngine *engine, float normalized)
+{
+    float degrees = clamp01(normalized) * 10.0f;
+    engine->trajectory_jitter_deg = degrees;
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        trajectory_set_bounce_jitter_deg(engine->voices[i].trajectory, degrees);
+    }
 }
 
 void synth_engine_set_trajectory_mix_x(SynthEngine *engine, float normalized)
@@ -947,7 +960,8 @@ void synth_engine_set_reverb_level(SynthEngine *engine, float value)
 // Output
 void synth_engine_set_master_gain(SynthEngine *engine, float gain)
 {
-    engine->master_gain = gain;
+    (void)gain;
+    engine->master_gain = 1.0f;
 }
 
 // Debug/diagnostic toggles

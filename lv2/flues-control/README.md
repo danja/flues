@@ -33,10 +33,10 @@ Each slider outputs a fixed MIDI CC but controls different parameters per progra
 | Slider 1 (CC 73)   | 73  | Program-dependent: Algorithm/Feedback/Filter Freq/F1 Jaw/etc. |
 | Slider 2 (CC 72)   | 72  | Program-dependent: Param1/Feedback/Filter Q/F2 Tongue/etc. |
 | Slider 3 (CC 28)   | 28  | Program-dependent: Param2/Filter Feedback/Filter Shape/F3 Lips/etc. |
-| Slider 4 (CC 30)   | 30  | Program-dependent: Interface Type/Disyn Level/F4 Quality/etc. |
+| Slider 4 (CC 30)   | 30  | Program-dependent: Interface Type/Disyn Level/F4 Quality/Jitter/etc. |
 | Slider 5 (CC 74)   | 74  | Program-dependent: Intensity/Noise Level/Disyn Level/etc. |
-| Slider 6 (CC 71)   | 71  | Program-dependent: Tuning/Nasal/Master Gain/etc. |
-| Slider 7 (CC 1)    | 1   | Program-dependent: Delay Feedback/Ratio/Master Gain/etc. |
+| Slider 6 (CC 71)   | 71  | Program-dependent: Tuning/Nasal/etc. |
+| Slider 7 (CC 1)    | 1   | Program-dependent: Delay Feedback/Ratio/Jitter/etc. |
 | Attack (CC 27)     | 27  | Envelope attack time (1-1000ms, fixed across all programs) |
 | Release (CC 7)     | 7   | Envelope release time (10-3000ms, fixed across all programs) |
 
@@ -87,7 +87,7 @@ The plugin passes through note messages while adding CC and Program Change messa
 - Slider 4 → F4 (Voice quality, 2500-4500 Hz)
 - Slider 5 → Noise Level
 - Slider 6 → Nasal resonance toggle
-- Slider 7 → Master Gain
+- Slider 7 → Jitter (0-10 degrees)
 - Slider 8 → Attack
 - Slider 9 → Release
 
@@ -106,7 +106,7 @@ The plugin passes through note messages while adding CC and Program Change messa
 - Slider 1 → Sides (3-12)
 - Slider 2 → Start Position (0-360 degrees)
 - Slider 3 → Start Angle (0-360 degrees)
-- Slider 4 → Master Gain
+- Slider 4 → Jitter (0-10 degrees)
 - Slider 5 → Clip Drive (tanh soft clip, 1.0x-5.0x)
 - Slider 6 → Mix X (0-100%)
 - Slider 7 → Mix Y (0-100%)

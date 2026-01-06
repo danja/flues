@@ -72,7 +72,7 @@ export function fromMidiCC(cc) {
 export const PARAMETERS = {
     // Standard Controls
     intensity: { cc: 1, map: 'linear', min: 0, max: 1, default: 0.5 },
-    masterGain: { cc: 7, map: 'linear', min: 0, max: 1, default: 0.5 },
+    trajectoryJitter: { cc: 7, map: 'linear', min: 0, max: 10, default: 0.0, unit: 'deg' },
 
     // Formants
     f1: { cc: 71, map: 'exponential', min: 200, max: 1000, default: 500, unit: 'Hz' },

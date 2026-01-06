@@ -208,7 +208,7 @@ createKnob('amFmDepth', modulationContainer.querySelector('[data-control="am-fm"
 
 // === OUTPUT ===
 const outputContainer = document.getElementById('output-controls');
-createKnob('masterGain', outputContainer.querySelector('[data-control="master"]'), 'Master Gain');
+createKnob('trajectoryJitter', outputContainer.querySelector('[data-control="jitter"]'), 'Jitter');
 
 // === KEYBOARD ===
 const keyboardContainer = document.getElementById('keyboard');

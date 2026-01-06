@@ -185,7 +185,7 @@
         lv2:default 0.5 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Program-dependent: Interface Type/Disyn Level/F4 Quality/etc." ;
+        rdfs:comment "Program-dependent: Interface Type/Disyn Level/F4 Quality/Jitter/etc." ;
     ] , [
         # Port 7: Slider 5 -> CC 74
         a lv2:InputPort, lv2:ControlPort ;
@@ -205,7 +205,7 @@
         lv2:default 0.5 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Program-dependent: Tuning/Nasal/Master Gain/etc." ;
+        rdfs:comment "Program-dependent: Tuning/Nasal/etc." ;
     ] , [
         # Port 9: Slider 7 -> CC 1
         a lv2:InputPort, lv2:ControlPort ;
@@ -215,7 +215,7 @@
         lv2:default 0.5 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Program-dependent: Delay Feedback/Ratio/Master Gain/etc." ;
+        rdfs:comment "Program-dependent: Delay Feedback/Ratio/Jitter/etc." ;
     ] , [
         # Port 10: Slider 8 -> CC 27 (Attack)
         a lv2:InputPort, lv2:ControlPort ;

@@ -139,7 +139,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
         case 2:  // Trajectory Polygon - Bouncing point oscillator
             printf("Program 2: Trajectory Polygon\n");
             printf("  - Polygon bounce oscillator straight to output\n");
-            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Master(30→7), Clip(74→traj), MixX(71→traj), MixY(1→traj), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Sides(73→traj), StartPos(72→traj), StartAngle(28→traj), Jitter(30→traj), Clip(74→traj), MixX(71→traj), MixY(1→traj), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, false);
             synth_engine_enable_trajectory(synth, true);
             synth_engine_enable_noise(synth, false);
@@ -151,9 +151,9 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             synth_engine_set_trajectory_start_pos(synth, 0.0f);    // 0 deg
             synth_engine_set_trajectory_start_angle(synth, 0.125f); // 45 deg
             synth_engine_set_trajectory_clip(synth, 0.0f);
+            synth_engine_set_trajectory_jitter(synth, 0.0f);
             synth_engine_set_trajectory_mix_x(synth, 0.0f);
             synth_engine_set_trajectory_mix_y(synth, 1.0f);
-            synth_engine_set_master_gain(synth, 0.85f);
             break;
 
         case 3:  // Formant Voice - Vocal formants only
@@ -241,7 +241,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 8: ModFM Formant\n");
             printf("  - ModFM → Formants (F1-F4) → Output\n");
             printf("  - Voice-like lead with natural FM evolution and formant control\n");
-            printf("  - Sliders: Index(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Master(1→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Index(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Jitter(1→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, true);
@@ -276,7 +276,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 10: PAF Direct\n");
             printf("  - PAF → Filter (SVF) → Output\n");
             printf("  - Vowel-like synthesis with filter articulation\n");
-            printf("  - Sliders: Formant(73→17), Bandwidth(72→18), Freq(28→32), Q(30→33), Shape(74→34), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Formant(73→17), Bandwidth(72→18), Freq(28→32), Q(30→33), Shape(74→34), Tuning(71→26), Jitter(1→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -292,7 +292,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 11: Cascaded DSF+PAF\n");
             printf("  - DSF Double → Formants (F1-F4) → Output\n");
             printf("  - Bell-like timbres with formant resonance\n");
-            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), Tuning(71→26), Jitter(1→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, true);
@@ -326,7 +326,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 13: Hybrid DSF→Formant\n");
             printf("  - DSF Single → Formants (F1-F4 full cascade) → Output\n");
             printf("  - Rich vocal synthesis with harmonic source\n");
-            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Master(1→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Decay(73→17), Ratio(72→18), F1(28→71), F2(30→10), F3(74→74), F4(71→75), Jitter(1→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, true);
@@ -363,7 +363,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 15: Dirichlet Explorer\n");
             printf("  - Dirichlet Pulse → Filter (SVF) → Output\n");
             printf("  - Classic harmonic synthesis with filter control\n");
-            printf("  - Sliders: Harmonics(73→17), Tilt(72→18), Freq(28→32), Q(30→33), Shape(74→34), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Harmonics(73→17), Tilt(72→18), Freq(28→32), Q(30→33), Shape(74→34), Tuning(71→26), Jitter(1→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -380,7 +380,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 16: Multi-Algorithm Demo\n");
             printf("  - Disyn (any algo, selected by slider 1) → Output\n");
             printf("  - Educational/demo mode for comparing all 7 algorithms\n");
-            printf("  - Sliders: Algorithm(73→16), P1(72→17), P2(28→18), Level(30→19), Intensity(74→1), Tuning(71→26), Master(1→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Algorithm(73→16), P1(72→17), P2(28→18), Level(30→19), Intensity(74→1), Tuning(71→26), Jitter(1→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -413,7 +413,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 18: Hybrid Formant Engine\n");
             printf("  - Algorithm 7: ModFM base + 3× fixed formants (800, 1200, 2400 Hz)\n");
             printf("  - Vocal-like timbres with internal formant structure\n");
-            printf("  - Sliders: ModFMIdx(73→17), PAFBandw(72→18), FormSpacing(28→19), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: ModFMIdx(73→17), PAFBandw(72→18), FormSpacing(28→19), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);  // Algorithm has internal formants
@@ -430,7 +430,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 19: Cascaded Spectral Sculptor\n");
             printf("  - Algorithm 8: DSF → Asymmetric FM → Tanh (3-stage cascade)\n");
             printf("  - Complex evolving timbres with multi-stage distortion\n");
-            printf("  - Sliders: DSFDecay(73→17), AsymRatio(72→18), TanhDrive(28→19), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: DSFDecay(73→17), AsymRatio(72→18), TanhDrive(28→19), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -447,7 +447,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 20: Parallel Distortion Bank\n");
             printf("  - Algorithm 9: 3× ModFM (1:1, 3:2, 4:3) + 2× PAF (800, 2400 Hz)\n");
             printf("  - Thick, layered timbres with detuned chorus effect\n");
-            printf("  - Sliders: ModFMIdx(73→17), PAFBandw(72→18), MixBalance(28→19), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: ModFMIdx(73→17), PAFBandw(72→18), MixBalance(28→19), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -464,7 +464,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 21: Feedback Distortion Network\n");
             printf("  - Algorithm 10: ModFM with internal feedback loop\n");
             printf("  - Chaotic/unstable tones with nonlinear evolution\n");
-            printf("  - Sliders: ModFMIdx(73→17), FeedbackGain(72→18), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: ModFMIdx(73→17), FeedbackGain(72→18), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -481,7 +481,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 22: Morphing Spectral Engine\n");
             printf("  - Algorithm 11: DSF ↔ ModFM ↔ PAF crossfade\n");
             printf("  - Smooth timbre morphing across three algorithms\n");
-            printf("  - Sliders: MorphPos(73→17), Character(72→18), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: MorphPos(73→17), Character(72→18), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -498,7 +498,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 23: Inharmonic Resonator\n");
             printf("  - Algorithm 12: DSF (golden ratio) + PAF with frequency shift\n");
             printf("  - Bell/gong-like timbres with natural inharmonicity\n");
-            printf("  - Sliders: DSFDecay(73→17), PAFShift(72→18), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: DSFDecay(73→17), PAFShift(72→18), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -515,7 +515,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 24: Adaptive Filter Emulation\n");
             printf("  - Algorithm 13: DSF + ModFM mixed (pseudo-filter)\n");
             printf("  - Filter sweep emulation without actual filtering\n");
-            printf("  - Sliders: Cutoff(73→17), Resonance(72→18), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: Cutoff(73→17), Resonance(72→18), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -532,7 +532,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 25: Multi-Stage Waveshaping\n");
             printf("  - Algorithm 14: Tanh → Exponential → Ring modulation\n");
             printf("  - Complex distortion with three-stage cascade\n");
-            printf("  - Sliders: TanhDrive(73→17), ExpDepth(72→18), RingCarrier(28→19), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: TanhDrive(73→17), ExpDepth(72→18), RingCarrier(28→19), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -549,7 +549,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 26: Frequency-Dependent Asymmetry\n");
             printf("  - Algorithm 15: Asymmetric FM with pitch-dependent r values\n");
             printf("  - Different spectral character across frequency range\n");
-            printf("  - Sliders: LowBandR(73→17), HighBandR(72→18), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: LowBandR(73→17), HighBandR(72→18), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -566,7 +566,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 27: Cross-Algorithm Modulation\n");
             printf("  - Algorithm 16: DSF ⇄ ModFM circular modulation\n");
             printf("  - Interdependent parameters with feedback-like behavior\n");
-            printf("  - Sliders: DSF→ModFM(73→17), ModFM→DSF(72→18), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: DSF→ModFM(73→17), ModFM→DSF(72→18), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -605,7 +605,7 @@ static void handle_program_change(uint8_t program, SynthEngine* synth) {
             printf("Program 29: Taylor Series Approximation\n");
             printf("  - Algorithm 17: Truncated Taylor series with fundamental + 2nd harmonic blend\n");
             printf("  - Educational synthesis demonstrating series convergence and aliasing\n");
-            printf("  - Sliders: First Terms(73→17), Second Terms(72→18), Blend(28→19), Master(30→7), Attack(27→73), Release(7→72)\n");
+            printf("  - Sliders: First Terms(73→17), Second Terms(72→18), Blend(28→19), Jitter(30→7), Attack(27→73), Release(7→72)\n");
             synth_engine_enable_disyn(synth, true);
             synth_engine_enable_noise(synth, false);
             synth_engine_enable_formants(synth, false);
@@ -772,8 +772,12 @@ static void apply_parameter(SynthEngine* synth, SynthParameter param, float valu
         case PARAM_INTERFACE_TYPE:
             synth_engine_set_interface_type(synth, (int)(value * 11.999f));
             break;
-        case PARAM_MASTER_GAIN:
-            synth_engine_set_master_gain(synth, value);
+        case PARAM_TRAJECTORY_JITTER:
+            synth_engine_set_trajectory_jitter(synth, value);
+            if (g_current_program == 2) {
+                float degrees = value * 10.0f;
+                printf("Trajectory Jitter: %.1f deg\n", degrees);
+            }
             break;
         case PARAM_NONE:
             // Unmapped parameter, do nothing

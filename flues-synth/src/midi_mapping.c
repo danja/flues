@@ -55,7 +55,7 @@ static const char* PARAMETER_NAMES[] = {
     [PARAM_LFO_FREQ]          = "LFO Frequency",
     [PARAM_AM_FM_DEPTH]       = "AM↔FM Depth",
     [PARAM_INTERFACE_TYPE]    = "Interface Type",
-    [PARAM_MASTER_GAIN]       = "Master Gain",
+    [PARAM_TRAJECTORY_JITTER]       = "Trajectory Jitter",
     [PARAM_NONE]              = "(unmapped)"
 };
 
@@ -90,7 +90,7 @@ static const SynthParameter PROGRAM_2_MAP[9] = {
     PARAM_TRAJECTORY_SIDES,       // Slider 1 (CC 73)
     PARAM_TRAJECTORY_START_POS,   // Slider 2 (CC 72)
     PARAM_TRAJECTORY_START_ANGLE, // Slider 3 (CC 28)
-    PARAM_MASTER_GAIN,            // Slider 4 (CC 30)
+    PARAM_TRAJECTORY_JITTER,            // Slider 4 (CC 30)
     PARAM_TRAJECTORY_CLIP,        // Slider 5 (CC 74)
     PARAM_TRAJECTORY_MIX_X,       // Slider 6 (CC 71)
     PARAM_TRAJECTORY_MIX_Y,       // Slider 7 (CC 1)
@@ -106,7 +106,7 @@ static const SynthParameter PROGRAM_3_MAP[9] = {
     PARAM_F4,               // Slider 4 (CC 30)
     PARAM_NOISE_LEVEL,      // Slider 5 (CC 74)
     PARAM_NASAL,            // Slider 6 (CC 71)
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1)
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1)
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -119,7 +119,7 @@ static const SynthParameter PROGRAM_4_MAP[9] = {
     PARAM_F4,               // Slider 4 (CC 30)
     PARAM_DISYN_LEVEL,      // Slider 5 (CC 74)
     PARAM_NOISE_LEVEL,      // Slider 6 (CC 71)
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1)
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1)
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -171,7 +171,7 @@ static const SynthParameter PROGRAM_8_MAP[9] = {
     PARAM_F2,               // Slider 4 (CC 30) → F2 Tongue
     PARAM_F3,               // Slider 5 (CC 74) → F3 Lips
     PARAM_F4,               // Slider 6 (CC 71) → F4 Quality
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -197,7 +197,7 @@ static const SynthParameter PROGRAM_10_MAP[9] = {
     PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
     PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
     PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -210,7 +210,7 @@ static const SynthParameter PROGRAM_11_MAP[9] = {
     PARAM_F2,               // Slider 4 (CC 30) → F2 High Formant
     PARAM_F3,               // Slider 5 (CC 74) → F3 Brightness
     PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -236,7 +236,7 @@ static const SynthParameter PROGRAM_13_MAP[9] = {
     PARAM_F2,               // Slider 4 (CC 30) → F2 Tongue
     PARAM_F3,               // Slider 5 (CC 74) → F3 Lips
     PARAM_F4,               // Slider 6 (CC 71) → F4 Quality
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -262,7 +262,7 @@ static const SynthParameter PROGRAM_15_MAP[9] = {
     PARAM_FILTER_Q,         // Slider 4 (CC 30) → Filter Q
     PARAM_FILTER_SHAPE,     // Slider 5 (CC 74) → Filter Shape
     PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -275,7 +275,7 @@ static const SynthParameter PROGRAM_16_MAP[9] = {
     PARAM_DISYN_LEVEL,      // Slider 4 (CC 30) → Disyn Level
     PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
     PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -301,7 +301,7 @@ static const SynthParameter PROGRAM_18_MAP[9] = {
     PARAM_DISYN_LEVEL,      // Slider 4 (CC 30) → Disyn Level
     PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
     PARAM_TUNING,           // Slider 6 (CC 71) → Tuning
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -314,7 +314,7 @@ static const SynthParameter PROGRAM_19_MAP[9] = {
     PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → Filter Frequency
     PARAM_FILTER_Q,         // Slider 5 (CC 74) → Filter Q
     PARAM_INTENSITY,        // Slider 6 (CC 71) → Intensity
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -327,7 +327,7 @@ static const SynthParameter PROGRAM_20_MAP[9] = {
     PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
     PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
     PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -340,7 +340,7 @@ static const SynthParameter PROGRAM_21_MAP[9] = {
     PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
     PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
     PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -353,7 +353,7 @@ static const SynthParameter PROGRAM_22_MAP[9] = {
     PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
     PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
     PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -366,7 +366,7 @@ static const SynthParameter PROGRAM_23_MAP[9] = {
     PARAM_TUNING,           // Slider 4 (CC 30) → Tuning
     PARAM_INTENSITY,        // Slider 5 (CC 74) → Intensity
     PARAM_DELAY1_FEEDBACK,  // Slider 6 (CC 71) → Delay1 Feedback
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -379,7 +379,7 @@ static const SynthParameter PROGRAM_24_MAP[9] = {
     PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → SVF Frequency
     PARAM_FILTER_Q,         // Slider 5 (CC 74) → SVF Q
     PARAM_LFO_FREQ,         // Slider 6 (CC 71) → LFO Frequency
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -392,7 +392,7 @@ static const SynthParameter PROGRAM_25_MAP[9] = {
     PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → Filter Frequency
     PARAM_FILTER_Q,         // Slider 5 (CC 74) → Filter Q
     PARAM_INTENSITY,        // Slider 6 (CC 71) → Intensity
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -405,7 +405,7 @@ static const SynthParameter PROGRAM_26_MAP[9] = {
     PARAM_FILTER_FREQ,      // Slider 4 (CC 30) → Filter Frequency
     PARAM_FILTER_Q,         // Slider 5 (CC 74) → Filter Q
     PARAM_LFO_FREQ,         // Slider 6 (CC 71) → LFO Frequency
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -418,7 +418,7 @@ static const SynthParameter PROGRAM_27_MAP[9] = {
     PARAM_INTENSITY,        // Slider 4 (CC 30) → Intensity
     PARAM_TUNING,           // Slider 5 (CC 74) → Tuning
     PARAM_FILTER_FREQ,      // Slider 6 (CC 71) → Filter Frequency
-    PARAM_MASTER_GAIN,      // Slider 7 (CC 1) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 7 (CC 1) → Trajectory Jitter
     PARAM_ATTACK,           // Slider 8 (CC 27)
     PARAM_RELEASE           // Slider 9 (CC 7)
 };
@@ -441,7 +441,7 @@ static const SynthParameter PROGRAM_29_MAP[9] = {
     PARAM_DISYN_PARAM1,     // Slider 1 (CC 73) → First Terms (1-10)
     PARAM_DISYN_PARAM2,     // Slider 2 (CC 72) → Second Terms (1-10)
     PARAM_DISYN_PARAM3,     // Slider 3 (CC 28) → Blend (0-1)
-    PARAM_MASTER_GAIN,      // Slider 4 (CC 30) → Master Gain
+    PARAM_TRAJECTORY_JITTER,      // Slider 4 (CC 30) → Trajectory Jitter
     PARAM_NONE,             // Slider 5 (CC 74) → (unused)
     PARAM_NONE,             // Slider 6 (CC 71) → (unused)
     PARAM_NONE,             // Slider 7 (CC 1) → (unused)

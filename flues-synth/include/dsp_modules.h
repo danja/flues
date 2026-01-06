@@ -36,6 +36,7 @@ void trajectory_set_frequency(TrajectoryModule* traj, float frequency);
 void trajectory_set_sides(TrajectoryModule* traj, int sides);
 void trajectory_set_start_position_deg(TrajectoryModule* traj, float degrees);
 void trajectory_set_start_angle_deg(TrajectoryModule* traj, float degrees);
+void trajectory_set_bounce_jitter_deg(TrajectoryModule* traj, float degrees);
 void trajectory_set_mix_x(TrajectoryModule* traj, float mix);
 void trajectory_set_mix_y(TrajectoryModule* traj, float mix);
 
