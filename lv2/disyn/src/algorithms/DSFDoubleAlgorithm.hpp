@@ -35,7 +35,8 @@ public:
         const float negative = computeDSFComponent(w, tNeg, decay);
 
         const float output = 0.5f * (positive * weightPos + negative * weightNeg);
-        return {output, output};
+        const float secondary = 0.5f * (positive - negative);
+        return {output, secondary};
     }
 
 private:

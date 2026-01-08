@@ -35,7 +35,8 @@ public:
         const float modfm = std::cos(TWO_PI * modPhase) * std::exp(modfmIndex * (mod - 1.0f));
 
         const float output = (dsf * (1.0f - mix) + modfm * mix) * 0.3f;
-        return {output, output};
+        const float secondary = modfm * 0.3f;
+        return {output, secondary};
     }
 
 private:

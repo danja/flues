@@ -22,7 +22,8 @@ public:
         phase = stepPhase(phase, pitch, sampleRate);
         const float carrier = std::sin(phase * TWO_PI) + bias;
         const float output = std::tanh(carrier * drive) * trim;
-        return {output, output};
+        const float secondary = std::tanh(std::sin(phase * TWO_PI) * drive) * trim;
+        return {output, secondary};
     }
 
 private:

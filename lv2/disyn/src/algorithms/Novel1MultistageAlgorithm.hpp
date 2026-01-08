@@ -31,7 +31,8 @@ public:
         const float stage3 = stage2 * (1.0f + carrier);
 
         const float output = stage3 * 0.25f;
-        return {output, output};
+        const float secondary = stage2 * 0.25f;
+        return {output, secondary};
     }
 
 private:

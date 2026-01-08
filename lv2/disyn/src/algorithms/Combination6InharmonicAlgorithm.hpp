@@ -32,7 +32,8 @@ public:
         const float paf = std::sin(TWO_PI * formant1Phase) * 0.5f;
 
         const float output = dsf * (1.0f - mix) + paf * mix;
-        return {output, output};
+        const float secondary = dsf;
+        return {output, secondary};
     }
 
 private:

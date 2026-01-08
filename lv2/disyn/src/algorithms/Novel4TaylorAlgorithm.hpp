@@ -27,7 +27,8 @@ public:
 
         const float output = fundamental * (1.0f - blend) + secondHarmonic * blend;
         const float clamped = std::clamp(output, -1.0f, 1.0f);
-        return {clamped, clamped};
+        const float secondary = std::clamp(secondHarmonic, -1.0f, 1.0f);
+        return {clamped, secondary};
     }
 
 private:

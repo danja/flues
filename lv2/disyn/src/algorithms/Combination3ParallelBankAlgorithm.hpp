@@ -57,7 +57,8 @@ public:
         const float modfmMix = (modfm1 + modfm2 + modfm3) / 3.0f;
         const float pafMix = (paf1 + paf2) / 2.0f;
         const float output = (modfmMix * (1.0f - mixBalance) + pafMix * mixBalance) * 0.5f;
-        return {output, output};
+        const float secondary = (pafMix - modfmMix) * 0.5f;
+        return {output, secondary};
     }
 
 private:

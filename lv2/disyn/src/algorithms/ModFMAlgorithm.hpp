@@ -29,7 +29,8 @@ public:
         const float envelope = std::exp(-index);
 
         const float output = carrier * std::exp(index * (modulator - 1.0f)) * envelope * 0.6f;
-        return {output, output};
+        const float secondary = carrier * modulator * envelope * 0.6f;
+        return {output, secondary};
     }
 
 private:

@@ -29,7 +29,8 @@ public:
         const float saw = square + cosine * (1.0f - square * square) * edge;
 
         const float output = square * (1.0f - blend) + saw * blend;
-        return {output, output};
+        const float secondary = square;
+        return {output, secondary};
     }
 
 private:

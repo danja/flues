@@ -36,7 +36,8 @@ public:
         const float base = (value / static_cast<float>(harmonics)) * tiltFactor;
         const float shaped = std::tanh(base * (1.0f + shape * 4.0f));
         const float output = base * (1.0f - shape) + shaped * shape;
-        return {output, output};
+        const float secondary = base;
+        return {output, secondary};
     }
 
 private:

@@ -30,7 +30,8 @@ public:
         modPhase = decay * modPhase + (1.0f - decay) * mod;
 
         const float output = carrier * ((1.0f - depth) + depth * modPhase) * 0.5f;
-        return {output, output};
+        const float secondary = carrier * (0.5f + 0.5f * modPhase) * 0.5f;
+        return {output, secondary};
     }
 
 private:

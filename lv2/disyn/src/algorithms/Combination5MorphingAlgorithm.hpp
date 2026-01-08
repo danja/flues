@@ -28,6 +28,8 @@ public:
 
         float output = 0.0f;
 
+        float secondary = 0.0f;
+
         if (morphPos < 0.5f) {
             const float alpha = morphPos * 2.0f;
 
@@ -45,6 +47,7 @@ public:
             const float modfm = std::cos(TWO_PI * modPhase) * std::exp(modfmIndex * (mod - 1.0f));
 
             output = dsf * (1.0f - alpha) + modfm * alpha;
+            secondary = modfm;
         } else {
             const float alpha = (morphPos - 0.5f) * 2.0f;
 
@@ -58,10 +61,11 @@ public:
             const float paf = std::sin(TWO_PI * formant1Phase) * 0.5f;
 
             output = modfm * (1.0f - alpha) + paf * alpha;
+            secondary = paf;
         }
 
         const float scaled = output * 0.6f;
-        return {scaled, scaled};
+        return {scaled, secondary * 0.6f};
     }
 
 private:

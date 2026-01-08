@@ -32,7 +32,8 @@ public:
 
         const float stage3 = std::tanh(stage2 * tanhDrive);
         const float output = stage3 * 0.6f;
-        return {output, output};
+        const float secondary = stage2 * 0.6f;
+        return {output, secondary};
     }
 
 private:

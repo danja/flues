@@ -33,7 +33,8 @@ public:
 
         const float shaped = std::tanh(output * drive);
         const float scaled = shaped * 0.5f;
-        return {scaled, scaled};
+        const float secondary = output * 0.5f;
+        return {scaled, secondary};
     }
 
 private:

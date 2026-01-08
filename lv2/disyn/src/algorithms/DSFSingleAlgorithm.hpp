@@ -29,7 +29,8 @@ public:
         const float dsf = computeDSFComponent(w, t, decay) * 0.5f;
         const float sine = std::sin(w) * 0.5f;
         const float output = dsf * (1.0f - mix) + sine * mix;
-        return {output, output};
+        const float secondary = dsf;
+        return {output, secondary};
     }
 
 private:

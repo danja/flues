@@ -43,7 +43,8 @@ public:
         const float formant3 = std::sin(TWO_PI * formant3Phase) * 0.5f;
 
         const float output = (base + formant1 + formant2 + formant3) * 0.25f;
-        return {output, output};
+        const float secondary = base * 0.5f;
+        return {output, secondary};
     }
 
 private:
