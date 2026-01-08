@@ -16,9 +16,10 @@ public:
         modPhase = 0.0f;
     }
 
-    AlgorithmOutput process(float pitch, float param1, float param2, float /*param3*/) {
+    AlgorithmOutput process(float pitch, float param1, float param2, float param3) {
         const float ratio = expoMap(param1, 0.5f, 6.0f);
         const float bandwidth = expoMap(param2, 50.0f, 3000.0f);
+        const float depth = 0.2f + std::clamp(param3, 0.0f, 1.0f) * 0.8f;
 
         phase = stepPhase(phase, pitch, sampleRate);
         secondaryPhase = stepPhase(secondaryPhase, pitch * ratio, sampleRate);
@@ -28,7 +29,7 @@ public:
         const float decay = std::exp(-bandwidth / sampleRate);
         modPhase = decay * modPhase + (1.0f - decay) * mod;
 
-        const float output = carrier * (0.6f + 0.4f * modPhase) * 0.5f;
+        const float output = carrier * ((1.0f - depth) + depth * modPhase) * 0.5f;
         return {output, output};
     }
 

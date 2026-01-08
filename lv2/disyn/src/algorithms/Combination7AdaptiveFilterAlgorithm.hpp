@@ -17,9 +17,9 @@ public:
     }
 
     AlgorithmOutput process(float pitch, float param1, float param2, float param3) {
-        (void)param3;
         const float cutoff = param1;
         const float resonance = param2;
+        const float mix = std::clamp(param3, 0.0f, 1.0f);
 
         const float dsfDecay = 0.5f + resonance * 0.49f;
         phase = stepPhase(phase, pitch, sampleRate);
@@ -34,7 +34,7 @@ public:
         const float mod = std::cos(TWO_PI * secondaryPhase);
         const float modfm = std::cos(TWO_PI * modPhase) * std::exp(modfmIndex * (mod - 1.0f));
 
-        const float output = (dsf + modfm) * 0.15f;
+        const float output = (dsf * (1.0f - mix) + modfm * mix) * 0.3f;
         return {output, output};
     }
 

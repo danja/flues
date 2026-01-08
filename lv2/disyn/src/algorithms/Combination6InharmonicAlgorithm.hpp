@@ -16,10 +16,10 @@ public:
     }
 
     AlgorithmOutput process(float pitch, float param1, float param2, float param3) {
-        (void)param3;
         const float phiRatio = 1.618034f;
         const float pafShift = expoMap(param2, 5.0f, 50.0f);
         const float dsfDecay = 0.5f + param1 * 0.4f;
+        const float mix = std::clamp(param3, 0.0f, 1.0f);
 
         phase = stepPhase(phase, pitch, sampleRate);
         const float theta = TWO_PI * phiRatio;
@@ -31,7 +31,7 @@ public:
         formant1Phase = stepPhase(formant1Phase, formantFreq, sampleRate);
         const float paf = std::sin(TWO_PI * formant1Phase) * 0.5f;
 
-        const float output = (dsf + paf) * 0.5f;
+        const float output = dsf * (1.0f - mix) + paf * mix;
         return {output, output};
     }
 

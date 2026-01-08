@@ -22,8 +22,8 @@ public:
     }
 
     AlgorithmOutput process(float pitch, float param1, float param2, float param3) {
-        (void)param3;
-        const float morphPos = param1;
+        const float morphCurve = 0.5f + std::clamp(param3, 0.0f, 1.0f) * 1.5f;
+        const float morphPos = std::pow(std::clamp(param1, 0.0f, 1.0f), morphCurve);
         const float character = param2;
 
         float output = 0.0f;

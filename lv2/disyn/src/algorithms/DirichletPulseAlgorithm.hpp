@@ -14,9 +14,10 @@ public:
         phase = 0.0f;
     }
 
-    AlgorithmOutput process(float pitch, float param1, float param2, float /*param3*/) {
+    AlgorithmOutput process(float pitch, float param1, float param2, float param3) {
         const int harmonics = std::max(1, static_cast<int>(std::round(1.0f + param1 * 63.0f)));
         const float tilt = -3.0f + param2 * 18.0f;
+        const float shape = std::clamp(param3, 0.0f, 1.0f);
 
         phase = stepPhase(phase, pitch, sampleRate);
         const float theta = phase * TWO_PI;
@@ -32,7 +33,9 @@ public:
         }
 
         const float tiltFactor = std::pow(10.0f, tilt / 20.0f);
-        const float output = (value / static_cast<float>(harmonics)) * tiltFactor;
+        const float base = (value / static_cast<float>(harmonics)) * tiltFactor;
+        const float shaped = std::tanh(base * (1.0f + shape * 4.0f));
+        const float output = base * (1.0f - shape) + shaped * shape;
         return {output, output};
     }
 

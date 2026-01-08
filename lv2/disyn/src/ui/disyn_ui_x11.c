@@ -76,6 +76,72 @@ static const char* const kAlgorithmLabels[] = {
     "Trajectory"
 };
 
+static const char* const kParam1Labels[] = {
+    "HARMONICS",   // 0 Dirichlet
+    "DECAY",       // 1 DSF 1
+    "DECAY",       // 2 DSF 2
+    "DRIVE",       // 3 Tanh Sq
+    "DRIVE",       // 4 Tanh Saw
+    "FORMANT",     // 5 PAF
+    "INDEX",       // 6 Mod FM
+    "INDEX",       // 7 Hybrid
+    "DECAY",       // 8 Cascade
+    "INDEX",       // 9 Parallel
+    "INDEX",       // 10 Feedback
+    "MORPH",       // 11 Morph
+    "DECAY",       // 12 Inharm
+    "CUTOFF",      // 13 Adaptive
+    "DRIVE",       // 14 Multi
+    "LOW ASYM",    // 15 Asym
+    "DSF->FM",     // 16 Cross
+    "TERMS 1",     // 17 Taylor
+    "SIDES"        // 18 Trajectory
+};
+
+static const char* const kParam2Labels[] = {
+    "TILT",        // 0 Dirichlet
+    "RATIO",       // 1 DSF 1
+    "RATIO",       // 2 DSF 2
+    "TRIM",        // 3 Tanh Sq
+    "BLEND",       // 4 Tanh Saw
+    "BANDWIDTH",   // 5 PAF
+    "RATIO",       // 6 Mod FM
+    "RESERVED",    // 7 Hybrid
+    "ASYM R",      // 8 Cascade
+    "RESERVED",    // 9 Parallel
+    "FEEDBACK",    // 10 Feedback
+    "CHARACTER",   // 11 Morph
+    "SHIFT",       // 12 Inharm
+    "RESON",       // 13 Adaptive
+    "EXP DEPTH",   // 14 Multi
+    "HIGH ASYM",   // 15 Asym
+    "FM->DSF",     // 16 Cross
+    "TERMS 2",     // 17 Taylor
+    "LAUNCH"       // 18 Trajectory
+};
+
+static const char* const kParam3Labels[] = {
+    "SHAPE",       // 0 Dirichlet
+    "SINE MIX",    // 1 DSF 1
+    "BALANCE",     // 2 DSF 2
+    "BIAS",        // 3 Tanh Sq
+    "EDGE",        // 4 Tanh Saw
+    "DEPTH",       // 5 PAF
+    "FEEDBACK",    // 6 Mod FM
+    "SPACING",     // 7 Hybrid
+    "DRIVE",       // 8 Cascade
+    "MIX",         // 9 Parallel
+    "DRIVE",       // 10 Feedback
+    "CURVE",       // 11 Morph
+    "MIX",         // 12 Inharm
+    "MIX",         // 13 Adaptive
+    "RING",        // 14 Multi
+    "INDEX",       // 15 Asym
+    "MIX",         // 16 Cross
+    "BLEND",       // 17 Taylor
+    "JITTER"       // 18 Trajectory
+};
+
 typedef struct {
     GroupIndex group;
     const char* label;
@@ -194,6 +260,7 @@ static void ensure_xlib_threads(void) {
 }
 
 static void setup_layout(DisynUI* ui, int available_width);
+static void update_param_labels(DisynUI* ui, uint32_t algorithm_index);
 
 static float clamp_value(const Knob* knob, float value) {
     if (value < knob->min) {
@@ -536,6 +603,7 @@ static void handle_button_press(DisynUI* ui, const XButtonEvent* event) {
                 if (fabsf(value - dropdown->value) > 0.0001f) {
                     dropdown->value = value;
                     ui->needs_redraw = true;
+                    update_param_labels(ui, (uint32_t)index);
                     notify_host(ui, dropdown->port, dropdown->value);
                 }
             }
@@ -592,6 +660,7 @@ static void handle_scroll(DisynUI* ui, const XButtonEvent* event) {
         if (fabsf(value - knob->value) > 0.0001f) {
             knob->value = value;
             ui->needs_redraw = true;
+            update_param_labels(ui, knob_value_index(knob));
             notify_host(ui, knob->port, knob->value);
         }
         pthread_mutex_unlock(&ui->mutex);
@@ -801,6 +870,8 @@ static void setup_layout(DisynUI* ui, int available_width) {
         knob->is_dropdown = (desc->port == PORT_ALGORITHM_TYPE);
         ui->knob_used[desc->port] = true;
     }
+
+    update_param_labels(ui, knob_value_index(&ui->knobs[PORT_ALGORITHM_TYPE]));
 }
 
 static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
@@ -981,8 +1052,26 @@ static void ui_port_event(LV2UI_Handle handle,
     if (fabsf(value - knob->value) > 0.0001f) {
         knob->value = value;
         ui->needs_redraw = true;
+        if (port_index == PORT_ALGORITHM_TYPE) {
+            update_param_labels(ui, knob_value_index(knob));
+        }
     }
     pthread_mutex_unlock(&ui->mutex);
+}
+
+static void update_param_labels(DisynUI* ui, uint32_t algorithm_index) {
+    if (algorithm_index >= (sizeof(kParam1Labels) / sizeof(kParam1Labels[0]))) {
+        return;
+    }
+    if (ui->knob_used[PORT_PARAM_1]) {
+        ui->knobs[PORT_PARAM_1].label = kParam1Labels[algorithm_index];
+    }
+    if (ui->knob_used[PORT_PARAM_2]) {
+        ui->knobs[PORT_PARAM_2].label = kParam2Labels[algorithm_index];
+    }
+    if (ui->knob_used[PORT_PARAM_3]) {
+        ui->knobs[PORT_PARAM_3].label = kParam3Labels[algorithm_index];
+    }
 }
 
 static const void* ui_extension_data(const char* uri) {

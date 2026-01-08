@@ -15,9 +15,10 @@ public:
         modPhase = 0.0f;
     }
 
-    AlgorithmOutput process(float pitch, float param1, float param2, float /*param3*/) {
+    AlgorithmOutput process(float pitch, float param1, float param2, float param3) {
         const float lowR = 0.5f + param1 * 0.5f;
         const float highR = 1.0f + param2 * 1.0f;
+        const float index = 0.2f + std::clamp(param3, 0.0f, 1.0f) * 0.8f;
 
         float r;
         if (pitch < 500.0f) {
@@ -29,7 +30,7 @@ public:
             r = lowR * (1.0f - alpha) + highR * alpha;
         }
 
-        const float output = processAsymmetricFM(0.5f, r / 2.0f, pitch, sampleRate, phase, modPhase);
+        const float output = processAsymmetricFM(index, r / 2.0f, pitch, sampleRate, phase, modPhase);
         return {output, output};
     }
 

@@ -96,7 +96,7 @@ private:
     void updateParams(float pitch, float param1, float param2, float param3) {
         const int nextSides = clampInt(3 + static_cast<int>(std::round(param1 * 9.0f)), 3, 12);
         const float nextAngle = degToRad(param2 * 360.0f);
-        const float nextJitter = degToRad(param3 * 45.0f);
+        const float nextJitter = degToRad(param3 * 10.0f);
 
         const bool sidesChanged = nextSides != sides;
         const bool launchChanged = std::abs(nextAngle - startAngle) > 1e-6f;
