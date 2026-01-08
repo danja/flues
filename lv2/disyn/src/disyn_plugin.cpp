@@ -17,11 +17,13 @@
 namespace flues::disyn {
 
 enum PortIndex : uint32_t {
-    PORT_AUDIO_OUT = 0,
+    PORT_AUDIO_OUT_L = 0,
+    PORT_AUDIO_OUT_R,
     PORT_MIDI_IN,
     PORT_ALGORITHM_TYPE,
     PORT_PARAM_1,
     PORT_PARAM_2,
+    PORT_PARAM_3,
     PORT_ENVELOPE_ATTACK,
     PORT_ENVELOPE_RELEASE,
     PORT_REVERB_SIZE,
@@ -35,11 +37,13 @@ struct DisynLV2 {
     float sampleRate;
 
     const LV2_Atom_Sequence* midiIn;
-    float* audioOut;
+    float* audioOutLeft;
+    float* audioOutRight;
 
     const float* algorithmType;
     const float* param1;
     const float* param2;
+    const float* param3;
     const float* attack;
     const float* release;
     const float* reverbSize;
@@ -69,6 +73,7 @@ static void apply_parameters(DisynLV2* self) {
     }
     apply(self->param1, &DisynEngine::setParam1);
     apply(self->param2, &DisynEngine::setParam2);
+    apply(self->param3, &DisynEngine::setParam3);
     apply(self->attack, &DisynEngine::setAttack);
     apply(self->release, &DisynEngine::setRelease);
     apply(self->reverbSize, &DisynEngine::setReverbSize);
@@ -132,11 +137,13 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->sampleRate = static_cast<float>(rate);
     self->engine = std::make_unique<DisynEngine>(self->sampleRate);
     self->midiIn = nullptr;
-    self->audioOut = nullptr;
+    self->audioOutLeft = nullptr;
+    self->audioOutRight = nullptr;
 
     self->algorithmType = nullptr;
     self->param1 = nullptr;
     self->param2 = nullptr;
+    self->param3 = nullptr;
     self->attack = nullptr;
     self->release = nullptr;
     self->reverbSize = nullptr;
@@ -174,11 +181,13 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
     auto* self = static_cast<DisynLV2*>(instance);
 
     switch (port) {
-        case PORT_AUDIO_OUT: self->audioOut = static_cast<float*>(data); break;
+        case PORT_AUDIO_OUT_L: self->audioOutLeft = static_cast<float*>(data); break;
+        case PORT_AUDIO_OUT_R: self->audioOutRight = static_cast<float*>(data); break;
         case PORT_MIDI_IN: self->midiIn = static_cast<const LV2_Atom_Sequence*>(data); break;
         case PORT_ALGORITHM_TYPE: self->algorithmType = static_cast<const float*>(data); break;
         case PORT_PARAM_1: self->param1 = static_cast<const float*>(data); break;
         case PORT_PARAM_2: self->param2 = static_cast<const float*>(data); break;
+        case PORT_PARAM_3: self->param3 = static_cast<const float*>(data); break;
         case PORT_ENVELOPE_ATTACK: self->attack = static_cast<const float*>(data); break;
         case PORT_ENVELOPE_RELEASE: self->release = static_cast<const float*>(data); break;
         case PORT_REVERB_SIZE: self->reverbSize = static_cast<const float*>(data); break;
@@ -200,14 +209,18 @@ static void activate(LV2_Handle instance) {
 static void run(LV2_Handle instance, uint32_t n_samples) {
     using namespace flues::disyn;
     auto* self = static_cast<DisynLV2*>(instance);
-    if (!self || !self->audioOut) {
+    if (!self || !self->audioOutLeft) {
         return;
     }
 
     apply_parameters(self);
 
-    float* out = self->audioOut;
-    std::memset(out, 0, n_samples * sizeof(float));
+    float* outLeft = self->audioOutLeft;
+    float* outRight = self->audioOutRight ? self->audioOutRight : self->audioOutLeft;
+    std::memset(outLeft, 0, n_samples * sizeof(float));
+    if (outRight != outLeft) {
+        std::memset(outRight, 0, n_samples * sizeof(float));
+    }
 
     uint32_t frame = 0;
 
@@ -220,7 +233,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             if (frame < eventFrame) {
                 const uint32_t limit = std::min(eventFrame, n_samples);
                 for (; frame < limit; ++frame) {
-                    out[frame] = self->engine->process();
+                    const AlgorithmOutput sample = self->engine->process();
+                    outLeft[frame] = sample.primary;
+                    outRight[frame] = sample.secondary;
                 }
             }
 
@@ -232,7 +247,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     }
 
     for (; frame < n_samples; ++frame) {
-        out[frame] = self->engine->process();
+        const AlgorithmOutput sample = self->engine->process();
+        outLeft[frame] = sample.primary;
+        outRight[frame] = sample.secondary;
     }
 }
 

@@ -10,7 +10,7 @@
 <https://danja.github.io/flues/plugins/disyn>
     a lv2:InstrumentPlugin ;
     doap:name "Flues Disyn" ;
-    doap:description "Monophonic distortion synthesizer with 7 algorithms (Dirichlet Pulse, DSF, Tanh Waveshaping, PAF, Modified FM)." ;
+    doap:description "Monophonic distortion synthesizer with 19 algorithms (primitive, combination, novel, plus trajectory)." ;
     doap:license <https://opensource.org/licenses/MIT> ;
     doap:maintainer [
         foaf:name "Danny Ayers" ;
@@ -21,35 +21,40 @@
     lv2:port [
         a lv2:OutputPort , lv2:AudioPort ;
         lv2:index 0 ;
-        lv2:symbol "audio_out" ;
-        lv2:name "Audio Out"
+        lv2:symbol "audio_out_l" ;
+        lv2:name "Audio Out L"
+    ] , [
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 1 ;
+        lv2:symbol "audio_out_r" ;
+        lv2:name "Audio Out R"
     ] , [
         a lv2:InputPort , atom:AtomPort ;
-        lv2:index 1 ;
+        lv2:index 2 ;
         lv2:symbol "midi_in" ;
         lv2:name "MIDI In" ;
         atom:bufferType atom:Sequence ;
         atom:supports midi:MidiEvent
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 2 ;
+        lv2:index 3 ;
         lv2:symbol "algorithmType" ;
         lv2:name "Algorithm" ;
         lv2:default 3 ;
         lv2:minimum 0 ;
-        lv2:maximum 6 ;
+        lv2:maximum 18 ;
         lv2:portProperty lv2:integer , lv2:enumeration ;
         lv2:scalePoint [
-            rdfs:label "Dirichlet Pulse" ;
+            rdfs:label "Dirichlet" ;
             rdf:value 0
         ] , [
-            rdfs:label "DSF Single" ;
+            rdfs:label "DSF 1" ;
             rdf:value 1
         ] , [
-            rdfs:label "DSF Double" ;
+            rdfs:label "DSF 2" ;
             rdf:value 2
         ] , [
-            rdfs:label "Tanh Square" ;
+            rdfs:label "Tanh Sq" ;
             rdf:value 3
         ] , [
             rdfs:label "Tanh Saw" ;
@@ -58,28 +63,72 @@
             rdfs:label "PAF" ;
             rdf:value 5
         ] , [
-            rdfs:label "Modified FM" ;
+            rdfs:label "Mod FM" ;
             rdf:value 6
+        ] , [
+            rdfs:label "Hybrid" ;
+            rdf:value 7
+        ] , [
+            rdfs:label "Cascade" ;
+            rdf:value 8
+        ] , [
+            rdfs:label "Parallel" ;
+            rdf:value 9
+        ] , [
+            rdfs:label "Feedback" ;
+            rdf:value 10
+        ] , [
+            rdfs:label "Morph" ;
+            rdf:value 11
+        ] , [
+            rdfs:label "Inharm" ;
+            rdf:value 12
+        ] , [
+            rdfs:label "Adaptive" ;
+            rdf:value 13
+        ] , [
+            rdfs:label "Multi" ;
+            rdf:value 14
+        ] , [
+            rdfs:label "Asym" ;
+            rdf:value 15
+        ] , [
+            rdfs:label "Cross" ;
+            rdf:value 16
+        ] , [
+            rdfs:label "Taylor" ;
+            rdf:value 17
+        ] , [
+            rdfs:label "Trajectory" ;
+            rdf:value 18
         ]
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 3 ;
+        lv2:index 4 ;
         lv2:symbol "param1" ;
-        lv2:name "Parameter 1" ;
+        lv2:name "Sides" ;
         lv2:default 0.55 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 4 ;
+        lv2:index 5 ;
         lv2:symbol "param2" ;
-        lv2:name "Parameter 2" ;
+        lv2:name "Launch Angle" ;
         lv2:default 0.5 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 5 ;
+        lv2:index 6 ;
+        lv2:symbol "param3" ;
+        lv2:name "Jitter" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 7 ;
         lv2:symbol "attack" ;
         lv2:name "Envelope Attack" ;
         lv2:default 0.5 ;
@@ -87,7 +136,7 @@
         lv2:maximum 1.0
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 6 ;
+        lv2:index 8 ;
         lv2:symbol "release" ;
         lv2:name "Envelope Release" ;
         lv2:default 0.5 ;
@@ -95,7 +144,7 @@
         lv2:maximum 1.0
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 7 ;
+        lv2:index 9 ;
         lv2:symbol "reverbSize" ;
         lv2:name "Reverb Size" ;
         lv2:default 0.5 ;
@@ -103,7 +152,7 @@
         lv2:maximum 1.0
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 8 ;
+        lv2:index 10 ;
         lv2:symbol "reverbLevel" ;
         lv2:name "Reverb Level" ;
         lv2:default 0.3 ;
@@ -111,7 +160,7 @@
         lv2:maximum 1.0
     ] , [
         a lv2:InputPort , lv2:ControlPort ;
-        lv2:index 9 ;
+        lv2:index 11 ;
         lv2:symbol "masterGain" ;
         lv2:name "Master Gain" ;
         lv2:default 0.8 ;

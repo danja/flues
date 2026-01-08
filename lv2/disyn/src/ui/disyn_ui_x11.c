@@ -25,17 +25,19 @@
 #define GROUP_GAP_X 18
 #define GROUP_GAP_Y 26
 #define TITLE_HEIGHT 20
-#define KNOB_SIZE 92
+#define KNOB_SIZE 120
 #define KNOB_HEIGHT 108
 #define KNOB_SPACING_X 16
 #define KNOB_SPACING_Y 18
 
 typedef enum {
-    PORT_AUDIO_OUT = 0,
+    PORT_AUDIO_OUT_L = 0,
+    PORT_AUDIO_OUT_R,
     PORT_MIDI_IN,
     PORT_ALGORITHM_TYPE,
     PORT_PARAM_1,
     PORT_PARAM_2,
+    PORT_PARAM_3,
     PORT_ENVELOPE_ATTACK,
     PORT_ENVELOPE_RELEASE,
     PORT_REVERB_SIZE,
@@ -53,13 +55,25 @@ typedef enum {
 } GroupIndex;
 
 static const char* const kAlgorithmLabels[] = {
-    "Dirichlet Pulse",
-    "DSF Single",
-    "DSF Double",
-    "Tanh Square",
+    "Dirichlet",
+    "DSF 1",
+    "DSF 2",
+    "Tanh Sq",
     "Tanh Saw",
     "PAF",
-    "Modified FM"
+    "Mod FM",
+    "Hybrid",
+    "Cascade",
+    "Parallel",
+    "Feedback",
+    "Morph",
+    "Inharm",
+    "Adaptive",
+    "Multi",
+    "Asym",
+    "Cross",
+    "Taylor",
+    "Trajectory"
 };
 
 typedef struct {
@@ -75,9 +89,10 @@ typedef struct {
 } ControlDesc;
 
 static const ControlDesc kControlInfo[] = {
-    { GROUP_ALGO, "ALGORITHM", PORT_ALGORITHM_TYPE, 0.0f, 6.0f, 3.0f, 7, kAlgorithmLabels, 7 },
-    { GROUP_ALGO, "PARAM 1", PORT_PARAM_1, 0.0f, 1.0f, 0.55f, 0, NULL, 0 },
-    { GROUP_ALGO, "PARAM 2", PORT_PARAM_2, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
+    { GROUP_ALGO, "ALGORITHM", PORT_ALGORITHM_TYPE, 0.0f, 18.0f, 3.0f, 19, kAlgorithmLabels, 19 },
+    { GROUP_ALGO, "SIDES", PORT_PARAM_1, 0.0f, 1.0f, 0.55f, 0, NULL, 0 },
+    { GROUP_ALGO, "LAUNCH", PORT_PARAM_2, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
+    { GROUP_ALGO, "JITTER", PORT_PARAM_3, 0.0f, 1.0f, 0.00f, 0, NULL, 0 },
 
     { GROUP_ENVELOPE, "ATTACK", PORT_ENVELOPE_ATTACK, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
     { GROUP_ENVELOPE, "RELEASE", PORT_ENVELOPE_RELEASE, 0.0f, 1.0f, 0.50f, 0, NULL, 0 },
@@ -94,7 +109,7 @@ typedef struct {
 } GroupLayout;
 
 static const GroupLayout kGroupLayout[GROUP_COUNT] = {
-    [GROUP_ALGO] = { 0, 3 },
+    [GROUP_ALGO] = { 0, 4 },
     [GROUP_ENVELOPE] = { 1, 2 },
     [GROUP_SPACE] = { 1, 2 },
     [GROUP_OUTPUT] = { 2, 1 }
@@ -120,6 +135,7 @@ typedef struct {
     int y;
     int width;
     int height;
+    bool is_dropdown;
 } Knob;
 
 typedef struct {
@@ -159,6 +175,8 @@ typedef struct {
 
     volatile bool needs_redraw;
     int active_knob;
+    int dropdown_port;
+    bool dropdown_open;
     double drag_start_y;
     float drag_start_value;
 } DisynUI;
@@ -188,6 +206,54 @@ static float clamp_value(const Knob* knob, float value) {
         value = knob->min + roundf((value - knob->min) / step) * step;
     }
     return value;
+}
+
+typedef struct {
+    double x;
+    double y;
+    double w;
+    double h;
+} Rect;
+
+static Rect dropdown_box_rect(const Knob* knob) {
+    const double inset = 8.0;
+    const double box_height = 26.0;
+    Rect rect = {
+        .x = knob->x + inset,
+        .y = knob->y + 12.0,
+        .w = knob->width - inset * 2.0,
+        .h = box_height
+    };
+    return rect;
+}
+
+static Rect dropdown_list_rect(const Knob* knob) {
+    const double item_height = 18.0;
+    Rect box = dropdown_box_rect(knob);
+    Rect list = {
+        .x = box.x,
+        .y = box.y + box.h + 4.0,
+        .w = box.w,
+        .h = item_height * knob->scale_count
+    };
+    return list;
+}
+
+static bool point_in_rect(int x, int y, Rect rect) {
+    return x >= rect.x && x <= rect.x + rect.w &&
+           y >= rect.y && y <= rect.y + rect.h;
+}
+
+static uint32_t knob_value_index(const Knob* knob) {
+    if (knob->steps <= 1) {
+        return 0;
+    }
+    float step = (knob->max - knob->min) / (float)(knob->steps - 1);
+    uint32_t idx = (uint32_t)roundf((knob->value - knob->min) / step);
+    if (idx >= knob->scale_count) {
+        idx = knob->scale_count - 1;
+    }
+    return idx;
 }
 
 static void draw_group_background(cairo_t* cr, const GroupState* group, const char* title) {
@@ -313,6 +379,81 @@ static void draw_knob(cairo_t* cr, const Knob* knob) {
     cairo_restore(cr);
 }
 
+static void draw_dropdown(cairo_t* cr, const Knob* knob, const DisynUI* ui) {
+    const Rect box = dropdown_box_rect(knob);
+    const double label_y = knob->y + knob->height - 7.0;
+
+    cairo_save(cr);
+    cairo_rectangle(cr, knob->x, knob->y, knob->width, knob->height);
+    cairo_clip(cr);
+
+    cairo_set_source_rgb(cr, 0.10, 0.11, 0.13);
+    cairo_rectangle(cr, knob->x, knob->y, knob->width, knob->height);
+    cairo_fill(cr);
+
+    cairo_set_source_rgb(cr, 0.16, 0.18, 0.22);
+    cairo_rectangle(cr, box.x, box.y, box.w, box.h);
+    cairo_fill_preserve(cr);
+    cairo_set_source_rgb(cr, 0.82, 0.48, 0.18);
+    cairo_set_line_width(cr, 1.4);
+    cairo_stroke(cr);
+
+    cairo_set_source_rgb(cr, 0.90, 0.86, 0.74);
+    cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 11.0);
+
+    uint32_t idx = knob_value_index(knob);
+    const char* text = (knob->scale_labels && idx < knob->scale_count)
+        ? knob->scale_labels[idx]
+        : "";
+
+    cairo_text_extents_t extents;
+    cairo_text_extents(cr, text, &extents);
+    cairo_move_to(cr, box.x + 8.0, box.y + box.h - 8.0);
+    cairo_show_text(cr, text);
+
+    cairo_set_source_rgb(cr, 0.85, 0.72, 0.36);
+    cairo_move_to(cr, box.x + box.w - 16.0, box.y + box.h / 2.0 - 2.0);
+    cairo_line_to(cr, box.x + box.w - 8.0, box.y + box.h / 2.0 - 2.0);
+    cairo_line_to(cr, box.x + box.w - 12.0, box.y + box.h / 2.0 + 4.0);
+    cairo_close_path(cr);
+    cairo_fill(cr);
+
+    cairo_set_source_rgb(cr, 0.74, 0.69, 0.60);
+    cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 10.0);
+    cairo_text_extents(cr, knob->label, &extents);
+    cairo_move_to(cr, knob->x + knob->width / 2.0 - extents.width / 2.0, label_y);
+    cairo_show_text(cr, knob->label);
+
+    if (ui->dropdown_open && ui->dropdown_port == (int)knob->port && knob->scale_labels) {
+        const Rect list = dropdown_list_rect(knob);
+        const double item_height = 18.0;
+
+        cairo_set_source_rgb(cr, 0.14, 0.15, 0.19);
+        cairo_rectangle(cr, list.x, list.y, list.w, list.h);
+        cairo_fill_preserve(cr);
+        cairo_set_source_rgb(cr, 0.30, 0.31, 0.37);
+        cairo_set_line_width(cr, 1.1);
+        cairo_stroke(cr);
+
+        for (uint32_t i = 0; i < knob->scale_count; ++i) {
+            double item_y = list.y + i * item_height;
+            if (i == idx) {
+                cairo_set_source_rgb(cr, 0.28, 0.26, 0.20);
+                cairo_rectangle(cr, list.x, item_y, list.w, item_height);
+                cairo_fill(cr);
+            }
+
+            cairo_set_source_rgb(cr, 0.92, 0.88, 0.74);
+            cairo_move_to(cr, list.x + 8.0, item_y + item_height - 5.0);
+            cairo_show_text(cr, knob->scale_labels[i]);
+        }
+    }
+
+    cairo_restore(cr);
+}
+
 static void draw_ui(DisynUI* ui) {
     pthread_mutex_lock(&ui->mutex);
     if (!ui->surface) {
@@ -341,7 +482,11 @@ static void draw_ui(DisynUI* ui) {
         if (!ui->knob_used[port]) {
             continue;
         }
-        draw_knob(cr, &ui->knobs[port]);
+        if (ui->knobs[port].is_dropdown) {
+            draw_dropdown(cr, &ui->knobs[port], ui);
+        } else {
+            draw_knob(cr, &ui->knobs[port]);
+        }
     }
 
     cairo_destroy(cr);
@@ -376,11 +521,51 @@ static void handle_button_press(DisynUI* ui, const XButtonEvent* event) {
         return;
     }
     pthread_mutex_lock(&ui->mutex);
+    if (ui->dropdown_open && ui->dropdown_port >= 0 &&
+        ui->dropdown_port < (int)PORT_TOTAL_COUNT &&
+        ui->knob_used[ui->dropdown_port]) {
+        Knob* dropdown = &ui->knobs[ui->dropdown_port];
+        Rect list = dropdown_list_rect(dropdown);
+        if (point_in_rect(event->x, event->y, list)) {
+            const double item_height = 18.0;
+            int index = (int)((event->y - list.y) / item_height);
+            if (index >= 0 && index < (int)dropdown->scale_count) {
+                float step = (dropdown->max - dropdown->min) / (float)(dropdown->steps - 1);
+                float value = dropdown->min + step * (float)index;
+                value = clamp_value(dropdown, value);
+                if (fabsf(value - dropdown->value) > 0.0001f) {
+                    dropdown->value = value;
+                    ui->needs_redraw = true;
+                    notify_host(ui, dropdown->port, dropdown->value);
+                }
+            }
+            ui->dropdown_open = false;
+            pthread_mutex_unlock(&ui->mutex);
+            return;
+        }
+    }
+
     int knob_index = find_knob_at(ui, event->x, event->y);
     if (knob_index >= 0) {
+        Knob* knob = &ui->knobs[knob_index];
+        if (knob->is_dropdown) {
+            if (!ui->dropdown_open || ui->dropdown_port != knob_index) {
+                ui->dropdown_open = true;
+                ui->dropdown_port = knob_index;
+            } else {
+                ui->dropdown_open = false;
+            }
+            ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
+            return;
+        }
+        ui->dropdown_open = false;
         ui->active_knob = knob_index;
         ui->drag_start_y = event->y;
         ui->drag_start_value = ui->knobs[knob_index].value;
+    } else if (ui->dropdown_open) {
+        ui->dropdown_open = false;
+        ui->needs_redraw = true;
     }
     pthread_mutex_unlock(&ui->mutex);
 }
@@ -400,6 +585,18 @@ static void handle_scroll(DisynUI* ui, const XButtonEvent* event) {
 
     pthread_mutex_lock(&ui->mutex);
     Knob* knob = &ui->knobs[knob_index];
+    if (knob->is_dropdown) {
+        float step = (knob->max - knob->min) / (float)(knob->steps - 1);
+        float value = knob->value + ((event->button == Button4) ? step : -step);
+        value = clamp_value(knob, value);
+        if (fabsf(value - knob->value) > 0.0001f) {
+            knob->value = value;
+            ui->needs_redraw = true;
+            notify_host(ui, knob->port, knob->value);
+        }
+        pthread_mutex_unlock(&ui->mutex);
+        return;
+    }
     float step = (knob->max - knob->min) / 100.0f;
     float value = knob->value;
     if (event->button == Button4) {
@@ -601,6 +798,7 @@ static void setup_layout(DisynUI* ui, int available_width) {
         knob->height = KNOB_HEIGHT;
         knob->x = group->x + GROUP_PADDING + col * (KNOB_SIZE + KNOB_SPACING_X);
         knob->y = group->y + GROUP_PADDING + TITLE_HEIGHT + row * (KNOB_HEIGHT + KNOB_SPACING_Y);
+        knob->is_dropdown = (desc->port == PORT_ALGORITHM_TYPE);
         ui->knob_used[desc->port] = true;
     }
 }
@@ -631,6 +829,8 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
     ui->write = write_function;
     ui->controller = controller;
     ui->active_knob = -1;
+    ui->dropdown_port = -1;
+    ui->dropdown_open = false;
     ui->needs_redraw = true;
     ui->content_width = 0;
     ui->content_height = 0;
