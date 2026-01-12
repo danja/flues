@@ -135,6 +135,7 @@ typedef struct {
 
     // Launchpad state
     bool launchpad_mode_entered;
+    bool launchpad_reset_pending;
     uint8_t prev_led_step;
     bool grid_dirty;
 
@@ -208,6 +209,7 @@ static LV2_Handle instantiate(
 
     // Initialize Launchpad state
     gs->launchpad_mode_entered = false;
+    gs->launchpad_reset_pending = false;
     gs->prev_led_step = 0;
     gs->grid_dirty = true;
 
@@ -329,6 +331,39 @@ static void send_sysex_programmer_mode(GridSeq* gs, LV2_Atom_Forge* forge, bool 
     lv2_atom_forge_frame_time(forge, 0);
     lv2_atom_forge_atom(forge, sizeof(sysex), gs->midi_MidiEvent);
     lv2_atom_forge_write(forge, sysex, sizeof(sysex));
+}
+
+static size_t build_launchpad_clear_sysex(uint8_t* buffer, size_t max);
+static size_t build_launchpad_led_sysex(GridSeq* gs, uint8_t* buffer, size_t max);
+static void send_launchpad_sysex(GridSeq* gs, const uint8_t* data, uint16_t size);
+static void update_launchpad_leds_note_cc(GridSeq* gs);
+
+static void send_launchpad_full_init(GridSeq* gs) {
+    if (!gs) {
+        return;
+    }
+
+    // Enter Programmer Mode on both outputs (padseq-style init).
+    send_sysex_programmer_mode(gs, &gs->forge, true);
+    if (gs->launchpad_out) {
+        send_sysex_programmer_mode(gs, &gs->launchpad_forge, true);
+    }
+
+    // Clear LEDs and push a full grid state update via SysEx.
+    uint8_t clear_sysex[LP_SYSEX_MAX];
+    size_t clear_size = build_launchpad_clear_sysex(clear_sysex, sizeof(clear_sysex));
+    if (clear_size > 0) {
+        send_launchpad_sysex(gs, clear_sysex, (uint16_t)clear_size);
+    }
+
+    uint8_t grid_sysex[LP_SYSEX_MAX];
+    size_t grid_size = build_launchpad_led_sysex(gs, grid_sysex, sizeof(grid_sysex));
+    if (grid_size > 0) {
+        send_launchpad_sysex(gs, grid_sysex, (uint16_t)grid_size);
+    }
+
+    // CC updates help some hosts/devices latch state after SysEx.
+    update_launchpad_leds_note_cc(gs);
 }
 
 static void append_sysex_byte(uint8_t* buffer, size_t* pos, size_t max, uint8_t byte) {
@@ -747,28 +782,15 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         // Check for hardware reset signal (x == -100)
         if (x == -100.0f && x != gs->prev_grid_x) {
             fprintf(stderr, "\n=== HARDWARE RESET REQUESTED ===\n");
-            fprintf(stderr, "Querying Launchpad state...\n");
-
-            // Send Device Inquiry SysEx: F0 7E 7F 06 01 F7
-            uint8_t inquiry[] = {0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7};
-            lv2_atom_forge_frame_time(&gs->forge, 0);
-            lv2_atom_forge_atom(&gs->forge, sizeof(inquiry), gs->midi_MidiEvent);
-            lv2_atom_forge_write(&gs->forge, inquiry, sizeof(inquiry));
-            fprintf(stderr, "Sent Device Inquiry SysEx to main output\n");
-
-            // Force exit Programmer Mode first
-            fprintf(stderr, "Sending EXIT Programmer Mode...\n");
-            send_sysex_programmer_mode(gs, &gs->forge, false);
-            send_sysex_programmer_mode(gs, &gs->launchpad_forge, false);
-
-            // Wait a moment (flag will be reset so it re-enters on next run)
+            fprintf(stderr, "Scheduling full Launchpad initialization SysEx...\n");
+            gs->launchpad_reset_pending = true;
             gs->launchpad_mode_entered = false;
+            gs->grid_dirty = true;
 
-            fprintf(stderr, "Launchpad reset sequence initiated. Will re-enter Programmer Mode on next cycle.\n");
+            fprintf(stderr, "Launchpad reset sequence initiated. Will re-init this cycle.\n");
             fprintf(stderr, "================================\n\n");
 
             gs->prev_grid_x = x;
-            return;
         }
 
         // Check for clear pattern signal (x == -300)
@@ -891,6 +913,14 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     LV2_Atom_Forge_Frame notify_frame;
     if (notify_connected) {
         lv2_atom_forge_sequence_head(&gs->notify_forge, &notify_frame, 0);
+    }
+
+    if (gs->launchpad_reset_pending) {
+        fprintf(stderr, "grid-seq: Sending Launchpad full init SysEx now\n");
+        send_launchpad_full_init(gs);
+        gs->launchpad_reset_pending = false;
+        gs->launchpad_mode_entered = true;
+        gs->grid_dirty = true;
     }
 
     // Enter Programmer Mode on first run
