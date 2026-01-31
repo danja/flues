@@ -51,6 +51,7 @@ typedef enum {
     PORT_FADE,
     PORT_CUT,
     PORT_FADE_DUR_MAX,
+    PORT_BIAS,
     PORT_TOTAL_COUNT
 } PortIndex;
 
@@ -127,7 +128,8 @@ static const ControlDesc kControls[] = {
     { "MAINT", PORT_MAINTAIN, 0.0f, 100.0f, 50.0f, true },
     { "FADE", PORT_FADE, 0.0f, 100.0f, 25.0f, true },
     { "CUT", PORT_CUT, 0.0f, 100.0f, 25.0f, true },
-    { "FD MAX", PORT_FADE_DUR_MAX, 0.125f, 1.0f, 1.0f, false }
+    { "FD MAX", PORT_FADE_DUR_MAX, 0.125f, 1.0f, 1.0f, false },
+    { "BIAS", PORT_BIAS, 0.0f, 100.0f, 50.0f, true }
 };
 
 static float clamp_value(const Knob* knob, float value) {
@@ -271,6 +273,7 @@ static void handle_button_press(PMixUI* ui, XButtonEvent* ev) {
     const int x = ev->x;
     const int y = ev->y;
 
+    pthread_mutex_lock(&ui->mutex);
     for (int i = 0; i < ui->knob_count; ++i) {
         Knob* knob = &ui->knobs[i];
         if (edit_hit_test(knob, x, y)) {
@@ -278,6 +281,7 @@ static void handle_button_press(PMixUI* ui, XButtonEvent* ev) {
             update_edit_text(knob);
             ui->edit_cursor = strlen(knob->edit_text);
             ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
             return;
         }
         if (knob_hit_test(knob, x, y)) {
@@ -286,19 +290,25 @@ static void handle_button_press(PMixUI* ui, XButtonEvent* ev) {
             ui->drag_start_y = ev->y;
             ui->drag_start_value = knob->value;
             ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
             return;
         }
     }
 
     ui->active_edit = -1;
+    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void handle_button_release(PMixUI* ui) {
+    pthread_mutex_lock(&ui->mutex);
     ui->active_knob = -1;
+    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void handle_motion(PMixUI* ui, XMotionEvent* ev) {
+    pthread_mutex_lock(&ui->mutex);
     if (ui->active_knob < 0) {
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
     Knob* knob = &ui->knobs[ui->active_knob];
@@ -312,6 +322,7 @@ static void handle_motion(PMixUI* ui, XMotionEvent* ev) {
         send_value(ui, knob);
         ui->needs_redraw = true;
     }
+    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void commit_edit(PMixUI* ui, Knob* knob) {
@@ -331,7 +342,9 @@ static void commit_edit(PMixUI* ui, Knob* knob) {
 }
 
 static void handle_key(PMixUI* ui, XKeyEvent* ev) {
+    pthread_mutex_lock(&ui->mutex);
     if (ui->active_edit < 0) {
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
     Knob* knob = &ui->knobs[ui->active_edit];
@@ -344,12 +357,14 @@ static void handle_key(PMixUI* ui, XKeyEvent* ev) {
         commit_edit(ui, knob);
         ui->active_edit = -1;
         ui->needs_redraw = true;
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
     if (sym == XK_Escape) {
         update_edit_text(knob);
         ui->active_edit = -1;
         ui->needs_redraw = true;
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
     if (sym == XK_BackSpace) {
@@ -358,10 +373,12 @@ static void handle_key(PMixUI* ui, XKeyEvent* ev) {
             knob->edit_text[len_text - 1] = '\0';
             ui->needs_redraw = true;
         }
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
 
     if (len <= 0) {
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
 
@@ -374,6 +391,7 @@ static void handle_key(PMixUI* ui, XKeyEvent* ev) {
             ui->needs_redraw = true;
         }
     }
+    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void* event_thread_main(void* arg) {
@@ -386,6 +404,20 @@ static void* event_thread_main(void* arg) {
             switch (ev.type) {
                 case Expose:
                     ui->needs_redraw = true;
+                    break;
+                case ConfigureNotify:
+                    pthread_mutex_lock(&ui->mutex);
+                    if (ev.xconfigure.width != ui->width ||
+                        ev.xconfigure.height != ui->height) {
+                        ui->width = ev.xconfigure.width;
+                        ui->height = ev.xconfigure.height;
+                        cairo_xlib_surface_set_size(ui->surface, ui->width, ui->height);
+                        ui->needs_redraw = true;
+                    }
+                    pthread_mutex_unlock(&ui->mutex);
+                    break;
+                case DestroyNotify:
+                    ui->running = false;
                     break;
                 case ButtonPress:
                     handle_button_press(ui, &ev.xbutton);
@@ -422,7 +454,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
                                   LV2UI_Write_Function write_function,
                                   LV2UI_Controller controller,
                                   LV2UI_Widget* widget,
-                                  const LV2_Feature* const* /*features*/) {
+                                  const LV2_Feature* const* features) {
     ensure_xlib_threads();
 
     PMixUI* ui = (PMixUI*)calloc(1, sizeof(PMixUI));
@@ -444,6 +476,19 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
     ui->width = width;
     ui->height = height;
 
+    void* parent = NULL;
+    for (const LV2_Feature* const* f = features; f && *f; ++f) {
+        if (!strcmp((*f)->URI, LV2_UI__parent)) {
+            parent = (*f)->data;
+        }
+    }
+
+    if (!parent) {
+        fprintf(stderr, "p-mix-ui: no parent window provided\n");
+        free(ui);
+        return NULL;
+    }
+
     Display* display = XOpenDisplay(NULL);
     if (!display) {
         free(ui);
@@ -453,19 +498,38 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
     ui->display = display;
     ui->screen = DefaultScreen(display);
 
-    Window root = RootWindow(display, ui->screen);
-    ui->window = XCreateSimpleWindow(display, root, 0, 0, width, height, 0,
-                                     BlackPixel(display, ui->screen), BlackPixel(display, ui->screen));
+    XSetWindowAttributes attrs;
+    attrs.background_pixel = BlackPixel(display, ui->screen);
+    attrs.event_mask = ExposureMask | StructureNotifyMask | ButtonPressMask |
+                       ButtonReleaseMask | PointerMotionMask | KeyPressMask;
 
-    XSelectInput(display, ui->window, ExposureMask | ButtonPressMask | ButtonReleaseMask |
-                 PointerMotionMask | KeyPressMask);
+    ui->window = XCreateWindow(
+        display,
+        (Window)(uintptr_t)parent,
+        0,
+        0,
+        width,
+        height,
+        0,
+        CopyFromParent,
+        InputOutput,
+        CopyFromParent,
+        CWBackPixel | CWEventMask,
+        &attrs);
+
+    if (!ui->window) {
+        XCloseDisplay(display);
+        free(ui);
+        return NULL;
+    }
 
     XStoreName(display, ui->window, "P-Mix");
-    XMapRaised(display, ui->window);
+    XMapWindow(display, ui->window);
 
     ui->surface = cairo_xlib_surface_create(display, ui->window,
                                             DefaultVisual(display, ui->screen),
                                             width, height);
+    cairo_xlib_surface_set_size(ui->surface, width, height);
 
     const int knob_y = MARGIN + TITLE_HEIGHT;
     for (int i = 0; i < control_count; ++i) {
@@ -539,12 +603,14 @@ static void ui_port_event(LV2UI_Handle handle,
         return;
     }
 
+    pthread_mutex_lock(&ui->mutex);
     for (int i = 0; i < ui->knob_count; ++i) {
         if (ui->knobs[i].port != port_index) {
             continue;
         }
 
         if (ui->active_edit == i) {
+            pthread_mutex_unlock(&ui->mutex);
             return;
         }
 
@@ -555,8 +621,10 @@ static void ui_port_event(LV2UI_Handle handle,
             update_edit_text(&ui->knobs[i]);
             ui->needs_redraw = true;
         }
+        pthread_mutex_unlock(&ui->mutex);
         return;
     }
+    pthread_mutex_unlock(&ui->mutex);
 }
 
 static const void* ui_extension_data(const char* uri) {

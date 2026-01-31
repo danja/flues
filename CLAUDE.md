@@ -670,6 +670,26 @@ The C++ code follows established patterns from other LV2 plugins:
 
 See `lv2/drumkit/README.md` for detailed usage, sound design tips, and synthesis methods.
 
+### P-Mix LV2 Plugin
+
+**Location:** `lv2/p-mix/`
+
+A probabilistic mixer LV2 effect that toggles audio on/off at bar boundaries using host transport/tempo. Designed for rhythmic dropouts and stochastic mutes across up to eight channels.
+
+**Key Features:**
+- 8-channel in/out gain switching
+- Weighted Maintain/Fade/Cut behavior at decision points
+- Bias control to target overall play ratio
+- X11/Cairo UI with rotary controls
+
+**Controls:**
+- Granularity (bars)
+- Maintain, Fade, Cut (weights)
+- Fade Dur Max (max fade fraction)
+- Bias (target play percentage)
+
+See `docs/p-mix--manual.md` for user-facing details.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.

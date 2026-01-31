@@ -37,6 +37,7 @@ enum PortIndex {
     PORT_FADE,
     PORT_CUT,
     PORT_FADE_DUR_MAX,
+    PORT_BIAS,
     PORT_TOTAL_COUNT
 };
 
@@ -58,6 +59,7 @@ struct PMixURIDs {
     LV2_URID state_fade = 0;
     LV2_URID state_cut = 0;
     LV2_URID state_fade_dur_max = 0;
+    LV2_URID state_bias = 0;
 };
 
 struct TimeInfo {
@@ -79,6 +81,7 @@ struct PMix {
     const float* fade_port = nullptr;
     const float* cut_port = nullptr;
     const float* fade_dur_max_port = nullptr;
+    const float* bias_port = nullptr;
 
     LV2_URID_Map* map = nullptr;
     PMixURIDs urids{};
@@ -97,6 +100,7 @@ struct PMix {
     float cached_fade = 25.0f;
     float cached_cut = 25.0f;
     float cached_fade_dur_max = 1.0f;
+    float cached_bias = 50.0f;
 };
 
 static inline float clampf(float value, float minValue, float maxValue) {
@@ -215,6 +219,7 @@ static void update_cached_params(PMix* self) {
     self->cached_fade = self->fade_port ? *self->fade_port : self->cached_fade;
     self->cached_cut = self->cut_port ? *self->cut_port : self->cached_cut;
     self->cached_fade_dur_max = self->fade_dur_max_port ? *self->fade_dur_max_port : self->cached_fade_dur_max;
+    self->cached_bias = self->bias_port ? *self->bias_port : self->cached_bias;
 }
 
 static void start_fade(PMix* self, float target_gain, int granularity, double frames_per_bar, float fade_dur_max) {
@@ -240,7 +245,8 @@ static void apply_transition(PMix* self,
                              float maintain,
                              float fade,
                              float cut,
-                             float fade_dur_max) {
+                             float fade_dur_max,
+                             float bias) {
     if (!self || granularity <= 0) {
         return;
     }
@@ -278,7 +284,8 @@ static void apply_transition(PMix* self,
         return;
     }
 
-    const float target = (gain <= 0.5f) ? 1.0f : 0.0f;
+    const float bias_norm = clampf(bias * 0.01f, 0.0f, 1.0f);
+    const float target = (rand_float(&self->rng_state) < bias_norm) ? 1.0f : 0.0f;
 
     if (r < (p_maintain + p_fade)) {
         start_fade(self, target, granularity, frames_per_bar, fade_dur_max);
@@ -315,6 +322,8 @@ static LV2_State_Status pmix_state_save(
           &self->cached_cut, sizeof(float), self->urids.atom_Float, flags);
     store(handle, self->urids.state_fade_dur_max,
           &self->cached_fade_dur_max, sizeof(float), self->urids.atom_Float, flags);
+    store(handle, self->urids.state_bias,
+          &self->cached_bias, sizeof(float), self->urids.atom_Float, flags);
 
     return LV2_STATE_SUCCESS;
 }
@@ -349,6 +358,7 @@ static LV2_State_Status pmix_state_restore(
     restore_value(self->urids.state_fade, &self->cached_fade);
     restore_value(self->urids.state_cut, &self->cached_cut);
     restore_value(self->urids.state_fade_dur_max, &self->cached_fade_dur_max);
+    restore_value(self->urids.state_bias, &self->cached_bias);
 
     return LV2_STATE_SUCCESS;
 }
@@ -400,6 +410,7 @@ static LV2_Handle instantiate(const LV2_Descriptor* /*descriptor*/,
     self->urids.state_fade = self->map->map(self->map->handle, PMIX_URI "#fade");
     self->urids.state_cut = self->map->map(self->map->handle, PMIX_URI "#cut");
     self->urids.state_fade_dur_max = self->map->map(self->map->handle, PMIX_URI "#fade_dur_max");
+    self->urids.state_bias = self->map->map(self->map->handle, PMIX_URI "#bias");
 
     return self;
 }
@@ -441,6 +452,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_FADE_DUR_MAX:
             self->fade_dur_max_port = static_cast<const float*>(data);
             break;
+        case PORT_BIAS:
+            self->bias_port = static_cast<const float*>(data);
+            break;
         default:
             break;
     }
@@ -470,6 +484,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     const float fade = clampf(self->cached_fade, 0.0f, 100.0f);
     const float cut = clampf(self->cached_cut, 0.0f, 100.0f);
     const float fade_dur_max = clampf(self->cached_fade_dur_max, kFadeMinFraction, 1.0f);
+    const float bias = clampf(self->cached_bias, 0.0f, 100.0f);
 
     TimeInfo time_info;
     time_info.bpm = 120.0;
@@ -524,7 +539,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     for (uint32_t i = 0; i < nframes; ++i) {
         if (boundary_index < boundary_count && boundaries[boundary_index].frame == i) {
             apply_transition(self, boundaries[boundary_index].bar, granularity, frames_per_bar,
-                             maintain, fade, cut, fade_dur_max);
+                             maintain, fade, cut, fade_dur_max, bias);
             boundary_index++;
         }
 
