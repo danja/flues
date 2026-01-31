@@ -121,19 +121,19 @@ static bool atom_to_double(const LV2_Atom* atom, const PMixURIDs& urids, double*
         return false;
     }
     if (atom->type == urids.atom_Float) {
-        *out = static_cast<const LV2_Atom_Float*>(atom)->body;
+        *out = reinterpret_cast<const LV2_Atom_Float*>(atom)->body;
         return true;
     }
     if (atom->type == urids.atom_Double) {
-        *out = static_cast<const LV2_Atom_Double*>(atom)->body;
+        *out = reinterpret_cast<const LV2_Atom_Double*>(atom)->body;
         return true;
     }
     if (atom->type == urids.atom_Int) {
-        *out = static_cast<const LV2_Atom_Int*>(atom)->body;
+        *out = reinterpret_cast<const LV2_Atom_Int*>(atom)->body;
         return true;
     }
     if (atom->type == urids.atom_Long) {
-        *out = static_cast<const LV2_Atom_Long*>(atom)->body;
+        *out = reinterpret_cast<const LV2_Atom_Long*>(atom)->body;
         return true;
     }
     return false;
