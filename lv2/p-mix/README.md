@@ -2,7 +2,7 @@
 
 ![screenshot](../../docs/images/p-mix.png)
 
-**Status 2026-02-02 :** probably buggy, but already used in production.
+**Status 2026-02-02 :** probably buggy, but already used in production. Only tested on Reaper, Ubuntu Studio.
 
 P-Mix is a probabilistic mixer lv2 plugin. When applied to track in a DAW it will automatically cut/fade in/out the audio of that track according to certain parameters.
 
