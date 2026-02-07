@@ -65,6 +65,20 @@ Then configure your AI client to use that process stdin/stdout.
 
 MetaLV listens on `127.0.0.1:5566` by default. Configure your AI client to connect to that TCP port and send line-delimited JSON.
 
+### Stdio Wrapper (Claude/Codex)
+
+If your MCP client expects stdio, use the wrapper script to bridge TCP ↔ stdio:
+
+```sh
+./metalv-mcp-stdio.sh
+```
+
+You can override the target with:
+
+```sh
+METALV_MCP_HOST=127.0.0.1 METALV_MCP_PORT=5566 ./metalv-mcp-stdio.sh
+```
+
 ## Build & Install
 
 From the repo root:
