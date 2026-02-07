@@ -28,6 +28,7 @@
 - **[MIDI Flip](lv2/midi-flip/)** — MIDI note mirror around a pivot.
 - **[Quantico](lv2/quantico/)** — MIDI scale quantizer (key + scale).
 - **[Slimmer](lv2/slimmer/)** — Monophonic MIDI filter with note selection modes.
+- **[MetaLV](lv2/metalv/)** — LV2 plugin host with MCP control (4 slots).
 
 ### Raspberry Pi
 - **[Flues-Synth](flues-synth/)** — Headless ALSA synth with 31 MIDI programs.
@@ -230,6 +231,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/midi-flip/README.md](lv2/midi-flip/README.md) - MIDI Flip user guide
 - [lv2/quantico/README.md](lv2/quantico/README.md) - Quantico user guide
 - [lv2/slimmer/README.md](lv2/slimmer/README.md) - Slimmer user guide
+- [docs/metalv-plan.md](docs/metalv-plan.md) - MetaLV implementation plan
 
 ### Build Native Apps
 
@@ -271,7 +273,8 @@ flues/
 │   ├── p-mix/            # Probabilistic mixer
 │   ├── midi-flip/        # MIDI note flip utility
 │   ├── quantico/         # MIDI scale quantizer
-│   └── slimmer/          # Monophonic MIDI filter
+│   ├── slimmer/          # Monophonic MIDI filter
+│   └── metalv/           # LV2 host plugin
 ├── gtk-synth/            # GTK4 native desktop app (Stove)
 ├── flues-synth/          # Headless Raspberry Pi synthesizer
 ├── www/                  # Built static site (GitHub Pages)

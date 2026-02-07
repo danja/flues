@@ -1,0 +1,425 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/metalv>
+    a lv2:Plugin , lv2:EffectPlugin ;
+    doap:name "MetaLV" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    ui:ui <https://danja.github.io/flues/plugins/metalv#ui> ;
+    rdfs:comment "LV2 plugin host with MCP control." ;
+
+    lv2:port [
+        a lv2:AudioPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "in_l" ;
+        lv2:name "Input L" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ;
+        lv2:index 1 ;
+        lv2:symbol "in_r" ;
+        lv2:name "Input R" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ;
+        lv2:index 2 ;
+        lv2:symbol "out_l" ;
+        lv2:name "Output L" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ;
+        lv2:index 3 ;
+        lv2:symbol "out_r" ;
+        lv2:name "Output R" ;
+    ] , [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 4 ;
+        lv2:symbol "midi_in" ;
+        lv2:name "MIDI In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a atom:AtomPort, lv2:OutputPort ;
+        lv2:index 5 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ]
+
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "slot_0_bypass" ;
+        lv2:name "Slot 1 Bypass" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:integer ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "slot_0_gain" ;
+        lv2:name "Slot 1 Gain" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "slot_0_param_0" ;
+        lv2:name "Slot 1 Param 1" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "slot_0_param_1" ;
+        lv2:name "Slot 1 Param 2" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "slot_0_param_2" ;
+        lv2:name "Slot 1 Param 3" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "slot_0_param_3" ;
+        lv2:name "Slot 1 Param 4" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "slot_0_param_4" ;
+        lv2:name "Slot 1 Param 5" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "slot_0_param_5" ;
+        lv2:name "Slot 1 Param 6" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "slot_0_param_6" ;
+        lv2:name "Slot 1 Param 7" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "slot_0_param_7" ;
+        lv2:name "Slot 1 Param 8" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "slot_1_bypass" ;
+        lv2:name "Slot 2 Bypass" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:integer ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "slot_1_gain" ;
+        lv2:name "Slot 2 Gain" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "slot_1_param_0" ;
+        lv2:name "Slot 2 Param 1" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "slot_1_param_1" ;
+        lv2:name "Slot 2 Param 2" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:symbol "slot_1_param_2" ;
+        lv2:name "Slot 2 Param 3" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:symbol "slot_1_param_3" ;
+        lv2:name "Slot 2 Param 4" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:symbol "slot_1_param_4" ;
+        lv2:name "Slot 2 Param 5" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:symbol "slot_1_param_5" ;
+        lv2:name "Slot 2 Param 6" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 24 ;
+        lv2:symbol "slot_1_param_6" ;
+        lv2:name "Slot 2 Param 7" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 25 ;
+        lv2:symbol "slot_1_param_7" ;
+        lv2:name "Slot 2 Param 8" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 26 ;
+        lv2:symbol "slot_2_bypass" ;
+        lv2:name "Slot 3 Bypass" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:integer ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 27 ;
+        lv2:symbol "slot_2_gain" ;
+        lv2:name "Slot 3 Gain" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 28 ;
+        lv2:symbol "slot_2_param_0" ;
+        lv2:name "Slot 3 Param 1" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 29 ;
+        lv2:symbol "slot_2_param_1" ;
+        lv2:name "Slot 3 Param 2" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 30 ;
+        lv2:symbol "slot_2_param_2" ;
+        lv2:name "Slot 3 Param 3" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 31 ;
+        lv2:symbol "slot_2_param_3" ;
+        lv2:name "Slot 3 Param 4" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 32 ;
+        lv2:symbol "slot_2_param_4" ;
+        lv2:name "Slot 3 Param 5" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 33 ;
+        lv2:symbol "slot_2_param_5" ;
+        lv2:name "Slot 3 Param 6" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 34 ;
+        lv2:symbol "slot_2_param_6" ;
+        lv2:name "Slot 3 Param 7" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 35 ;
+        lv2:symbol "slot_2_param_7" ;
+        lv2:name "Slot 3 Param 8" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 36 ;
+        lv2:symbol "slot_3_bypass" ;
+        lv2:name "Slot 4 Bypass" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:integer ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 37 ;
+        lv2:symbol "slot_3_gain" ;
+        lv2:name "Slot 4 Gain" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 38 ;
+        lv2:symbol "slot_3_param_0" ;
+        lv2:name "Slot 4 Param 1" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 39 ;
+        lv2:symbol "slot_3_param_1" ;
+        lv2:name "Slot 4 Param 2" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 40 ;
+        lv2:symbol "slot_3_param_2" ;
+        lv2:name "Slot 4 Param 3" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 41 ;
+        lv2:symbol "slot_3_param_3" ;
+        lv2:name "Slot 4 Param 4" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 42 ;
+        lv2:symbol "slot_3_param_4" ;
+        lv2:name "Slot 4 Param 5" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 43 ;
+        lv2:symbol "slot_3_param_5" ;
+        lv2:name "Slot 4 Param 6" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 44 ;
+        lv2:symbol "slot_3_param_6" ;
+        lv2:name "Slot 4 Param 7" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+ , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 45 ;
+        lv2:symbol "slot_3_param_7" ;
+        lv2:name "Slot 4 Param 8" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ]
+.
