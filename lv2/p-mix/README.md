@@ -4,6 +4,8 @@
 
 P-Mix is a probabilistic mixer LV2 effect that toggles audio on or off at bar boundaries. It is designed for rhythmic dropouts, probabilistic mutes, and DJ-style track cycling across up to eight channels within a track.
 
+**Status 2026-02-03 :** probably buggy, only tested on Reaper with Ubuntu Studio, but already used in [production](https://www.youtube.com/watch?v=4tD_csaHqdQ).
+
 ## Quick Start
 
 1. Insert P-Mix on an audio track or bus.
