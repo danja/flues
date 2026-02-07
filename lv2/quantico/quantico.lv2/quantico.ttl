@@ -1,0 +1,78 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/quantico>
+    a lv2:Plugin , lv2:UtilityPlugin ;
+    doap:name "Quantico" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    ui:ui <https://danja.github.io/flues/plugins/quantico#ui> ;
+    rdfs:comment "Quantizes MIDI notes to a selected key and scale." ;
+
+    lv2:port [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "midi_in" ;
+        lv2:name "MIDI In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a atom:AtomPort, lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "key" ;
+        lv2:name "Key" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 11 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [ rdfs:label "C" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "C#" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "D" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "D#" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "E" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "F" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "F#" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "G" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "G#" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "A" ; rdf:value 9 ] ;
+        lv2:scalePoint [ rdfs:label "A#" ; rdf:value 10 ] ;
+        lv2:scalePoint [ rdfs:label "B" ; rdf:value 11 ] ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "scale" ;
+        lv2:name "Scale" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [ rdfs:label "Chromatic" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Major" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Natural Minor" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Harmonic Minor" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Melodic Minor" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Pentatonic Major" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Pentatonic Minor" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Blues" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Dorian" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Mixolydian" ; rdf:value 9 ] ;
+    ] .

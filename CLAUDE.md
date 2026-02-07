@@ -704,6 +704,20 @@ A MIDI utility plugin that reflects note events around a pivot note. Useful for 
 
 See `lv2/midi-flip/README.md` for usage and build steps.
 
+### Quantico LV2 Plugin
+
+**Location:** `lv2/quantico/`
+
+MIDI scale quantizer that snaps incoming notes to the nearest pitch in a selected key and scale.
+
+**Key Features:**
+- MIDI in/out atom ports
+- Key slider (C–B) and Scale selector
+- Nearest-note quantization with Note On/Off tracking
+- X11/Cairo UI with two sliders
+
+See `lv2/quantico/README.md` for usage and build steps.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.
