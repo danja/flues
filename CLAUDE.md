@@ -718,6 +718,20 @@ MIDI scale quantizer that snaps incoming notes to the nearest pitch in a selecte
 
 See `lv2/quantico/README.md` for usage and build steps.
 
+### Slimmer LV2 Plugin
+
+**Location:** `lv2/slimmer/`
+
+Monophonic MIDI filter that reduces chords to a single note with selectable strategies and enforced spacing.
+
+**Key Features:**
+- Note selection modes (highest, lowest, nearest, farthest, velocity, recent, oldest, center, round-robin, random)
+- Gap + minimum hold timing controls
+- Retrigger toggle
+- X11/Cairo UI with four sliders
+
+See `lv2/slimmer/README.md` for usage and build steps.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.

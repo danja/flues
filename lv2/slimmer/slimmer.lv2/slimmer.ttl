@@ -1,0 +1,84 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/slimmer>
+    a lv2:Plugin , lv2:UtilityPlugin ;
+    doap:name "Slimmer" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    ui:ui <https://danja.github.io/flues/plugins/slimmer#ui> ;
+    rdfs:comment "Monophonic MIDI filter with selectable note selection strategies." ;
+
+    lv2:port [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "midi_in" ;
+        lv2:name "MIDI In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a atom:AtomPort, lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "mode" ;
+        lv2:name "Mode" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [ rdfs:label "Highest" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Lowest" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Nearest" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Farthest" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Velocity" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Most Recent" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Oldest" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Center" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Round Robin" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Random" ; rdf:value 9 ] ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "gap_ms" ;
+        lv2:name "Gap (ms)" ;
+        lv2:default 30 ;
+        lv2:minimum 0 ;
+        lv2:maximum 500 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "hold_ms" ;
+        lv2:name "Min Hold (ms)" ;
+        lv2:default 120 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1000 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "retrigger" ;
+        lv2:name "Retrigger" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "On" ; rdf:value 1 ] ;
+    ] .
