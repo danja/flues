@@ -690,6 +690,20 @@ A probabilistic mixer LV2 effect that toggles audio on/off at bar boundaries usi
 
 See `docs/p-mix--manual.md` for user-facing details.
 
+### MIDI Flip LV2 Plugin
+
+**Location:** `lv2/midi-flip/`
+
+A MIDI utility plugin that reflects note events around a pivot note. Useful for inverted melodies and mirrored phrases.
+
+**Key Features:**
+- MIDI in/out atom ports
+- Pivot note control (0–127, default C4)
+- Note On/Off flipping, other events pass through
+- X11/Cairo UI slider
+
+See `lv2/midi-flip/README.md` for usage and build steps.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.

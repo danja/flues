@@ -25,6 +25,7 @@
 - **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
 - **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).
+- **[MIDI Flip](lv2/midi-flip/)** — MIDI note mirror around a pivot.
 
 ### Raspberry Pi
 - **[Flues-Synth](flues-synth/)** — Headless ALSA synth with 31 MIDI programs.
@@ -224,6 +225,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
 - [lv2/padseq/README.md](lv2/padseq/README.md) - Launchpad drum sequencer
 - [docs/p-mix--manual.md](docs/p-mix--manual.md) - P-Mix user manual
+- [lv2/midi-flip/README.md](lv2/midi-flip/README.md) - MIDI Flip user guide
 
 ### Build Native Apps
 
@@ -262,7 +264,8 @@ flues/
 │   ├── floozy-poly/      # Hybrid polyphonic plugin
 │   ├── drumkit/          # Drum synthesizer plugin
 │   ├── euclid/           # Euclidean rhythm generator
-│   └── p-mix/            # Probabilistic mixer
+│   ├── p-mix/            # Probabilistic mixer
+│   └── midi-flip/        # MIDI note flip utility
 ├── gtk-synth/            # GTK4 native desktop app (Stove)
 ├── flues-synth/          # Headless Raspberry Pi synthesizer
 ├── www/                  # Built static site (GitHub Pages)

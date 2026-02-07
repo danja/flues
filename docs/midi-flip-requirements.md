@@ -1,0 +1,3 @@
+# MIDI Flip
+
+MIDI Flip will be an lv2 plugin which manipulates MIDI note messages in real time. It has one editable parameter, the Pivot note, default being C4. The user interface will feature a slider to move this value up and down. Incoming MIDI note events will be reflected about this Pivot, whereby if an incoming note event is N semitones above the Pivot, it will be flipped to N semitones below the Pivot, so eg. an ascending scale will become a descending scale. The value of the Pivot will be persisted across sessions. MIDI Flip will follow the same patterns as used in other lv2 projects, eg. p-mix. A script flip-install.sh will be provided in the root dir to build and install the plugin. 
