@@ -1,0 +1,3 @@
+# Ants lv2 plugin
+
+Ants will be a music generator based on cellular automata. The user will dial in the number of ants, 2-8 and each will have an assocated cell in a grid corresponding to midi notes. At each beat from the host daw each ant may move a number of steps determined by various parameters. The grid will be mapped to midi notes. The parameters will include a random element, together with the state of a cell, which will have a value corresponding to the chemical trail left by other ants.

@@ -746,6 +746,20 @@ LV2 plugin that hosts other LV2 plugins (4 slots) and exposes an MCP server over
 
 See `docs/metalv-plan.md` for implementation details.
 
+### Ants LV2 Plugin
+
+**Location:** `lv2/ants/`
+
+Cellular-automata MIDI generator with pheromone trails on a 16x16 scale-degree grid.
+
+**Key Features:**
+- 2–8 ants, polyphonic MIDI output
+- Scale selector + root note
+- Pheromone deposit/decay and randomness controls
+- X11/Cairo UI with knobs
+
+See `docs/ants-plans.md` for the design plan.
+
 ### PM Synth LV2 UI Refactor (2025-02)
 
 **What changed:** The LV2 GUI for `pm-synth` previously relied on GTK widgets embedded through the host’s X11 parent. Hosts such as Reaper were not driving the GTK draw loop, so the window showed stale pixels or never painted. The UI was rebuilt as a host-agnostic, raw X11 + Cairo surface.

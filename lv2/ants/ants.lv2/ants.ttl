@@ -1,0 +1,166 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/ants>
+    a lv2:UtilityPlugin ;
+    doap:name "Ants" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    ui:ui <https://danja.github.io/flues/plugins/ants#ui> ;
+    rdfs:comment "Cellular-automata MIDI generator with pheromone trails." ;
+
+    lv2:port [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "control" ;
+        lv2:name "Control" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports <http://lv2plug.in/ns/ext/time#Position> ,
+                     <http://lv2plug.in/ns/ext/midi#MidiEvent> ;
+        rdfs:comment "Host transport/tempo input" ;
+    ] , [
+        a atom:AtomPort, lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports <http://lv2plug.in/ns/ext/midi#MidiEvent> ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "ants" ;
+        lv2:name "Ants" ;
+        lv2:default 4 ;
+        lv2:minimum 2 ;
+        lv2:maximum 8 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "voices" ;
+        lv2:name "Voices" ;
+        lv2:default 2 ;
+        lv2:minimum 1 ;
+        lv2:maximum 4 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "scale" ;
+        lv2:name "Scale" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [ rdfs:label "Chromatic" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Major" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Natural Minor" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Harmonic Minor" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Melodic Minor" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Pentatonic Major" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Pentatonic Minor" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Blues" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Dorian" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Mixolydian" ; rdf:value 9 ] ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "root" ;
+        lv2:name "Root" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 11 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "steps" ;
+        lv2:name "Steps" ;
+        lv2:default 1 ;
+        lv2:minimum 1 ;
+        lv2:maximum 4 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "speed" ;
+        lv2:name "Speed" ;
+        lv2:default 2 ;
+        lv2:minimum 0 ;
+        lv2:maximum 4 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [ rdfs:label "0.25x" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "0.5x" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "1x" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "2x" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "4x" ; rdf:value 4 ] ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "randomness" ;
+        lv2:name "Random" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "trail" ;
+        lv2:name "Trail" ;
+        lv2:default 0.7 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "decay" ;
+        lv2:name "Decay" ;
+        lv2:default 0.9 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "note_len" ;
+        lv2:name "Note Len" ;
+        lv2:default 0.5 ;
+        lv2:minimum 0.1 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "gap" ;
+        lv2:name "Gap" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 4.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "velocity" ;
+        lv2:name "Velocity" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "density" ;
+        lv2:name "Density" ;
+        lv2:default 0.75 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] .
