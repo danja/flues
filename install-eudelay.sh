@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cmake -S "$root_dir/lv2/eudelay" -B "$root_dir/lv2/eudelay/build"
+cmake --build "$root_dir/lv2/eudelay/build"
+cmake --install "$root_dir/lv2/eudelay/build" --prefix "$HOME/.lv2"
+
+echo "Installed EuDelay to $HOME/.lv2/eudelay.lv2"
