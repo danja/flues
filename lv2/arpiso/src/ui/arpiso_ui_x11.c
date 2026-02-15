@@ -256,12 +256,6 @@ static double palette_brightness(uint8_t index) {
     }
 }
 
-static int is_playhead_cell(const ArpIsoUI *ui, int row, int col) {
-    int playhead_row = ui->state.current_step / GRID_DIM;
-    int playhead_col = ui->state.current_step % GRID_DIM;
-    return ui->state.playing && row == playhead_row && col == playhead_col;
-}
-
 static void apply_default_ui_layout(ArpIsoUI *ui) {
     for (uint8_t r = 0; r < GRID_DIM; ++r) {
         for (uint8_t c = 0; c < GRID_DIM; ++c) {
@@ -309,15 +303,8 @@ static void draw_grid(ArpIsoUI *ui) {
                 double y = MARGIN + TOP_HEIGHT + (GRID_DIM - 1 - row) * (PAD_SIZE + PAD_GAP);
 
                 uint8_t palette = ui->state.grid[row][col];
-                if (palette == COLOR_PLAYHEAD && ui->playhead_flash == 0) {
-                    palette = COLOR_STEP_OFF;
-                }
                 Color color = palette_color(palette);
                 double brightness = palette_brightness(palette);
-                if (ui->playhead_flash > 0 && is_playhead_cell(ui, row, col)) {
-                    color = UI_COLOR_PLAYHEAD;
-                    brightness = 1.0;
-                }
                 draw_pad(cr, x, y, PAD_SIZE, color, brightness);
             }
         }
@@ -355,10 +342,7 @@ static void draw_grid(ArpIsoUI *ui) {
                 Color color;
                 double brightness;
 
-                if (ui->playhead_flash > 0 && is_playhead_cell(ui, row, col)) {
-                    color = UI_COLOR_PLAYHEAD;
-                    brightness = 1.0;
-                } else if (value > 0) {
+                if (value > 0) {
                     if (row >= 4) {
                         color = (col < 4) ? UI_COLOR_PAD_RED : UI_COLOR_PAD_BLUE;
                     } else {
@@ -681,10 +665,6 @@ static void *event_thread_main(void *arg) {
             pthread_mutex_unlock(&ui->mutex);
         }
 
-        if (ui->playhead_flash > 0) {
-            ui->playhead_flash--;
-            ui->needs_redraw = 1;
-        }
         if (ui->status_frames > 0) {
             ui->status_frames--;
             if (ui->status_frames == 0) {
@@ -938,10 +918,7 @@ static void port_event(LV2UI_Handle handle,
         if (value < 0) value = 0;
         if (value > 63) value = 63;
         ui->state.current_step = (uint8_t)value;
-        if (ui->state.current_step != ui->last_step) {
-            ui->playhead_flash = 6;
-            ui->last_step = ui->state.current_step;
-        }
+        ui->last_step = ui->state.current_step;
         ui->needs_redraw = 1;
         return;
     }
@@ -955,9 +932,7 @@ static void port_event(LV2UI_Handle handle,
                     ui->has_state_sync = 1;
                     for (uint8_t r = 0; r < 8; ++r) {
                         for (uint8_t c = 0; c < 8; ++c) {
-                            if (state->grid[r][c] != COLOR_PLAYHEAD) {
-                                ui->state.grid[r][c] = state->grid[r][c];
-                            }
+                            ui->state.grid[r][c] = state->grid[r][c];
                         }
                     }
                     for (uint8_t i = 0; i < 8; ++i) {
@@ -980,9 +955,6 @@ static void port_event(LV2UI_Handle handle,
                 const ArpIsoUiDelta* delta = (const ArpIsoUiDelta*)(ev + 1);
                 if (delta->magic != ARPISO_UI_DELTA_MAGIC ||
                     delta->version != ARPISO_UI_DELTA_VERSION) {
-                    continue;
-                }
-                if (delta->color == COLOR_PLAYHEAD) {
                     continue;
                 }
                 ui->has_state_sync = 1;

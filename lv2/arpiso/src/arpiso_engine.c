@@ -99,14 +99,51 @@ static uint8_t first_free_well(const ArpIsoEngine *engine) {
     return 0xFF;
 }
 
-static void queue_note_event(ArpIsoEngine *engine,
-                             uint8_t note,
-                             uint8_t velocity,
-                             uint32_t gate_frames) {
-    if (engine->midi_event_count + 2 > MAX_MIDI_EVENTS) {
+static void queue_raw_event(ArpIsoEngine *engine,
+                            uint32_t frame,
+                            uint8_t status,
+                            uint8_t data1,
+                            uint8_t data2) {
+    if (engine->midi_event_count + 1 > MAX_MIDI_EVENTS) {
         return;
     }
 
+    engine->midi_events[engine->midi_event_count++] =
+        (MidiOutEvent){frame, 3, {status, data1, data2}};
+}
+
+static void schedule_note_off(ArpIsoEngine *engine, uint8_t note, uint32_t frames_left) {
+    for (uint8_t i = 0; i < MAX_PENDING_NOTEOFFS; ++i) {
+        if (!engine->pending_note_offs[i].active) {
+            engine->pending_note_offs[i].active = 1;
+            engine->pending_note_offs[i].note = note;
+            engine->pending_note_offs[i].frames_left = frames_left;
+            return;
+        }
+    }
+}
+
+static void flush_pending_note_offs(ArpIsoEngine *engine, uint32_t n_samples) {
+    for (uint8_t i = 0; i < MAX_PENDING_NOTEOFFS; ++i) {
+        PendingNoteOff *p = &engine->pending_note_offs[i];
+        if (!p->active) continue;
+
+        if (p->frames_left < n_samples) {
+            queue_raw_event(engine, p->frames_left, 0x80, p->note, 0);
+            p->active = 0;
+            continue;
+        }
+
+        p->frames_left -= n_samples;
+    }
+}
+
+static void queue_note_event(ArpIsoEngine *engine,
+                             uint32_t frame_in_block,
+                             uint32_t n_samples,
+                             uint8_t note,
+                             uint8_t velocity,
+                             uint32_t gate_frames) {
     uint8_t vel = velocity;
     if (engine->velocity_curve > 0) {
         float t = (float)velocity / 127.0f;
@@ -114,10 +151,15 @@ static void queue_note_event(ArpIsoEngine *engine,
         vel = clamp_u8((int)(shaped * 127.0f), 1, 127);
     }
 
-    engine->midi_events[engine->midi_event_count++] =
-        (MidiOutEvent){0, 3, {0x90, note, vel}};
-    engine->midi_events[engine->midi_event_count++] =
-        (MidiOutEvent){gate_frames ? gate_frames : 1, 3, {0x80, note, 0}};
+    queue_raw_event(engine, frame_in_block, 0x90, note, vel);
+
+    uint32_t effective_gate = gate_frames ? gate_frames : 1;
+    uint32_t off_frame = frame_in_block + effective_gate;
+    if (off_frame < n_samples) {
+        queue_raw_event(engine, off_frame, 0x80, note, 0);
+    } else {
+        schedule_note_off(engine, note, off_frame - n_samples);
+    }
 }
 
 static uint8_t cycle_length(const ArpIsoEngine *engine) {
@@ -226,6 +268,7 @@ void arpiso_reset(ArpIsoEngine *engine) {
 
     memset(engine->wells, 0, sizeof(engine->wells));
     memset(engine->playheads, 0, sizeof(engine->playheads));
+    memset(engine->pending_note_offs, 0, sizeof(engine->pending_note_offs));
 
     update_held_count(engine);
     grid_state_clear(&engine->grid_state);
@@ -418,14 +461,13 @@ void arpiso_handle_top_button(ArpIsoEngine *engine, uint8_t index) {
 }
 
 void arpiso_process(ArpIsoEngine *engine, uint32_t n_samples) {
+    flush_pending_note_offs(engine, n_samples);
+
     if (!engine->playing || engine->held_count == 0) {
         return;
     }
 
     uint32_t gate_frames = arpiso_default_gate_frames(engine);
-    if (gate_frames >= n_samples) {
-        gate_frames = (n_samples > 1) ? (n_samples - 1) : 1;
-    }
 
     for (uint32_t i = 0; i < n_samples; ++i) {
         engine->sample_counter++;
@@ -450,7 +492,7 @@ void arpiso_process(ArpIsoEngine *engine, uint32_t n_samples) {
 
             if (euclid_hit(ph->euclid_step, src->pulses, src->offset, cyc_len)) {
                 uint8_t vel = src->velocity ? src->velocity : 96;
-                queue_note_event(engine, src->note, vel, gate_frames);
+                queue_note_event(engine, i, n_samples, src->note, vel, gate_frames);
                 ph->latched_note = src->note;
             }
 

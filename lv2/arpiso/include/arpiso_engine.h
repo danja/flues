@@ -15,6 +15,7 @@
 #define MAX_WELLS 5
 #define MAX_PLAYHEADS 5
 #define MAX_MIDI_EVENTS 128
+#define MAX_PENDING_NOTEOFFS 64
 #define STEP_COUNT 64
 
 typedef struct {
@@ -22,6 +23,12 @@ typedef struct {
     uint8_t size;
     uint8_t data[3];
 } MidiOutEvent;
+
+typedef struct {
+    uint8_t active;
+    uint8_t note;
+    uint32_t frames_left;
+} PendingNoteOff;
 
 typedef struct {
     uint8_t active;
@@ -91,6 +98,7 @@ typedef struct {
 
     MidiOutEvent midi_events[MAX_MIDI_EVENTS];
     uint16_t midi_event_count;
+    PendingNoteOff pending_note_offs[MAX_PENDING_NOTEOFFS];
 } ArpIsoEngine;
 
 // ============================================================================
