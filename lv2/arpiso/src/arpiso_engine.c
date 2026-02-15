@@ -222,7 +222,8 @@ void arpiso_set_tempo(ArpIsoEngine *engine, uint16_t bpm) {
 
     float samples_per_beat = (engine->sample_rate * 60.0f) / (float)bpm;
     uint8_t div = k_clock_divisors[engine->clock_division_index & 3];
-    uint32_t s = (uint32_t)(samples_per_beat / (4.0f * (float)div));
+    // Base tick is 8th-note; this is intentionally half-speed vs 16th-note base.
+    uint32_t s = (uint32_t)(samples_per_beat / (2.0f * (float)div));
     if (s == 0) s = 1;
 
     engine->samples_per_tick = s;

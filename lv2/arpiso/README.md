@@ -36,9 +36,9 @@ Top row (CC 91-98):
 - 97: Clear wells
 - 98/99: Panic + clear
 
-Right side (CC 19-89):
-- Density bias, phase bias, gravity strength, travel scale
-- Gate length, velocity curve, humanize, pattern A/B
+Right side (physical top -> bottom):
+- Pattern A/B, Humanize, Velocity curve, Gate length
+- Travel scale, Gravity strength, Phase bias, Density bias
 
 ## Notes
 

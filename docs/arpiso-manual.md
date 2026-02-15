@@ -40,16 +40,18 @@ The 8x8 grid is fully reserved for performance pads, while top and right-side bu
 - `98`: Panic + Clear
 - `99` (logo): Panic + Clear
 
-### Right Column (CC 19,29,39,49,59,69,79,89)
+### Right Column (physical top -> bottom)
 
-- `19`: Density Bias
-- `29`: Phase Bias
-- `39`: Gravity Strength
-- `49`: Travel Scale
-- `59`: Gate Length
-- `69`: Velocity Curve
-- `79`: Humanize
 - `89`: Pattern A/B toggle
+- `79`: Humanize
+- `69`: Velocity Curve
+- `59`: Gate Length
+- `49`: Travel Scale
+- `39`: Gravity Strength
+- `29`: Phase Bias
+- `19`: Density Bias
+
+Reference (bottom -> top MIDI order): `19, 29, 39, 49, 59, 69, 79, 89`
 
 ## LED Feedback
 
