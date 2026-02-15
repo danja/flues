@@ -10,6 +10,7 @@ static const uint8_t k_scale_pent[] = {0, 2, 4, 7, 9};
 
 static const uint8_t k_cycle_lengths[] = {8, 12, 16, 24};
 static const uint8_t k_clock_divisors[] = {1, 2, 4, 8};
+static const uint8_t k_gate_steps[] = {2, 5, 10, 20, 35, 50, 70, 90};
 
 static uint8_t clamp_u8(int v, int lo, int hi) {
     if (v < lo) return (uint8_t)lo;
@@ -128,7 +129,7 @@ static void flush_pending_note_offs(ArpIsoEngine *engine, uint32_t n_samples) {
         PendingNoteOff *p = &engine->pending_note_offs[i];
         if (!p->active) continue;
 
-        if (p->frames_left < n_samples) {
+        if (p->frames_left <= n_samples) {
             queue_raw_event(engine, p->frames_left, 0x80, p->note, 0);
             p->active = 0;
             continue;
@@ -244,7 +245,8 @@ void arpiso_init(ArpIsoEngine *engine, float sample_rate) {
     engine->phase_bias = 0;
     engine->gravity_strength = 64;
     engine->travel_scale = 64;
-    engine->gate_percent = 50;
+    engine->gate_step_index = 5;
+    engine->gate_percent = k_gate_steps[engine->gate_step_index];
     engine->velocity_curve = 32;
     engine->humanize = 0;
     engine->clock_division_index = 0;
@@ -358,6 +360,7 @@ void arpiso_set_pattern(ArpIsoEngine *engine, uint8_t pattern) {
     engine->patterns[old].gravity_strength = engine->gravity_strength;
     engine->patterns[old].travel_scale = engine->travel_scale;
     engine->patterns[old].gate_percent = engine->gate_percent;
+    engine->patterns[old].gate_step_index = engine->gate_step_index;
     engine->patterns[old].velocity_curve = engine->velocity_curve;
     engine->patterns[old].humanize = engine->humanize;
     engine->patterns[old].root_note = engine->root_note;
@@ -377,6 +380,7 @@ void arpiso_set_pattern(ArpIsoEngine *engine, uint8_t pattern) {
     engine->gravity_strength = s->gravity_strength;
     engine->travel_scale = s->travel_scale;
     engine->gate_percent = s->gate_percent;
+    engine->gate_step_index = s->gate_step_index;
     engine->velocity_curve = s->velocity_curve;
     engine->humanize = s->humanize;
     engine->root_note = s->root_note;
@@ -405,8 +409,8 @@ void arpiso_handle_side_button(ArpIsoEngine *engine, uint8_t index) {
         case 2: engine->gravity_strength = (uint8_t)((engine->gravity_strength + 16) & 0x7F); break;
         case 3: engine->travel_scale = (uint8_t)((engine->travel_scale + 16) & 0x7F); break;
         case 4: {
-            uint8_t v = (uint8_t)(engine->gate_percent + 10);
-            engine->gate_percent = (v > 95) ? 25 : v;
+            engine->gate_step_index = (uint8_t)((engine->gate_step_index + 1) & 7);
+            engine->gate_percent = k_gate_steps[engine->gate_step_index];
             break;
         }
         case 5: engine->velocity_curve = (uint8_t)((engine->velocity_curve + 24) & 0x7F); break;
@@ -541,7 +545,9 @@ void arpiso_refresh_grid_state(ArpIsoEngine *engine) {
     grid_state_set_side_button(&engine->grid_state, 1, 0, COLOR_CYAN_DIM);
     grid_state_set_side_button(&engine->grid_state, 2, 0, COLOR_YELLOW_DIM);
     grid_state_set_side_button(&engine->grid_state, 3, 0, COLOR_BLUE_DIM);
-    grid_state_set_side_button(&engine->grid_state, 4, 0, COLOR_ORANGE_DIM);
+    grid_state_set_side_button(&engine->grid_state, 4, 0,
+                               engine->gate_step_index >= 6 ? COLOR_ORANGE_BRIGHT :
+                               engine->gate_step_index >= 3 ? COLOR_ORANGE : COLOR_ORANGE_DIM);
     grid_state_set_side_button(&engine->grid_state, 5, 0, COLOR_PURPLE_DIM);
     grid_state_set_side_button(&engine->grid_state, 6, 0, COLOR_PINK_DIM);
     grid_state_set_side_button(&engine->grid_state, 7, 0,

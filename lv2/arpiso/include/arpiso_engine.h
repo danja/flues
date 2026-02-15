@@ -56,6 +56,7 @@ typedef struct {
     uint8_t gravity_strength;
     uint8_t travel_scale;
     uint8_t gate_percent;
+    uint8_t gate_step_index;
     uint8_t velocity_curve;
     uint8_t humanize;
     uint8_t root_note;
@@ -85,6 +86,7 @@ typedef struct {
     uint8_t gravity_strength;
     uint8_t travel_scale;
     uint8_t gate_percent;
+    uint8_t gate_step_index;
     uint8_t velocity_curve;
     uint8_t humanize;
     uint8_t root_note;
