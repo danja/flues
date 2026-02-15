@@ -17,10 +17,11 @@ typedef struct {
     uint8_t selected_voice;
     uint8_t pattern;
     uint8_t playing;
+    uint16_t bpm;
     uint8_t current_step;
     uint8_t euclid_pulses;
     uint8_t euclid_offset;
-    uint8_t reserved[1];
+    uint8_t reserved[3];
 } ArpIsoUiState;
 
 typedef enum {

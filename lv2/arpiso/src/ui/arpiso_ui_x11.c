@@ -944,6 +944,7 @@ static void port_event(LV2UI_Handle handle,
                     ui->state.selected_voice = state->selected_voice;
                     ui->state.pattern = state->pattern;
                     ui->state.playing = state->playing;
+                    ui->state.bpm = state->bpm;
                     ui->state.current_step = state->current_step;
                     if (state->version >= 2) {
                         ui->state.euclid_pulses = state->euclid_pulses;

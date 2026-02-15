@@ -36,6 +36,9 @@ Top row (CC 91-98):
 - 97: Clear wells
 - 98/99: Panic + clear
 
+Scale modes (button 95): Major, Natural Minor, Dorian, Major Pentatonic,
+Mixolydian, Phrygian, Harmonic Minor, Blues.
+
 Right side (physical top -> bottom):
 - Pattern A/B, Humanize, Velocity curve, Gate length
 - Travel scale, Gravity strength, Phase bias, Density bias

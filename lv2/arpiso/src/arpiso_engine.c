@@ -7,6 +7,10 @@ static const uint8_t k_scale_major[] = {0, 2, 4, 5, 7, 9, 11};
 static const uint8_t k_scale_minor[] = {0, 2, 3, 5, 7, 8, 10};
 static const uint8_t k_scale_dorian[] = {0, 2, 3, 5, 7, 9, 10};
 static const uint8_t k_scale_pent[] = {0, 2, 4, 7, 9};
+static const uint8_t k_scale_mixolydian[] = {0, 2, 4, 5, 7, 9, 10};
+static const uint8_t k_scale_phrygian[] = {0, 1, 3, 5, 7, 8, 10};
+static const uint8_t k_scale_harm_minor[] = {0, 2, 3, 5, 7, 8, 11};
+static const uint8_t k_scale_blues[] = {0, 3, 5, 6, 7, 10};
 
 static const uint8_t k_cycle_lengths[] = {8, 12, 16, 24};
 static const uint8_t k_clock_divisors[] = {1, 2, 4, 8};
@@ -22,7 +26,7 @@ static uint8_t quantize_scale(uint8_t semitone, uint8_t scale_index) {
     const uint8_t *scale = k_scale_major;
     uint8_t len = (uint8_t)(sizeof(k_scale_major) / sizeof(k_scale_major[0]));
 
-    switch (scale_index & 3) {
+    switch (scale_index & 7) {
         case 1:
             scale = k_scale_minor;
             len = (uint8_t)(sizeof(k_scale_minor) / sizeof(k_scale_minor[0]));
@@ -34,6 +38,22 @@ static uint8_t quantize_scale(uint8_t semitone, uint8_t scale_index) {
         case 3:
             scale = k_scale_pent;
             len = (uint8_t)(sizeof(k_scale_pent) / sizeof(k_scale_pent[0]));
+            break;
+        case 4:
+            scale = k_scale_mixolydian;
+            len = (uint8_t)(sizeof(k_scale_mixolydian) / sizeof(k_scale_mixolydian[0]));
+            break;
+        case 5:
+            scale = k_scale_phrygian;
+            len = (uint8_t)(sizeof(k_scale_phrygian) / sizeof(k_scale_phrygian[0]));
+            break;
+        case 6:
+            scale = k_scale_harm_minor;
+            len = (uint8_t)(sizeof(k_scale_harm_minor) / sizeof(k_scale_harm_minor[0]));
+            break;
+        case 7:
+            scale = k_scale_blues;
+            len = (uint8_t)(sizeof(k_scale_blues) / sizeof(k_scale_blues[0]));
             break;
         default:
             break;
@@ -442,7 +462,7 @@ void arpiso_handle_top_button(ArpIsoEngine *engine, uint8_t index) {
             if (engine->root_note > 72) engine->root_note = 36;
             break;
         case 4:
-            engine->scale_index = (uint8_t)((engine->scale_index + 1) & 3);
+            engine->scale_index = (uint8_t)((engine->scale_index + 1) & 7);
             break;
         case 5:
             engine->motion_mode = (uint8_t)((engine->motion_mode + 1) % 3);

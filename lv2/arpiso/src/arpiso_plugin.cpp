@@ -100,6 +100,7 @@ static void emit_ui_state(ArpIso *self) {
     state.selected_voice = self->engine.held_count;
     state.pattern = self->engine.pattern_slot;
     state.playing = self->engine.playing;
+    state.bpm = self->engine.grid_state.tempo_bpm;
     state.current_step = (uint8_t)(self->engine.current_step & 0x3F);
     if (self->engine.wells[0].active) {
         state.euclid_pulses = self->engine.wells[0].pulses;

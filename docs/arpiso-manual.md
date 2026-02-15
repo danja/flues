@@ -37,8 +37,18 @@ The 8x8 grid is fully reserved for performance pads, while top and right-side bu
 - `95`: Scale
 - `96`: Motion Mode
 - `97`: Clear Wells
-- `98`: Panic + Clear
+- `98`: Panic + Cle ar
 - `99` (logo): Panic + Clear
+
+Scale button (`95`) cycles through:
+- Major
+- Natural Minor
+- Dorian
+- Major Pentatonic
+- Mixolydian
+- Phrygian
+- Harmonic Minor
+- Blues
 
 ### Right Column (physical top -> bottom)
 
