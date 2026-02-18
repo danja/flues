@@ -15,6 +15,7 @@ ArpIso uses the full 8x8 Launchpad grid as a playable isomorphic note field. Hel
 - Launchpad LED feedback via Programmer mode + bulk updates
 - Host transport/BPM sync via `time:Position`
 - MIDI note output for downstream synths
+- Plugin UI status panel with GM Drum Output toggle
 
 ## Build
 

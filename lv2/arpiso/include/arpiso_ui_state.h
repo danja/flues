@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define ARPISO_UI_STATE_MAGIC 0x51534453u  // 'PSDS'
-#define ARPISO_UI_STATE_VERSION 2
+#define ARPISO_UI_STATE_VERSION 4
 #define ARPISO_UI_DELTA_MAGIC 0x5053444Cu  // 'PSDL'
 #define ARPISO_UI_DELTA_VERSION 1
 
@@ -21,7 +21,21 @@ typedef struct {
     uint8_t current_step;
     uint8_t euclid_pulses;
     uint8_t euclid_offset;
-    uint8_t reserved[3];
+    uint8_t held_count;
+    uint8_t root_note;
+    uint8_t scale_index;
+    uint8_t gate_percent;
+    uint8_t gm_drum_mode;
+    uint8_t motion_mode;
+    uint8_t clock_division_index;
+    uint8_t cycle_length_index;
+    uint8_t density_bias;
+    uint8_t phase_bias;
+    uint8_t gravity_strength;
+    uint8_t travel_scale;
+    uint8_t velocity_curve;
+    uint8_t humanize;
+    uint8_t reserved[1];
 } ArpIsoUiState;
 
 typedef enum {

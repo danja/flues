@@ -27,6 +27,7 @@ typedef struct {
 typedef struct {
     uint8_t active;
     uint8_t note;
+    uint8_t status;
     uint32_t frames_left;
 } PendingNoteOff;
 
@@ -95,6 +96,7 @@ typedef struct {
     uint8_t clock_division_index;
     uint8_t cycle_length_index;
     uint8_t pattern_slot;
+    uint8_t gm_drum_mode;
 
     ArpIsoPatternState patterns[2];
 

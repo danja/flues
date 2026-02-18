@@ -26,6 +26,13 @@ The 8x8 grid is fully reserved for performance pads, while top and right-side bu
   - Euclidean phase offset from column position.
 - Playheads move between wells and trigger MIDI notes on Euclidean hits.
 
+## Isomorphic Keyboard Layout
+
+The 8x8 grid uses an isomorphic pitch map:
+- Moving one pad to the right raises pitch by 1 semitone.
+- Moving one pad up raises pitch by 5 semitones (a fourth).
+- The selected scale quantizes notes, so shapes stay musically consistent when moved around the grid.
+
 ## Controls
 
 ### Top Row (CC 91-99)
@@ -69,6 +76,20 @@ Reference (bottom -> top MIDI order): `19, 29, 39, 49, 59, 69, 79, 89`
 - Top/right controls indicate mode and state.
 - Start/Stop state is visible from top-row button color.
 - Limit warning (too many held pads) is shown as a red flash on top controls.
+
+## Plugin UI
+
+The X11 plugin UI now mirrors useful live state:
+- Held wells (`0-5`)
+- BPM from host transport
+- Root note, current scale, and gate percentage
+- Per-pad labels for current output target (note names or GM drum names)
+- Control-state indicators: Motion Mode, Clock Division, Cycle Length,
+  Density/Phase/Gravity/Travel, Velocity Curve, and Humanize
+
+It also includes a `GM Drum Output` checkbox:
+- Off: melodic MIDI note output (channel 1)
+- On: remapped GM percussion notes on MIDI channel 10
 
 ## Transport and Timing
 

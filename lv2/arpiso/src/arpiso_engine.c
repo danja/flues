@@ -15,6 +15,7 @@ static const uint8_t k_scale_blues[] = {0, 3, 5, 6, 7, 10};
 static const uint8_t k_cycle_lengths[] = {8, 12, 16, 24};
 static const uint8_t k_clock_divisors[] = {1, 2, 4, 8};
 static const uint8_t k_gate_steps[] = {2, 5, 10, 20, 35, 50, 70, 90};
+static const uint8_t k_gm_drum_notes[] = {36, 38, 42, 46, 49, 51, 45, 41, 39, 37, 43, 50};
 
 static uint8_t clamp_u8(int v, int lo, int hi) {
     if (v < lo) return (uint8_t)lo;
@@ -133,11 +134,12 @@ static void queue_raw_event(ArpIsoEngine *engine,
         (MidiOutEvent){frame, 3, {status, data1, data2}};
 }
 
-static void schedule_note_off(ArpIsoEngine *engine, uint8_t note, uint32_t frames_left) {
+static void schedule_note_off(ArpIsoEngine *engine, uint8_t note, uint8_t status, uint32_t frames_left) {
     for (uint8_t i = 0; i < MAX_PENDING_NOTEOFFS; ++i) {
         if (!engine->pending_note_offs[i].active) {
             engine->pending_note_offs[i].active = 1;
             engine->pending_note_offs[i].note = note;
+            engine->pending_note_offs[i].status = status;
             engine->pending_note_offs[i].frames_left = frames_left;
             return;
         }
@@ -150,7 +152,7 @@ static void flush_pending_note_offs(ArpIsoEngine *engine, uint32_t n_samples) {
         if (!p->active) continue;
 
         if (p->frames_left <= n_samples) {
-            queue_raw_event(engine, p->frames_left, 0x80, p->note, 0);
+            queue_raw_event(engine, p->frames_left, p->status, p->note, 0);
             p->active = 0;
             continue;
         }
@@ -172,14 +174,24 @@ static void queue_note_event(ArpIsoEngine *engine,
         vel = clamp_u8((int)(shaped * 127.0f), 1, 127);
     }
 
-    queue_raw_event(engine, frame_in_block, 0x90, note, vel);
+    uint8_t out_note = note;
+    uint8_t status_on = 0x90;
+    uint8_t status_off = 0x80;
+    if (engine->gm_drum_mode) {
+        uint8_t idx = (uint8_t)(note % (sizeof(k_gm_drum_notes) / sizeof(k_gm_drum_notes[0])));
+        out_note = k_gm_drum_notes[idx];
+        status_on = 0x99;   // channel 10 note on
+        status_off = 0x89;  // channel 10 note off
+    }
+
+    queue_raw_event(engine, frame_in_block, status_on, out_note, vel);
 
     uint32_t effective_gate = gate_frames ? gate_frames : 1;
     uint32_t off_frame = frame_in_block + effective_gate;
     if (off_frame < n_samples) {
-        queue_raw_event(engine, off_frame, 0x80, note, 0);
+        queue_raw_event(engine, off_frame, status_off, out_note, 0);
     } else {
-        schedule_note_off(engine, note, off_frame - n_samples);
+        schedule_note_off(engine, out_note, status_off, off_frame - n_samples);
     }
 }
 
@@ -274,6 +286,7 @@ void arpiso_init(ArpIsoEngine *engine, float sample_rate) {
     engine->cycle_length_index = 2;
     engine->motion_mode = 0;
     engine->pattern_slot = 0;
+    engine->gm_drum_mode = 0;
 
     grid_state_init(&engine->grid_state);
     arpiso_set_tempo(engine, 120);
@@ -586,7 +599,8 @@ void arpiso_refresh_grid_state(ArpIsoEngine *engine) {
     grid_state_set_top_button(&engine->grid_state, 7, 0,
                               engine->rejected_press_flash ? COLOR_RED_BRIGHT : COLOR_RED_DIM);
     grid_state_set_top_button(&engine->grid_state, 8, 0,
-                              engine->pattern_slot ? COLOR_WHITE : COLOR_GRAY_MED);
+                              engine->gm_drum_mode ? COLOR_ORANGE_BRIGHT :
+                              (engine->pattern_slot ? COLOR_WHITE : COLOR_GRAY_MED));
 
     if (engine->rejected_press_flash > 0) {
         engine->rejected_press_flash--;

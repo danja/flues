@@ -26,11 +26,12 @@
 #define MARGIN 20
 #define SIDE_WIDTH 30
 #define TOP_HEIGHT 30
-#define INFO_HEIGHT 60
+#define INFO_HEIGHT 96
 #define PORT_LAUNCHPAD_OUT 2
 #define PORT_PLAY_STATE 5  // Matches arpiso.ttl lv2:index for play_state
 #define PORT_CURRENT_STEP 6
 #define PORT_CONTROL_IN 0
+#define UI_CC_GM_DRUM_MODE 117
 
 #define WINDOW_WIDTH (MARGIN * 2 + GRID_DIM * (PAD_SIZE + PAD_GAP) + SIDE_WIDTH)
 #define WINDOW_HEIGHT (MARGIN * 2 + GRID_DIM * (PAD_SIZE + PAD_GAP) + TOP_HEIGHT + INFO_HEIGHT)
@@ -48,6 +49,7 @@ static const Color UI_COLOR_PAD_GREEN = {0.2, 0.9, 0.3};
 static const Color UI_COLOR_PAD_PURPLE = {0.7, 0.3, 0.9};
 static const Color UI_COLOR_PLAYHEAD = {0.3, 1.0, 0.4};
 static const Color UI_COLOR_TEXT = {0.9, 0.9, 0.9};
+static const uint8_t k_gm_drum_notes[] = {36, 38, 42, 46, 49, 51, 45, 41, 39, 37, 43, 50};
 
 // UI State
 typedef struct {
@@ -56,11 +58,24 @@ typedef struct {
     uint8_t top_buttons[9];              // Launchpad palette index (0-127)
     uint8_t playing;
     uint8_t pattern;
-    uint8_t selected_voice;
+    uint8_t held_count;
     uint16_t bpm;
     uint8_t current_step;
     uint8_t euclid_pulses;
     uint8_t euclid_offset;
+    uint8_t root_note;
+    uint8_t scale_index;
+    uint8_t gate_percent;
+    uint8_t gm_drum_mode;
+    uint8_t motion_mode;
+    uint8_t clock_division_index;
+    uint8_t cycle_length_index;
+    uint8_t density_bias;
+    uint8_t phase_bias;
+    uint8_t gravity_strength;
+    uint8_t travel_scale;
+    uint8_t velocity_curve;
+    uint8_t humanize;
 } UIState;
 
 typedef struct {
@@ -124,6 +139,127 @@ static void set_status(ArpIsoUI *ui, const char *fmt, ...) {
     va_end(args);
     ui->status_frames = 120;
     ui->needs_redraw = 1;
+}
+
+static const char *scale_name(uint8_t index) {
+    static const char *names[8] = {
+        "Major", "Natural Minor", "Dorian", "Major Pent", "Mixolydian",
+        "Phrygian", "Harm Minor", "Blues"
+    };
+    return names[index & 7];
+}
+
+static const char *motion_mode_name(uint8_t index) {
+    static const char *names[3] = {"Near", "Far", "Alt"};
+    return names[index % 3];
+}
+
+static const char *clock_div_name(uint8_t index) {
+    static const char *names[4] = {"1x", "2x", "4x", "8x"};
+    return names[index & 3];
+}
+
+static uint8_t cycle_length_value(uint8_t index) {
+    static const uint8_t vals[4] = {8, 12, 16, 24};
+    return vals[index & 3];
+}
+
+static uint8_t clamp_u8(int v, int lo, int hi) {
+    if (v < lo) return (uint8_t)lo;
+    if (v > hi) return (uint8_t)hi;
+    return (uint8_t)v;
+}
+
+static uint8_t quantize_scale(uint8_t semitone, uint8_t scale_index) {
+    static const uint8_t major[] = {0, 2, 4, 5, 7, 9, 11};
+    static const uint8_t minor[] = {0, 2, 3, 5, 7, 8, 10};
+    static const uint8_t dorian[] = {0, 2, 3, 5, 7, 9, 10};
+    static const uint8_t pent[] = {0, 2, 4, 7, 9};
+    static const uint8_t mix[] = {0, 2, 4, 5, 7, 9, 10};
+    static const uint8_t phryg[] = {0, 1, 3, 5, 7, 8, 10};
+    static const uint8_t harmm[] = {0, 2, 3, 5, 7, 8, 11};
+    static const uint8_t blues[] = {0, 3, 5, 6, 7, 10};
+
+    const uint8_t *scale = major;
+    uint8_t len = (uint8_t)(sizeof(major) / sizeof(major[0]));
+    switch (scale_index & 7) {
+        case 1: scale = minor; len = (uint8_t)(sizeof(minor) / sizeof(minor[0])); break;
+        case 2: scale = dorian; len = (uint8_t)(sizeof(dorian) / sizeof(dorian[0])); break;
+        case 3: scale = pent; len = (uint8_t)(sizeof(pent) / sizeof(pent[0])); break;
+        case 4: scale = mix; len = (uint8_t)(sizeof(mix) / sizeof(mix[0])); break;
+        case 5: scale = phryg; len = (uint8_t)(sizeof(phryg) / sizeof(phryg[0])); break;
+        case 6: scale = harmm; len = (uint8_t)(sizeof(harmm) / sizeof(harmm[0])); break;
+        case 7: scale = blues; len = (uint8_t)(sizeof(blues) / sizeof(blues[0])); break;
+        default: break;
+    }
+
+    uint8_t oct = semitone / 12;
+    uint8_t deg = semitone % 12;
+    uint8_t nearest = scale[0];
+    uint8_t best = 12;
+    for (uint8_t i = 0; i < len; ++i) {
+        uint8_t d = (uint8_t)abs((int)deg - (int)scale[i]);
+        if (d < best) {
+            best = d;
+            nearest = scale[i];
+        }
+    }
+    return (uint8_t)(oct * 12 + nearest);
+}
+
+static uint8_t melodic_note_from_grid(const UIState *state, uint8_t row, uint8_t col) {
+    int semitone = (int)state->root_note + (int)col + (int)row * 5;
+    semitone = clamp_u8(semitone, 24, 108);
+    return quantize_scale((uint8_t)semitone, state->scale_index);
+}
+
+static const char *gm_drum_name(uint8_t note) {
+    switch (note) {
+        case 36: return "Kick";
+        case 38: return "Snr";
+        case 42: return "CHH";
+        case 46: return "OHH";
+        case 49: return "Crs";
+        case 51: return "Ride";
+        case 45: return "TomL";
+        case 41: return "TomF";
+        case 39: return "Clap";
+        case 37: return "Rim";
+        case 43: return "TomH";
+        case 50: return "TomHi";
+        default: return "Drm";
+    }
+}
+
+static void pad_label_for(const UIState *state, uint8_t row, uint8_t col, char *out, size_t out_sz) {
+    uint8_t note = melodic_note_from_grid(state, row, col);
+    if (state->gm_drum_mode) {
+        uint8_t idx = (uint8_t)(note % (sizeof(k_gm_drum_notes) / sizeof(k_gm_drum_notes[0])));
+        uint8_t gm_note = k_gm_drum_notes[idx];
+        snprintf(out, out_sz, "%s", gm_drum_name(gm_note));
+        return;
+    }
+
+    static const char *names[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    uint8_t pc = (uint8_t)(note % 12);
+    int oct = (int)(note / 12) - 1;
+    snprintf(out, out_sz, "%s%d", names[pc], oct);
+}
+
+static void send_cc(ArpIsoUI *ui, uint8_t cc, uint8_t value) {
+    if (!ui->write_function || !ui->atom_event_transfer || !ui->midi_event_urid) {
+        return;
+    }
+    uint8_t msg[3] = {0xB0, cc, value};
+    uint8_t buf[16];
+    lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
+    lv2_atom_forge_atom(&ui->forge, 3, ui->midi_event_urid);
+    lv2_atom_forge_write(&ui->forge, msg, 3);
+    LV2_Atom* atom = (LV2_Atom*)buf;
+    ui->write_function(ui->controller, 0,
+                      lv2_atom_total_size(atom),
+                      ui->atom_event_transfer,
+                      atom);
 }
 
 static uint8_t ui_active_columns(const ArpIsoUI *ui) {
@@ -306,6 +442,14 @@ static void draw_grid(ArpIsoUI *ui) {
                 Color color = palette_color(palette);
                 double brightness = palette_brightness(palette);
                 draw_pad(cr, x, y, PAD_SIZE, color, brightness);
+
+                char label[16];
+                pad_label_for(&ui->state, (uint8_t)row, (uint8_t)col, label, sizeof(label));
+                cairo_set_source_rgba(cr, 0.98, 0.98, 0.98, palette == COLOR_OFF ? 0.42 : 0.9);
+                cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+                cairo_set_font_size(cr, 8.5);
+                cairo_move_to(cr, x + 3, y + PAD_SIZE - 4);
+                cairo_show_text(cr, label);
             }
         }
 
@@ -355,6 +499,14 @@ static void draw_grid(ArpIsoUI *ui) {
                 }
 
                 draw_pad(cr, x, y, PAD_SIZE, color, brightness);
+
+                char label[16];
+                pad_label_for(&ui->state, (uint8_t)row, (uint8_t)col, label, sizeof(label));
+                cairo_set_source_rgba(cr, 0.98, 0.98, 0.98, 0.75);
+                cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+                cairo_set_font_size(cr, 8.5);
+                cairo_move_to(cr, x + 3, y + PAD_SIZE - 4);
+                cairo_show_text(cr, label);
             }
         }
 
@@ -362,7 +514,7 @@ static void draw_grid(ArpIsoUI *ui) {
             double x = MARGIN + GRID_DIM * (PAD_SIZE + PAD_GAP) + PAD_GAP;
             double y = MARGIN + TOP_HEIGHT + (GRID_DIM - 1 - i) * (PAD_SIZE + PAD_GAP);
 
-            Color color = (i == ui->state.selected_voice) ? (Color){1.0, 0.8, 0.0} : UI_COLOR_PAD_RED;
+            Color color = (i < ui->state.held_count) ? (Color){1.0, 0.8, 0.0} : UI_COLOR_PAD_RED;
             double brightness = ui->state.side_buttons[i] ? 0.9 : 0.3;
 
             draw_pad(cr, x, y, SIDE_WIDTH - 4, color, brightness);
@@ -387,30 +539,67 @@ static void draw_grid(ArpIsoUI *ui) {
 
     char info[256];
     snprintf(info, sizeof(info),
-        "%s | Pattern %c | Voice %d | BPM %d | Step %d/64 | Euclid %u/%u",
+        "%s | Wells %u/5 | BPM %u | Root %u | %s | Gate %u%%",
         ui->state.playing ? "▶ PLAYING" : "⏸ STOPPED",
-        'A' + ui->state.pattern,
-        ui->state.selected_voice + 1,
+        (unsigned)ui->state.held_count,
         ui->state.bpm,
-        ui->state.current_step + 1,
-        ui->state.euclid_pulses,
-        ui->state.euclid_offset
+        (unsigned)ui->state.root_note,
+        scale_name(ui->state.scale_index),
+        (unsigned)ui->state.gate_percent
     );
 
     cairo_move_to(cr, MARGIN, info_y + 20);
     cairo_show_text(cr, info);
 
-    // Draw quadrant labels
+    // Draw control summary
     cairo_set_font_size(cr, 10);
     cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.5);
 
     cairo_move_to(cr, MARGIN + 5, info_y + 40);
-    cairo_show_text(cr, "STEPS");
+    cairo_show_text(cr, "Top: Start/Clock/Cycle/Root/Scale/Motion/Clear  |  Right: Density..Pattern");
+
+    cairo_set_font_size(cr, 11);
+    cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.9);
+    char scale_line[96];
+    snprintf(scale_line, sizeof(scale_line), "Selected Scale: %s", scale_name(ui->state.scale_index));
+    cairo_move_to(cr, MARGIN + 5, info_y + 72);
+    cairo_show_text(cr, scale_line);
+
+    char control_line[256];
+    snprintf(control_line, sizeof(control_line),
+             "Motion: %s   Clock: %s   Cycle: %u   D/P/G/T: %u/%u/%u/%u   Vel/Hum: %u/%u",
+             motion_mode_name(ui->state.motion_mode),
+             clock_div_name(ui->state.clock_division_index),
+             (unsigned)cycle_length_value(ui->state.cycle_length_index),
+             (unsigned)ui->state.density_bias,
+             (unsigned)ui->state.phase_bias,
+             (unsigned)ui->state.gravity_strength,
+             (unsigned)ui->state.travel_scale,
+             (unsigned)ui->state.velocity_curve,
+             (unsigned)ui->state.humanize);
+    cairo_move_to(cr, MARGIN + 5, info_y + 86);
+    cairo_show_text(cr, control_line);
+
+    // GM checkbox
+    const double cb_x = MARGIN + 5;
+    const double cb_y = info_y + 48;
+    const double cb_s = 12;
+    cairo_set_source_rgba(cr, 0.8, 0.8, 0.8, 0.8);
+    cairo_rectangle(cr, cb_x, cb_y, cb_s, cb_s);
+    cairo_stroke(cr);
+    if (ui->state.gm_drum_mode) {
+        cairo_set_source_rgb(cr, 0.95, 0.75, 0.2);
+        cairo_rectangle(cr, cb_x + 2, cb_y + 2, cb_s - 4, cb_s - 4);
+        cairo_fill(cr);
+    }
+    cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.9);
+    cairo_move_to(cr, cb_x + cb_s + 8, cb_y + 10);
+    cairo_show_text(cr, "GM Drum Output (Channel 10 + GM map)");
 
     if (ui->hover_active && ui->hover_text[0] != '\0') {
         cairo_set_font_size(cr, 11);
         cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.8);
-        cairo_move_to(cr, MARGIN, info_y + 72);
+        cairo_move_to(cr, MARGIN, info_y + 98);
         cairo_show_text(cr, ui->hover_text);
     }
 
@@ -548,7 +737,7 @@ static void *event_thread_main(void *arg) {
 
                             uint8_t step = (uint8_t)(row * GRID_DIM + col);
                             snprintf(ui->hover_text, sizeof(ui->hover_text),
-                                     "Step %u (voice %u)", step + 1, ui->state.selected_voice + 1);
+                                     "Pad %u (row %d, col %d)", step + 1, row + 1, col + 1);
                             ui->needs_redraw = 1;
                             break;
                         }
@@ -561,6 +750,15 @@ static void *event_thread_main(void *arg) {
                     int is_press = (event.type == ButtonPress);
                     int x = event.xbutton.x;
                     int y = event.xbutton.y;
+                    double info_y = MARGIN + TOP_HEIGHT + GRID_DIM * (PAD_SIZE + PAD_GAP) + PAD_GAP;
+                    if (is_press && y >= (int)(info_y + 46) && y <= (int)(info_y + 62) &&
+                        x >= MARGIN + 5 && x <= MARGIN + 280) {
+                        ui->state.gm_drum_mode = (uint8_t)(!ui->state.gm_drum_mode);
+                        send_cc(ui, UI_CC_GM_DRUM_MODE, ui->state.gm_drum_mode ? 127 : 0);
+                        set_status(ui, "GM Drum Output %s", ui->state.gm_drum_mode ? "ON" : "OFF");
+                        ui->needs_redraw = 1;
+                        break;
+                    }
 
                     int grid_x = x - MARGIN;
                     int grid_y = y - (MARGIN + TOP_HEIGHT);
@@ -603,18 +801,7 @@ static void *event_thread_main(void *arg) {
                         int in_pad_x = ((x - MARGIN) % cell) < (TOP_HEIGHT - 4);
                         if (col >= 0 && col < 8 && in_pad_x) {
                             uint8_t cc = TOP_BUTTONS[col];
-                            uint8_t msg[3] = {0xB0, cc, (uint8_t)(is_press ? 127 : 0)};
-                            if (ui->write_function && ui->atom_event_transfer && ui->midi_event_urid) {
-                                uint8_t buf[16];
-                                lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
-                                lv2_atom_forge_atom(&ui->forge, 3, ui->midi_event_urid);
-                                lv2_atom_forge_write(&ui->forge, msg, 3);
-                                LV2_Atom* atom = (LV2_Atom*)buf;
-                                ui->write_function(ui->controller, 0,
-                                                  lv2_atom_total_size(atom),
-                                                  ui->atom_event_transfer,
-                                                  atom);
-                            }
+                            send_cc(ui, cc, (uint8_t)(is_press ? 127 : 0));
                             if (!ui->has_state_sync && is_press) {
                                 ui->state.top_buttons[col] = ui->state.top_buttons[col] ? 0 : 1;
                                 ui->needs_redraw = 1;
@@ -631,20 +818,9 @@ static void *event_thread_main(void *arg) {
                         if (row_from_top >= 0 && row_from_top < GRID_DIM && in_pad_y) {
                             int row = (GRID_DIM - 1) - row_from_top;
                             uint8_t cc = SIDE_BUTTONS[row];
-                            uint8_t msg[3] = {0xB0, cc, (uint8_t)(is_press ? 127 : 0)};
-                            if (ui->write_function && ui->atom_event_transfer && ui->midi_event_urid) {
-                                uint8_t buf[16];
-                                lv2_atom_forge_set_buffer(&ui->forge, buf, sizeof(buf));
-                                lv2_atom_forge_atom(&ui->forge, 3, ui->midi_event_urid);
-                                lv2_atom_forge_write(&ui->forge, msg, 3);
-                                LV2_Atom* atom = (LV2_Atom*)buf;
-                                ui->write_function(ui->controller, 0,
-                                                  lv2_atom_total_size(atom),
-                                                  ui->atom_event_transfer,
-                                                  atom);
-                            }
+                            send_cc(ui, cc, (uint8_t)(is_press ? 127 : 0));
                             if (!ui->has_state_sync && is_press) {
-                                ui->state.selected_voice = row;
+                                ui->state.held_count = (uint8_t)(row + 1);
                                 ui->state.side_buttons[row] = 1;
                                 ui->needs_redraw = 1;
                             }
@@ -724,6 +900,20 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     apply_default_ui_layout(ui);
     ui->state.euclid_pulses = 0;
     ui->state.euclid_offset = 0;
+    ui->state.scale_index = 0;
+    ui->state.root_note = 48;
+    ui->state.gate_percent = 50;
+    ui->state.held_count = 0;
+    ui->state.gm_drum_mode = 0;
+    ui->state.motion_mode = 0;
+    ui->state.clock_division_index = 0;
+    ui->state.cycle_length_index = 2;
+    ui->state.density_bias = 32;
+    ui->state.phase_bias = 0;
+    ui->state.gravity_strength = 64;
+    ui->state.travel_scale = 64;
+    ui->state.velocity_curve = 32;
+    ui->state.humanize = 0;
 
     ensure_xlib_threads();
 
@@ -878,9 +1068,6 @@ static void port_event(LV2UI_Handle handle,
         return;
     }
     if (port_index == PORT_CONTROL_IN && buffer && buffer_size >= sizeof(LV2_Atom_Sequence)) {
-        if (ui->has_state_sync) {
-            return;
-        }
         const LV2_Atom_Sequence* seq = (const LV2_Atom_Sequence*)buffer;
         bool updated = false;
         LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
@@ -889,7 +1076,7 @@ static void port_event(LV2UI_Handle handle,
             }
             const uint8_t *midi = (const uint8_t*)(ev + 1);
             uint8_t status = midi[0] & 0xF0;
-            if (status == 0x90 && midi[2] > 0) {
+                    if (status == 0x90 && midi[2] > 0) {
                 uint8_t row = 0;
                 uint8_t col = 0;
                 if (note_to_grid(midi[1], &row, &col)) {
@@ -899,11 +1086,52 @@ static void port_event(LV2UI_Handle handle,
             } else if (status == 0xB0) {
                 uint8_t index = 0;
                 if (is_side_button(midi[1], &index)) {
-                    ui->state.selected_voice = index;
-                    ui->state.side_buttons[index] = ui->state.side_buttons[index] ? 0 : 1;
+                    ui->state.held_count = (uint8_t)(index + 1);
+                    if (!ui->has_state_sync) {
+                        ui->state.side_buttons[index] = ui->state.side_buttons[index] ? 0 : 1;
+                    }
+                    if (midi[2] > 0) {
+                        switch (index) {
+                            case 0: ui->state.density_bias = (uint8_t)((ui->state.density_bias + 16) & 0x7F); break;
+                            case 1: ui->state.phase_bias = (uint8_t)((ui->state.phase_bias + 16) & 0x7F); break;
+                            case 2: ui->state.gravity_strength = (uint8_t)((ui->state.gravity_strength + 16) & 0x7F); break;
+                            case 3: ui->state.travel_scale = (uint8_t)((ui->state.travel_scale + 16) & 0x7F); break;
+                            case 5: ui->state.velocity_curve = (uint8_t)((ui->state.velocity_curve + 24) & 0x7F); break;
+                            case 6: ui->state.humanize = (uint8_t)((ui->state.humanize + 16) & 0x7F); break;
+                            default: break;
+                        }
+                    }
                     updated = true;
                 } else if (is_top_button(midi[1], &index)) {
-                    ui->state.top_buttons[index] = ui->state.top_buttons[index] ? 0 : 1;
+                    if (!ui->has_state_sync) {
+                        ui->state.top_buttons[index] = ui->state.top_buttons[index] ? 0 : 1;
+                    }
+                    // Keep useful labels responsive even if notify sync is delayed/missing.
+                    if (midi[2] > 0) {
+                        switch (index) {
+                            case 1:
+                                ui->state.clock_division_index = (uint8_t)((ui->state.clock_division_index + 1) & 3);
+                                break;
+                            case 2:
+                                ui->state.cycle_length_index = (uint8_t)((ui->state.cycle_length_index + 1) & 3);
+                                break;
+                            case 3:
+                                ui->state.root_note = (uint8_t)(ui->state.root_note + 2);
+                                if (ui->state.root_note > 72) ui->state.root_note = 36;
+                                break;
+                            case 4:
+                                ui->state.scale_index = (uint8_t)((ui->state.scale_index + 1) & 7);
+                                break;
+                            case 5:
+                                ui->state.motion_mode = (uint8_t)((ui->state.motion_mode + 1) % 3);
+                                break;
+                            case 8:
+                                ui->state.gm_drum_mode = (uint8_t)(!ui->state.gm_drum_mode);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                     updated = true;
                 }
             }
@@ -941,7 +1169,7 @@ static void port_event(LV2UI_Handle handle,
                     for (uint8_t i = 0; i < 9; ++i) {
                         ui->state.top_buttons[i] = state->top[i];
                     }
-                    ui->state.selected_voice = state->selected_voice;
+                    ui->state.held_count = state->selected_voice;
                     ui->state.pattern = state->pattern;
                     ui->state.playing = state->playing;
                     ui->state.bpm = state->bpm;
@@ -949,6 +1177,24 @@ static void port_event(LV2UI_Handle handle,
                     if (state->version >= 2) {
                         ui->state.euclid_pulses = state->euclid_pulses;
                         ui->state.euclid_offset = state->euclid_offset;
+                    }
+                    if (state->version >= 3) {
+                        ui->state.held_count = state->held_count;
+                        ui->state.root_note = state->root_note;
+                        ui->state.scale_index = state->scale_index;
+                        ui->state.gate_percent = state->gate_percent;
+                        ui->state.gm_drum_mode = state->gm_drum_mode;
+                    }
+                    if (state->version >= 4) {
+                        ui->state.motion_mode = state->motion_mode;
+                        ui->state.clock_division_index = state->clock_division_index;
+                        ui->state.cycle_length_index = state->cycle_length_index;
+                        ui->state.density_bias = state->density_bias;
+                        ui->state.phase_bias = state->phase_bias;
+                        ui->state.gravity_strength = state->gravity_strength;
+                        ui->state.travel_scale = state->travel_scale;
+                        ui->state.velocity_curve = state->velocity_curve;
+                        ui->state.humanize = state->humanize;
                     }
                     ui->needs_redraw = 1;
                 }
@@ -966,7 +1212,7 @@ static void port_event(LV2UI_Handle handle,
                 } else if (delta->target == ARPISO_UI_DELTA_SIDE) {
                     if (delta->index_a < 8) {
                         ui->state.side_buttons[delta->index_a] = delta->color;
-                        set_status(ui, "Voice %u selected", (unsigned)(delta->index_a + 1));
+                        set_status(ui, "Right control %u", (unsigned)(delta->index_a + 1));
                     }
                 } else if (delta->target == ARPISO_UI_DELTA_TOP) {
                     if (delta->index_a < 9) {
@@ -989,8 +1235,7 @@ static void port_event(LV2UI_Handle handle,
                                 set_status(ui, "Pattern B selected");
                                 break;
                             case 6:
-                                set_status(ui, "Cleared voice %u (Euclid reset)",
-                                           (unsigned)(ui->state.selected_voice + 1));
+                                set_status(ui, "Cleared held wells");
                                 break;
                             case 7:
                                 set_status(ui, "Cleared pattern %c (Euclid reset)",

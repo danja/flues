@@ -64,6 +64,14 @@ typedef struct {
     uint8_t pad_down[GRID_HEIGHT][GRID_WIDTH];
 } ArpIso;
 
+static void queue_cc_event(ArpIso *self, uint32_t frame, uint8_t status, uint8_t cc, uint8_t value) {
+    if (self->engine.midi_event_count + 1 > MAX_MIDI_EVENTS) {
+        return;
+    }
+    self->engine.midi_events[self->engine.midi_event_count++] =
+        (MidiOutEvent){frame, 3, {status, cc, value}};
+}
+
 static void emit_midi(LV2_Atom_Forge *forge,
                       LV2_URID midi_urid,
                       uint32_t frame,
@@ -102,6 +110,20 @@ static void emit_ui_state(ArpIso *self) {
     state.playing = self->engine.playing;
     state.bpm = self->engine.grid_state.tempo_bpm;
     state.current_step = (uint8_t)(self->engine.current_step & 0x3F);
+    state.held_count = self->engine.held_count;
+    state.root_note = self->engine.root_note;
+    state.scale_index = self->engine.scale_index;
+    state.gate_percent = self->engine.gate_percent;
+    state.gm_drum_mode = self->engine.gm_drum_mode;
+    state.motion_mode = self->engine.motion_mode;
+    state.clock_division_index = self->engine.clock_division_index;
+    state.cycle_length_index = self->engine.cycle_length_index;
+    state.density_bias = self->engine.density_bias;
+    state.phase_bias = self->engine.phase_bias;
+    state.gravity_strength = self->engine.gravity_strength;
+    state.travel_scale = self->engine.travel_scale;
+    state.velocity_curve = self->engine.velocity_curve;
+    state.humanize = self->engine.humanize;
     if (self->engine.wells[0].active) {
         state.euclid_pulses = self->engine.wells[0].pulses;
         state.euclid_offset = self->engine.wells[0].offset;
@@ -235,7 +257,21 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 self->pad_down[row][col] = 0;
                 arpiso_handle_pad_release(&self->engine, row, col);
             }
-        } else if (msg == 0xB0 && ev->body.size >= 3 && m[2] > 0) {
+        } else if (msg == 0xB0 && ev->body.size >= 3) {
+            if (m[1] == 117) {
+                uint8_t new_mode = (uint8_t)(m[2] >= 64 ? 1 : 0);
+                if (new_mode != self->engine.gm_drum_mode) {
+                    self->engine.gm_drum_mode = new_mode;
+                    memset(self->engine.pending_note_offs, 0, sizeof(self->engine.pending_note_offs));
+                    // Clear lingering notes in both melodic (ch1) and GM drum (ch10) modes.
+                    queue_cc_event(self, 0, 0xB0, 123, 0);
+                    queue_cc_event(self, 0, 0xB9, 123, 0);
+                }
+                continue;
+            }
+            if (m[2] == 0) {
+                continue;
+            }
             uint8_t idx = 0;
             if (is_side_button(m[1], &idx)) {
                 arpiso_handle_side_button(&self->engine, idx);
