@@ -88,7 +88,7 @@ typedef struct {
     cairo_surface_t *back_buffer;
     cairo_t *back_cr;
 
-    int needs_redraw;
+    volatile int needs_redraw;
     int width;
     int height;
     int screen;
@@ -116,7 +116,8 @@ typedef struct {
     LV2_URID midi_event_urid;
     LV2_URID atom_chunk_urid;
 
-    int has_state_sync;
+    volatile int has_state_sync;
+    volatile int sync_source; // 0=unknown, 1=notify_out, 2=launchpad_out
 } ArpIsoUI;
 
 // Xlib threading guard (match pm-synth UI pattern to avoid host crashes)
@@ -138,6 +139,13 @@ static void set_status(ArpIsoUI *ui, const char *fmt, ...) {
     vsnprintf(ui->status_text, sizeof(ui->status_text), fmt, args);
     va_end(args);
     ui->status_frames = 120;
+    ui->needs_redraw = 1;
+}
+
+static void request_redraw(ArpIsoUI *ui) {
+    if (!ui) {
+        return;
+    }
     ui->needs_redraw = 1;
 }
 
@@ -270,6 +278,83 @@ static uint8_t ui_active_columns(const ArpIsoUI *ui) {
         }
     }
     return count;
+}
+
+static const char *sync_source_label(const ArpIsoUI *ui) {
+    switch (ui->sync_source) {
+        case 1: return "notify_out";
+        case 2: return "launchpad_out";
+        default: return "pending";
+    }
+}
+
+static int apply_launchpad_led_triplet(ArpIsoUI *ui, uint8_t key, uint8_t color) {
+    uint8_t row = 0;
+    uint8_t col = 0;
+    uint8_t idx = 0;
+
+    if (note_to_grid(key, &row, &col)) {
+        ui->state.grid[row][col] = color;
+        return 1;
+    }
+    if (is_side_button(key, &idx)) {
+        ui->state.side_buttons[idx] = color;
+        return 1;
+    }
+    if (is_top_button(key, &idx)) {
+        ui->state.top_buttons[idx] = color;
+        return 1;
+    }
+    return 0;
+}
+
+static int apply_launchpad_midi_to_ui_state(ArpIsoUI *ui, const uint8_t *midi, uint32_t size) {
+    if (!ui || !midi || size < 1) {
+        return 0;
+    }
+
+    // Launchpad bulk LED update SysEx:
+    // F0 00 20 29 02 0D 03 [type key color]... F7
+    if (midi[0] == 0xF0 && size >= 9) {
+        if (size > 7 &&
+            midi[1] == 0x00 &&
+            midi[2] == 0x20 &&
+            midi[3] == 0x29 &&
+            midi[4] == 0x02 &&
+            midi[5] == 0x0D &&
+            midi[6] == SYSEX_CMD_LED_LIGHTING) {
+            int updated = 0;
+            uint32_t i = 7;
+            while (i + 3 <= size) {
+                if (midi[i] == 0xF7) {
+                    break;
+                }
+                if (i + 2 >= size) {
+                    break;
+                }
+                const uint8_t led_type = midi[i];
+                const uint8_t key = midi[i + 1];
+                const uint8_t color = midi[i + 2];
+                (void)led_type; // currently ignored, we only mirror color
+                updated |= apply_launchpad_led_triplet(ui, key, color);
+                i += 3;
+            }
+            return updated;
+        }
+        return 0;
+    }
+
+    // Single LED updates (note/cc channel 1-3, value=color)
+    if (size >= 3) {
+        const uint8_t status = (uint8_t)(midi[0] & 0xF0);
+        if (status == 0x90 || status == 0xB0) {
+            const uint8_t key = midi[1];
+            const uint8_t color = midi[2];
+            return apply_launchpad_led_triplet(ui, key, color);
+        }
+    }
+
+    return 0;
 }
 
 // ============================================================================
@@ -539,13 +624,14 @@ static void draw_grid(ArpIsoUI *ui) {
 
     char info[256];
     snprintf(info, sizeof(info),
-        "%s | Wells %u/5 | BPM %u | Root %u | %s | Gate %u%%",
+        "%s | Wells %u/5 | BPM %u | Root %u | %s | Gate %u%% | Sync %s",
         ui->state.playing ? "▶ PLAYING" : "⏸ STOPPED",
         (unsigned)ui->state.held_count,
         ui->state.bpm,
         (unsigned)ui->state.root_note,
         scale_name(ui->state.scale_index),
-        (unsigned)ui->state.gate_percent
+        (unsigned)ui->state.gate_percent,
+        sync_source_label(ui)
     );
 
     cairo_move_to(cr, MARGIN, info_y + 20);
@@ -894,6 +980,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     ui->running = 1;
     pthread_mutex_init(&ui->mutex, NULL);
     ui->has_state_sync = 0;
+    ui->sync_source = 0;
     ui->last_step = 0;
     ui->playhead_flash = 0;
     ui->sync_ping_countdown = 20;
@@ -1061,10 +1148,24 @@ static void port_event(LV2UI_Handle handle,
         if (!ui->has_state_sync) {
             ui->state.top_buttons[8] = ui->state.playing ? 1 : 0;
         }
-        ui->needs_redraw = 1;
+        request_redraw(ui);
         return;
     }
     if (port_index == PORT_LAUNCHPAD_OUT && buffer && buffer_size >= sizeof(LV2_Atom_Sequence)) {
+        const LV2_Atom_Sequence* seq = (const LV2_Atom_Sequence*)buffer;
+        int updated = 0;
+        LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
+            if (ev->body.type != ui->midi_event_urid) {
+                continue;
+            }
+            const uint8_t *midi = (const uint8_t *)(ev + 1);
+            updated |= apply_launchpad_midi_to_ui_state(ui, midi, ev->body.size);
+        }
+        if (updated) {
+            ui->has_state_sync = 1;
+            ui->sync_source = 2;
+            request_redraw(ui);
+        }
         return;
     }
     if (port_index == PORT_CONTROL_IN && buffer && buffer_size >= sizeof(LV2_Atom_Sequence)) {
@@ -1137,7 +1238,7 @@ static void port_event(LV2UI_Handle handle,
             }
         }
         if (updated) {
-            ui->needs_redraw = 1;
+            request_redraw(ui);
         }
         return;
     }
@@ -1147,7 +1248,7 @@ static void port_event(LV2UI_Handle handle,
         if (value > 63) value = 63;
         ui->state.current_step = (uint8_t)value;
         ui->last_step = ui->state.current_step;
-        ui->needs_redraw = 1;
+        request_redraw(ui);
         return;
     }
     if (port_index == 7 && buffer && buffer_size >= sizeof(LV2_Atom_Sequence)) {
@@ -1158,6 +1259,7 @@ static void port_event(LV2UI_Handle handle,
                 if (state->magic == ARPISO_UI_STATE_MAGIC &&
                     (state->version == ARPISO_UI_STATE_VERSION || state->version == 1)) {
                     ui->has_state_sync = 1;
+                    ui->sync_source = 1;
                     for (uint8_t r = 0; r < 8; ++r) {
                         for (uint8_t c = 0; c < 8; ++c) {
                             ui->state.grid[r][c] = state->grid[r][c];
@@ -1196,7 +1298,7 @@ static void port_event(LV2UI_Handle handle,
                         ui->state.velocity_curve = state->velocity_curve;
                         ui->state.humanize = state->humanize;
                     }
-                    ui->needs_redraw = 1;
+                    request_redraw(ui);
                 }
             } else if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(ArpIsoUiDelta)) {
                 const ArpIsoUiDelta* delta = (const ArpIsoUiDelta*)(ev + 1);
@@ -1205,6 +1307,7 @@ static void port_event(LV2UI_Handle handle,
                     continue;
                 }
                 ui->has_state_sync = 1;
+                ui->sync_source = 1;
                 if (delta->target == ARPISO_UI_DELTA_GRID) {
                     if (delta->index_a < 8 && delta->index_b < 8) {
                         ui->state.grid[delta->index_a][delta->index_b] = delta->color;
@@ -1250,7 +1353,7 @@ static void port_event(LV2UI_Handle handle,
                         }
                     }
                 }
-                ui->needs_redraw = 1;
+                request_redraw(ui);
             }
         }
         return;
