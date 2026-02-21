@@ -25,6 +25,7 @@
 - **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
 - **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).
+- **[E-Mix](lv2/e-mix/)** — Euclidean mixer with bar-block gating and offset/fade controls.
 - **[MIDI Flip](lv2/midi-flip/)** — MIDI note mirror around a pivot.
 - **[Quantico](lv2/quantico/)** — MIDI scale quantizer (key + scale).
 - **[Slimmer](lv2/slimmer/)** — Monophonic MIDI filter with note selection modes.
@@ -226,6 +227,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
 - [lv2/euclidean-gate/README.md](lv2/euclidean-gate/README.md) - Euclidean gate effect
+- [lv2/e-mix/README.md](lv2/e-mix/README.md) - Euclidean mixer effect
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
 - [lv2/padseq/README.md](lv2/padseq/README.md) - Launchpad drum sequencer
 - [docs/p-mix--manual.md](docs/p-mix--manual.md) - P-Mix user manual
@@ -272,6 +274,7 @@ flues/
 │   ├── floozy-poly/      # Hybrid polyphonic plugin
 │   ├── drumkit/          # Drum synthesizer plugin
 │   ├── euclid/           # Euclidean rhythm generator
+│   ├── e-mix/            # Euclidean mixer
 │   ├── p-mix/            # Probabilistic mixer
 │   ├── midi-flip/        # MIDI note flip utility
 │   ├── quantico/         # MIDI scale quantizer
