@@ -97,6 +97,7 @@ typedef struct {
     uint8_t cycle_length_index;
     uint8_t pattern_slot;
     uint8_t gm_drum_mode;
+    uint8_t hold_latch_mode;
 
     ArpIsoPatternState patterns[2];
 

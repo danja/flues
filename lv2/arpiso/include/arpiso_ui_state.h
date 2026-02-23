@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define ARPISO_UI_STATE_MAGIC 0x51534453u  // 'PSDS'
-#define ARPISO_UI_STATE_VERSION 4
+#define ARPISO_UI_STATE_VERSION 5
 #define ARPISO_UI_DELTA_MAGIC 0x5053444Cu  // 'PSDL'
 #define ARPISO_UI_DELTA_VERSION 1
 
@@ -35,6 +35,7 @@ typedef struct {
     uint8_t travel_scale;
     uint8_t velocity_curve;
     uint8_t humanize;
+    uint8_t hold_latch_mode;
     uint8_t reserved[1];
 } ArpIsoUiState;
 

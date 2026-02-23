@@ -26,11 +26,12 @@
 #define MARGIN 20
 #define SIDE_WIDTH 30
 #define TOP_HEIGHT 30
-#define INFO_HEIGHT 96
+#define INFO_HEIGHT 170
 #define PORT_LAUNCHPAD_OUT 2
 #define PORT_PLAY_STATE 5  // Matches arpiso.ttl lv2:index for play_state
 #define PORT_CURRENT_STEP 6
 #define PORT_CONTROL_IN 0
+#define UI_CC_HOLD_MODE 116
 #define UI_CC_GM_DRUM_MODE 117
 
 #define WINDOW_WIDTH (MARGIN * 2 + GRID_DIM * (PAD_SIZE + PAD_GAP) + SIDE_WIDTH)
@@ -66,6 +67,7 @@ typedef struct {
     uint8_t root_note;
     uint8_t scale_index;
     uint8_t gate_percent;
+    uint8_t hold_latch_mode;
     uint8_t gm_drum_mode;
     uint8_t motion_mode;
     uint8_t clock_division_index;
@@ -648,7 +650,7 @@ static void draw_grid(ArpIsoUI *ui) {
     cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.9);
     char scale_line[96];
     snprintf(scale_line, sizeof(scale_line), "Selected Scale: %s", scale_name(ui->state.scale_index));
-    cairo_move_to(cr, MARGIN + 5, info_y + 72);
+    cairo_move_to(cr, MARGIN + 5, info_y + 60);
     cairo_show_text(cr, scale_line);
 
     char control_line[256];
@@ -663,13 +665,28 @@ static void draw_grid(ArpIsoUI *ui) {
              (unsigned)ui->state.travel_scale,
              (unsigned)ui->state.velocity_curve,
              (unsigned)ui->state.humanize);
-    cairo_move_to(cr, MARGIN + 5, info_y + 86);
+    cairo_move_to(cr, MARGIN + 5, info_y + 76);
     cairo_show_text(cr, control_line);
+
+    // Hold checkbox
+    const double hold_x = MARGIN + 5;
+    const double hold_y = info_y + 94;
+    const double cb_s = 12;
+    cairo_set_source_rgba(cr, 0.8, 0.8, 0.8, 0.8);
+    cairo_rectangle(cr, hold_x, hold_y, cb_s, cb_s);
+    cairo_stroke(cr);
+    if (ui->state.hold_latch_mode) {
+        cairo_set_source_rgb(cr, 0.5, 0.95, 0.65);
+        cairo_rectangle(cr, hold_x + 2, hold_y + 2, cb_s - 4, cb_s - 4);
+        cairo_fill(cr);
+    }
+    cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.9);
+    cairo_move_to(cr, hold_x + cb_s + 8, hold_y + 10);
+    cairo_show_text(cr, "Hold (latch pads until re-pressed)");
 
     // GM checkbox
     const double cb_x = MARGIN + 5;
-    const double cb_y = info_y + 48;
-    const double cb_s = 12;
+    const double cb_y = info_y + 114;
     cairo_set_source_rgba(cr, 0.8, 0.8, 0.8, 0.8);
     cairo_rectangle(cr, cb_x, cb_y, cb_s, cb_s);
     cairo_stroke(cr);
@@ -685,14 +702,14 @@ static void draw_grid(ArpIsoUI *ui) {
     if (ui->hover_active && ui->hover_text[0] != '\0') {
         cairo_set_font_size(cr, 11);
         cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.8);
-        cairo_move_to(cr, MARGIN, info_y + 98);
+        cairo_move_to(cr, MARGIN, info_y + 154);
         cairo_show_text(cr, ui->hover_text);
     }
 
     if (ui->status_frames > 0 && ui->status_text[0] != '\0') {
         cairo_set_font_size(cr, 11);
         cairo_set_source_rgba(cr, UI_COLOR_TEXT.r, UI_COLOR_TEXT.g, UI_COLOR_TEXT.b, 0.8);
-        cairo_move_to(cr, MARGIN, info_y + 52);
+        cairo_move_to(cr, MARGIN, info_y + 138);
         cairo_show_text(cr, ui->status_text);
     }
 
@@ -837,7 +854,15 @@ static void *event_thread_main(void *arg) {
                     int x = event.xbutton.x;
                     int y = event.xbutton.y;
                     double info_y = MARGIN + TOP_HEIGHT + GRID_DIM * (PAD_SIZE + PAD_GAP) + PAD_GAP;
-                    if (is_press && y >= (int)(info_y + 46) && y <= (int)(info_y + 62) &&
+                    if (is_press && y >= (int)(info_y + 92) && y <= (int)(info_y + 110) &&
+                        x >= MARGIN + 5 && x <= MARGIN + 280) {
+                        ui->state.hold_latch_mode = (uint8_t)(!ui->state.hold_latch_mode);
+                        send_cc(ui, UI_CC_HOLD_MODE, ui->state.hold_latch_mode ? 127 : 0);
+                        set_status(ui, "Hold %s", ui->state.hold_latch_mode ? "ON" : "OFF");
+                        ui->needs_redraw = 1;
+                        break;
+                    }
+                    if (is_press && y >= (int)(info_y + 112) && y <= (int)(info_y + 130) &&
                         x >= MARGIN + 5 && x <= MARGIN + 280) {
                         ui->state.gm_drum_mode = (uint8_t)(!ui->state.gm_drum_mode);
                         send_cc(ui, UI_CC_GM_DRUM_MODE, ui->state.gm_drum_mode ? 127 : 0);
@@ -990,6 +1015,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor *descriptor,
     ui->state.scale_index = 0;
     ui->state.root_note = 48;
     ui->state.gate_percent = 50;
+    ui->state.hold_latch_mode = 0;
     ui->state.held_count = 0;
     ui->state.gm_drum_mode = 0;
     ui->state.motion_mode = 0;
@@ -1185,6 +1211,11 @@ static void port_event(LV2UI_Handle handle,
                     updated = true;
                 }
             } else if (status == 0xB0) {
+                if (midi[1] == UI_CC_HOLD_MODE) {
+                    ui->state.hold_latch_mode = (uint8_t)(midi[2] >= 64 ? 1 : 0);
+                    updated = true;
+                    continue;
+                }
                 uint8_t index = 0;
                 if (is_side_button(midi[1], &index)) {
                     ui->state.held_count = (uint8_t)(index + 1);
@@ -1297,6 +1328,9 @@ static void port_event(LV2UI_Handle handle,
                         ui->state.travel_scale = state->travel_scale;
                         ui->state.velocity_curve = state->velocity_curve;
                         ui->state.humanize = state->humanize;
+                    }
+                    if (state->version >= 5) {
+                        ui->state.hold_latch_mode = state->hold_latch_mode;
                     }
                     request_redraw(ui);
                 }

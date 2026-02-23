@@ -91,6 +91,10 @@ It also includes a `GM Drum Output` checkbox:
 - Off: melodic MIDI note output (channel 1)
 - On: remapped GM percussion notes on MIDI channel 10
 
+And a `Hold` checkbox:
+- Off: pads behave momentarily (note/well active while held)
+- On: pad presses latch wells on; pressing the same pad again unlatches it
+
 ## Transport and Timing
 
 - ArpIso follows host transport and BPM via `time:Position`.

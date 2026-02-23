@@ -62,6 +62,7 @@ typedef struct {
     ArpIsoEngine engine;
     uint8_t launchpad_initialized;
     uint8_t pad_down[GRID_HEIGHT][GRID_WIDTH];
+    uint8_t latched_down[GRID_HEIGHT][GRID_WIDTH];
 } ArpIso;
 
 static void queue_cc_event(ArpIso *self, uint32_t frame, uint8_t status, uint8_t cc, uint8_t value) {
@@ -124,6 +125,7 @@ static void emit_ui_state(ArpIso *self) {
     state.travel_scale = self->engine.travel_scale;
     state.velocity_curve = self->engine.velocity_curve;
     state.humanize = self->engine.humanize;
+    state.hold_latch_mode = self->engine.hold_latch_mode;
     if (self->engine.wells[0].active) {
         state.euclid_pulses = self->engine.wells[0].pulses;
         state.euclid_offset = self->engine.wells[0].offset;
@@ -197,6 +199,7 @@ static void activate(LV2_Handle instance) {
     ArpIso *self = (ArpIso *)instance;
     arpiso_reset(&self->engine);
     memset(self->pad_down, 0, sizeof(self->pad_down));
+    memset(self->latched_down, 0, sizeof(self->latched_down));
     self->launchpad_initialized = 0;
 }
 
@@ -246,7 +249,17 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             uint8_t idx = 0;
             if (note_to_grid(m[1], &row, &col)) {
                 self->pad_down[row][col] = 1;
-                arpiso_handle_pad_press(&self->engine, row, col, m[2]);
+                if (self->engine.hold_latch_mode) {
+                    if (self->latched_down[row][col]) {
+                        self->latched_down[row][col] = 0;
+                        arpiso_handle_pad_release(&self->engine, row, col);
+                    } else {
+                        self->latched_down[row][col] = 1;
+                        arpiso_handle_pad_press(&self->engine, row, col, m[2]);
+                    }
+                } else {
+                    arpiso_handle_pad_press(&self->engine, row, col, m[2]);
+                }
             } else if (is_top_button(m[1], &idx)) {
                 arpiso_handle_top_button(&self->engine, idx);
             }
@@ -255,9 +268,28 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             uint8_t col = 0;
             if (note_to_grid(m[1], &row, &col)) {
                 self->pad_down[row][col] = 0;
-                arpiso_handle_pad_release(&self->engine, row, col);
+                if (!self->engine.hold_latch_mode) {
+                    arpiso_handle_pad_release(&self->engine, row, col);
+                }
             }
         } else if (msg == 0xB0 && ev->body.size >= 3) {
+            if (m[1] == 116) {
+                uint8_t new_mode = (uint8_t)(m[2] >= 64 ? 1 : 0);
+                if (new_mode != self->engine.hold_latch_mode) {
+                    self->engine.hold_latch_mode = new_mode;
+                    if (!new_mode) {
+                        for (uint8_t r = 0; r < GRID_HEIGHT; ++r) {
+                            for (uint8_t c = 0; c < GRID_WIDTH; ++c) {
+                                if (self->latched_down[r][c] && !self->pad_down[r][c]) {
+                                    arpiso_handle_pad_release(&self->engine, r, c);
+                                }
+                                self->latched_down[r][c] = 0;
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
             if (m[1] == 117) {
                 uint8_t new_mode = (uint8_t)(m[2] >= 64 ? 1 : 0);
                 if (new_mode != self->engine.gm_drum_mode) {

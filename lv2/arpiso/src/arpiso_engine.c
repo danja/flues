@@ -287,6 +287,7 @@ void arpiso_init(ArpIsoEngine *engine, float sample_rate) {
     engine->motion_mode = 0;
     engine->pattern_slot = 0;
     engine->gm_drum_mode = 0;
+    engine->hold_latch_mode = 0;
 
     grid_state_init(&engine->grid_state);
     arpiso_set_tempo(engine, 120);
