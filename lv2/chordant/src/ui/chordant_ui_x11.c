@@ -20,10 +20,14 @@
 #define CHORDANT_UI_URI CHORDANT_URI "#ui"
 
 #define MARGIN 18
-#define TITLE_HEIGHT 24
-#define FIELD_HEIGHT 40
-#define FIELD_GAP 10
-#define VALUE_PADDING 8
+#define TITLE_HEIGHT 20
+#define KNOB_DIAMETER 54
+#define KNOB_HEIGHT 80
+#define EDIT_HEIGHT 22
+#define LABEL_HEIGHT 14
+#define KNOB_SPACING 14
+#define ROW_GAP 20
+#define EDIT_PADDING 6
 
 typedef enum {
     PORT_CONTROL = 0,
@@ -40,14 +44,11 @@ typedef enum {
     PORT_NOCAP_PASSTHROUGH,
     PORT_CLEAR_TRIGGER,
     PORT_CAPTURE_MODE,
+    PORT_DRY_WET,
+    PORT_ATTACK_MS,
+    PORT_DECAY_MS,
     PORT_TOTAL_COUNT
 } PortIndex;
-
-typedef enum {
-    FIELD_INT,
-    FIELD_TOGGLE,
-    FIELD_ENUM
-} FieldType;
 
 typedef struct {
     const char* label;
@@ -55,22 +56,35 @@ typedef struct {
     float min;
     float max;
     float def;
-    FieldType type;
-} FieldDesc;
+    bool is_int;
+} ControlDesc;
 
 typedef struct {
-    const char* label;
     uint32_t port;
+    const char* label;
     float min;
     float max;
     float value;
-    FieldType type;
+    bool is_int;
     int x;
     int y;
     int w;
     int h;
+    int edit_x;
+    int edit_y;
+    int edit_w;
+    int edit_h;
     char edit_text[32];
-} Field;
+} Knob;
+
+typedef struct {
+    uint32_t port;
+    const char* label;
+    float value;
+    int x;
+    int y;
+    int size;
+} Toggle;
 
 typedef struct {
     LV2UI_Write_Function write;
@@ -88,12 +102,16 @@ typedef struct {
     int width;
     int height;
 
-    Field fields[9];
-    int field_count;
-    int active_edit;
-    bool clear_on_type;
+    Knob knobs[10];
+    int knob_count;
+    Toggle toggles[2];
+    int toggle_count;
 
     volatile bool needs_redraw;
+    int active_knob;
+    double drag_start_y;
+    float drag_start_value;
+    int active_edit;
 } ChordantUI;
 
 static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -108,95 +126,140 @@ static void ensure_xlib_threads(void) {
     pthread_mutex_unlock(&g_xlib_init_lock);
 }
 
-static const char* capture_mode_label(int mode) {
-    switch (mode) {
-        case 0: return "1 STEP";
-        case 1: return "2 STEPS";
-        case 2: return "4 STEPS";
-        case 3: return "1 BAR";
-        default: return "1 STEP";
-    }
-}
-
-static const FieldDesc kFields[] = {
-    { "TOTAL BARS", PORT_TOTAL_BARS, 1.0f, 1024.0f, 16.0f, FIELD_INT },
-    { "DIVISION", PORT_DIVISION, 1.0f, 256.0f, 16.0f, FIELD_INT },
-    { "STEPS", PORT_STEPS, 0.0f, 256.0f, 4.0f, FIELD_INT },
-    { "OFFSET", PORT_OFFSET, 0.0f, 255.0f, 0.0f, FIELD_INT },
-    { "FADE (BARS)", PORT_FADE, 0.0f, 64.0f, 0.0f, FIELD_INT },
-    { "MAX SEGMENTS", PORT_MAX_SEGMENTS, 1.0f, 64.0f, 8.0f, FIELD_INT },
-    { "NOCAP PASS", PORT_NOCAP_PASSTHROUGH, 0.0f, 1.0f, 1.0f, FIELD_TOGGLE },
-    { "CLEAR TRIG", PORT_CLEAR_TRIGGER, 0.0f, 1.0f, 1.0f, FIELD_TOGGLE },
-    { "CAP MODE", PORT_CAPTURE_MODE, 0.0f, 3.0f, 0.0f, FIELD_ENUM }
+static const ControlDesc kControls[] = {
+    { "TBAR", PORT_TOTAL_BARS, 0.125f, 8.0f, 2.0f, false },
+    { "DIV", PORT_DIVISION, 1.0f, 16.0f, 8.0f, true },
+    { "STEP", PORT_STEPS, 0.0f, 16.0f, 2.0f, true },
+    { "OFFS", PORT_OFFSET, 0.0f, 15.0f, 0.0f, true },
+    { "FADE", PORT_FADE, 0.0f, 1.0f, 0.0f, false },
+    { "SEGS", PORT_MAX_SEGMENTS, 1.0f, 12.0f, 8.0f, true },
+    { "CAP", PORT_CAPTURE_MODE, 0.0f, 3.0f, 0.0f, true },
+    { "D/W", PORT_DRY_WET, 0.0f, 100.0f, 100.0f, true },
+    { "ATT", PORT_ATTACK_MS, 1.0f, 200.0f, 8.0f, true },
+    { "DEC", PORT_DECAY_MS, 10.0f, 800.0f, 180.0f, true }
 };
 
-static float clamp_value(const Field* field, float value) {
-    if (value < field->min) return field->min;
-    if (value > field->max) return field->max;
+static float clampf_knob(const Knob* knob, float value) {
+    if (value < knob->min) return knob->min;
+    if (value > knob->max) return knob->max;
     return value;
 }
 
-static void format_value(const Field* field, char* out, size_t out_size) {
-    if (field->type == FIELD_TOGGLE) {
-        snprintf(out, out_size, "%s", (field->value >= 0.5f) ? "ON" : "OFF");
-    } else if (field->type == FIELD_ENUM) {
-        int mode = (int)roundf(clamp_value(field, field->value));
-        snprintf(out, out_size, "%s", capture_mode_label(mode));
+static void format_value(const Knob* knob, char* out, size_t out_size) {
+    if (knob->is_int) {
+        snprintf(out, out_size, "%.0f", roundf(knob->value));
     } else {
-        snprintf(out, out_size, "%.0f", roundf(field->value));
+        snprintf(out, out_size, "%.3f", knob->value);
     }
+}
+
+static void update_edit_text(Knob* knob) {
+    format_value(knob, knob->edit_text, sizeof(knob->edit_text));
+}
+
+static void send_knob_value(ChordantUI* ui, const Knob* knob) {
+    if (!ui->write) return;
+    const float value = knob->value;
+    ui->write(ui->controller, knob->port, sizeof(float), 0, &value);
+}
+
+static void send_toggle_value(ChordantUI* ui, const Toggle* toggle) {
+    if (!ui->write) return;
+    const float value = (toggle->value >= 0.5f) ? 1.0f : 0.0f;
+    ui->write(ui->controller, toggle->port, sizeof(float), 0, &value);
+}
+
+static void draw_knob(cairo_t* cr, const Knob* knob, bool active, bool editing) {
+    const double x = knob->x;
+    const double y = knob->y;
+    const double radius = KNOB_DIAMETER * 0.5;
+    const double cx = x + radius;
+    const double cy = y + radius;
+
+    cairo_set_source_rgb(cr, 0.12, 0.13, 0.16);
+    cairo_rectangle(cr, x - 6, y - 6, KNOB_DIAMETER + 12, KNOB_HEIGHT + EDIT_HEIGHT + LABEL_HEIGHT + 12);
+    cairo_fill(cr);
+
+    cairo_set_source_rgb(cr, 0.22, 0.23, 0.26);
+    cairo_arc(cr, cx, cy, radius, 0, 2 * M_PI);
+    cairo_fill(cr);
+
+    const double t = (knob->value - knob->min) / (knob->max - knob->min);
+    const double start = -0.75 * M_PI;
+    const double end = start + (1.5 * M_PI * t);
+    cairo_set_line_width(cr, 4.0);
+    cairo_set_source_rgb(cr, 0.95, 0.75, 0.35);
+    cairo_arc(cr, cx, cy, radius - 5.0, start, end);
+    cairo_stroke(cr);
+
+    cairo_set_line_width(cr, 3.0);
+    cairo_set_source_rgb(cr, 0.95, 0.95, 0.95);
+    cairo_move_to(cr, cx, cy);
+    cairo_line_to(cr, cx + cos(end) * (radius - 8.0), cy + sin(end) * (radius - 8.0));
+    cairo_stroke(cr);
+
+    cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 11.0);
+    cairo_set_source_rgb(cr, 0.84, 0.84, 0.90);
+    cairo_move_to(cr, x, y + KNOB_DIAMETER + LABEL_HEIGHT - 2);
+    cairo_show_text(cr, knob->label);
+
+    cairo_rectangle(cr, knob->edit_x, knob->edit_y, knob->edit_w, knob->edit_h);
+    cairo_set_source_rgb(cr, editing ? 0.18 : 0.12, editing ? 0.22 : 0.14, editing ? 0.30 : 0.18);
+    cairo_fill_preserve(cr);
+
+    cairo_set_line_width(cr, active ? 2.0 : 1.0);
+    cairo_set_source_rgb(cr, editing ? 0.95 : 0.35, editing ? 0.75 : 0.35, editing ? 0.35 : 0.40);
+    cairo_stroke(cr);
+
+    cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 11.0);
+    cairo_set_source_rgb(cr, 0.95, 0.95, 0.95);
+    cairo_move_to(cr, knob->edit_x + EDIT_PADDING, knob->edit_y + 15);
+    cairo_show_text(cr, knob->edit_text);
+}
+
+static void draw_toggle(cairo_t* cr, const Toggle* toggle) {
+    cairo_set_source_rgb(cr, 0.12, 0.13, 0.16);
+    cairo_rectangle(cr, toggle->x - 10, toggle->y - 8, 122, 44);
+    cairo_fill(cr);
+
+    cairo_rectangle(cr, toggle->x, toggle->y, toggle->size, toggle->size);
+    cairo_set_source_rgb(cr, 0.10, 0.11, 0.14);
+    cairo_fill_preserve(cr);
+    cairo_set_source_rgb(cr, 0.45, 0.45, 0.5);
+    cairo_set_line_width(cr, 1.0);
+    cairo_stroke(cr);
+
+    if (toggle->value >= 0.5f) {
+        cairo_set_source_rgb(cr, 0.25, 0.88, 0.42);
+        cairo_rectangle(cr, toggle->x + 3, toggle->y + 3, toggle->size - 6, toggle->size - 6);
+        cairo_fill(cr);
+    }
+
+    cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 11.0);
+    cairo_set_source_rgb(cr, 0.84, 0.84, 0.90);
+    cairo_move_to(cr, toggle->x + toggle->size + 8, toggle->y + 14);
+    cairo_show_text(cr, toggle->label);
 }
 
 static void draw_ui(ChordantUI* ui) {
     cairo_t* cr = cairo_create(ui->surface);
-
     cairo_set_source_rgb(cr, 0.08, 0.09, 0.11);
     cairo_paint(cr);
 
     cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, 14.0);
-    cairo_set_source_rgb(cr, 0.95, 0.80, 0.32);
-    cairo_move_to(cr, MARGIN, MARGIN + 12);
-    cairo_show_text(cr, "CHORDANT EUCLIDEAN CAPTURE MIXER");
+    cairo_set_font_size(cr, 13.0);
+    cairo_set_source_rgb(cr, 0.95, 0.75, 0.35);
+    cairo_move_to(cr, MARGIN, MARGIN + 10);
+    cairo_show_text(cr, "CHORDANT CAPTURE MIXER");
 
-    for (int i = 0; i < ui->field_count; ++i) {
-        Field* field = &ui->fields[i];
-        const bool editing = (ui->active_edit == i);
-
-        cairo_set_source_rgb(cr, 0.18, 0.19, 0.23);
-        cairo_rectangle(cr, field->x, field->y, field->w, field->h);
-        cairo_fill(cr);
-
-        cairo_set_line_width(cr, editing ? 2.0 : 1.0);
-        cairo_set_source_rgb(cr, editing ? 0.95 : 0.35, editing ? 0.80 : 0.35, editing ? 0.32 : 0.40);
-        cairo_rectangle(cr, field->x, field->y, field->w, field->h);
-        cairo_stroke(cr);
-
-        cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-        cairo_set_font_size(cr, 11.0);
-        cairo_set_source_rgb(cr, 0.80, 0.82, 0.86);
-        cairo_move_to(cr, field->x, field->y - 4);
-        cairo_show_text(cr, field->label);
-
-        if (field->type == FIELD_TOGGLE) {
-            cairo_rectangle(cr, field->x + VALUE_PADDING, field->y + 11, 16, 16);
-            cairo_set_source_rgb(cr, 0.12, 0.13, 0.16);
-            cairo_fill_preserve(cr);
-            cairo_set_source_rgb(cr, 0.5, 0.5, 0.56);
-            cairo_stroke(cr);
-            if (field->value >= 0.5f) {
-                cairo_set_source_rgb(cr, 0.2, 0.85, 0.4);
-                cairo_rectangle(cr, field->x + VALUE_PADDING + 3, field->y + 14, 10, 10);
-                cairo_fill(cr);
-            }
-        }
-
-        cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(cr, 15.0);
-        cairo_set_source_rgb(cr, 0.95, 0.95, 0.95);
-        const int value_x = field->x + VALUE_PADDING + (field->type == FIELD_TOGGLE ? 24 : 0);
-        cairo_move_to(cr, value_x, field->y + 26);
-        cairo_show_text(cr, field->edit_text);
+    for (int i = 0; i < ui->knob_count; ++i) {
+        draw_knob(cr, &ui->knobs[i], ui->active_knob == i, ui->active_edit == i);
+    }
+    for (int i = 0; i < ui->toggle_count; ++i) {
+        draw_toggle(cr, &ui->toggles[i]);
     }
 
     cairo_destroy(cr);
@@ -204,120 +267,130 @@ static void draw_ui(ChordantUI* ui) {
     XFlush(ui->display);
 }
 
-static void send_value(ChordantUI* ui, const Field* field) {
-    if (!ui->write) return;
-    float value = field->value;
-    if (field->type != FIELD_TOGGLE) {
-        value = roundf(value);
-    }
-    ui->write(ui->controller, field->port, sizeof(float), 0, &value);
+static bool point_in_rect(int x, int y, int rx, int ry, int rw, int rh) {
+    return x >= rx && x <= (rx + rw) && y >= ry && y <= (ry + rh);
 }
 
-static bool field_hit_test(const Field* field, int x, int y) {
-    return x >= field->x && x <= (field->x + field->w) && y >= field->y && y <= (field->y + field->h);
-}
-
-static void commit_edit(ChordantUI* ui, Field* field) {
-    if (!field) return;
-    if (field->type == FIELD_TOGGLE) {
-        return;
-    }
-
+static void commit_edit(ChordantUI* ui, Knob* knob) {
+    if (!knob) return;
     char* end = NULL;
-    float value = strtof(field->edit_text, &end);
-    if (end == field->edit_text) {
-        format_value(field, field->edit_text, sizeof(field->edit_text));
+    float value = strtof(knob->edit_text, &end);
+    if (end == knob->edit_text) {
+        update_edit_text(knob);
         return;
     }
-    value = clamp_value(field, value);
-    field->value = roundf(value);
-    format_value(field, field->edit_text, sizeof(field->edit_text));
-    send_value(ui, field);
+    value = clampf_knob(knob, value);
+    knob->value = knob->is_int ? roundf(value) : value;
+    update_edit_text(knob);
+    send_knob_value(ui, knob);
 }
 
 static void handle_button_press(ChordantUI* ui, XButtonEvent* ev) {
     pthread_mutex_lock(&ui->mutex);
 
-    if (ui->active_edit >= 0 && ui->active_edit < ui->field_count) {
-        commit_edit(ui, &ui->fields[ui->active_edit]);
+    for (int i = 0; i < ui->toggle_count; ++i) {
+        Toggle* t = &ui->toggles[i];
+        if (point_in_rect(ev->x, ev->y, t->x, t->y, t->size, t->size)) {
+            t->value = (t->value >= 0.5f) ? 0.0f : 1.0f;
+            send_toggle_value(ui, t);
+            ui->active_edit = -1;
+            ui->active_knob = -1;
+            ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
+            return;
+        }
+    }
+
+    for (int i = 0; i < ui->knob_count; ++i) {
+        Knob* k = &ui->knobs[i];
+        if (point_in_rect(ev->x, ev->y, k->edit_x, k->edit_y, k->edit_w, k->edit_h)) {
+            ui->active_edit = i;
+            ui->active_knob = -1;
+            ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
+            return;
+        }
+        if (point_in_rect(ev->x, ev->y, k->x, k->y, k->w, k->h)) {
+            ui->active_knob = i;
+            ui->active_edit = -1;
+            ui->drag_start_y = ev->y;
+            ui->drag_start_value = k->value;
+            ui->needs_redraw = true;
+            pthread_mutex_unlock(&ui->mutex);
+            return;
+        }
+    }
+
+    if (ui->active_edit >= 0 && ui->active_edit < ui->knob_count) {
+        commit_edit(ui, &ui->knobs[ui->active_edit]);
     }
     ui->active_edit = -1;
-    ui->clear_on_type = false;
+    ui->active_knob = -1;
+    ui->needs_redraw = true;
+    pthread_mutex_unlock(&ui->mutex);
+}
 
-    for (int i = 0; i < ui->field_count; ++i) {
-        Field* field = &ui->fields[i];
-        if (!field_hit_test(field, ev->x, ev->y)) {
-            continue;
-        }
+static void handle_button_release(ChordantUI* ui) {
+    pthread_mutex_lock(&ui->mutex);
+    ui->active_knob = -1;
+    pthread_mutex_unlock(&ui->mutex);
+}
 
-        if (field->type == FIELD_TOGGLE) {
-            field->value = (field->value >= 0.5f) ? 0.0f : 1.0f;
-            format_value(field, field->edit_text, sizeof(field->edit_text));
-            send_value(ui, field);
-            ui->needs_redraw = true;
-            pthread_mutex_unlock(&ui->mutex);
-            return;
-        }
-
-        if (field->type == FIELD_ENUM && ev->button == Button1) {
-            int mode = (int)roundf(field->value);
-            mode = (mode + 1) % 4;
-            field->value = (float)mode;
-            format_value(field, field->edit_text, sizeof(field->edit_text));
-            send_value(ui, field);
-            ui->needs_redraw = true;
-            pthread_mutex_unlock(&ui->mutex);
-            return;
-        }
-
-        ui->active_edit = i;
-        ui->clear_on_type = true;
-        XSetInputFocus(ui->display, ui->window, RevertToPointerRoot, CurrentTime);
-        ui->needs_redraw = true;
+static void handle_motion(ChordantUI* ui, XMotionEvent* ev) {
+    pthread_mutex_lock(&ui->mutex);
+    if (ui->active_knob < 0) {
         pthread_mutex_unlock(&ui->mutex);
         return;
     }
 
-    ui->needs_redraw = true;
+    Knob* k = &ui->knobs[ui->active_knob];
+    const float range = k->max - k->min;
+    float value = ui->drag_start_value + (float)(ui->drag_start_y - ev->y) * (range / 140.0f);
+    value = clampf_knob(k, value);
+    if (k->is_int) {
+        value = roundf(value);
+    }
+    if (fabsf(value - k->value) > 0.0001f) {
+        k->value = value;
+        update_edit_text(k);
+        send_knob_value(ui, k);
+        ui->needs_redraw = true;
+    }
+
     pthread_mutex_unlock(&ui->mutex);
 }
 
 static void handle_key(ChordantUI* ui, XKeyEvent* ev) {
     pthread_mutex_lock(&ui->mutex);
-    if (ui->active_edit < 0) {
+    if (ui->active_edit < 0 || ui->active_edit >= ui->knob_count) {
         pthread_mutex_unlock(&ui->mutex);
         return;
     }
 
-    Field* field = &ui->fields[ui->active_edit];
+    Knob* k = &ui->knobs[ui->active_edit];
 
     char buf[8] = {0};
     KeySym sym = 0;
     int len = XLookupString(ev, buf, sizeof(buf) - 1, &sym, NULL);
 
     if (sym == XK_Return || sym == XK_KP_Enter) {
-        commit_edit(ui, field);
+        commit_edit(ui, k);
         ui->active_edit = -1;
-        ui->clear_on_type = false;
         ui->needs_redraw = true;
         pthread_mutex_unlock(&ui->mutex);
         return;
     }
-
     if (sym == XK_Escape) {
-        format_value(field, field->edit_text, sizeof(field->edit_text));
+        update_edit_text(k);
         ui->active_edit = -1;
-        ui->clear_on_type = false;
         ui->needs_redraw = true;
         pthread_mutex_unlock(&ui->mutex);
         return;
     }
-
     if (sym == XK_BackSpace) {
-        ui->clear_on_type = false;
-        size_t len_text = strlen(field->edit_text);
-        if (len_text > 0) {
-            field->edit_text[len_text - 1] = '\0';
+        size_t n = strlen(k->edit_text);
+        if (n > 0) {
+            k->edit_text[n - 1] = '\0';
             ui->needs_redraw = true;
         }
         pthread_mutex_unlock(&ui->mutex);
@@ -326,15 +399,11 @@ static void handle_key(ChordantUI* ui, XKeyEvent* ev) {
 
     if (len > 0) {
         const char c = buf[0];
-        if (c >= '0' && c <= '9') {
-            if (ui->clear_on_type) {
-                field->edit_text[0] = '\0';
-                ui->clear_on_type = false;
-            }
-            size_t len_text = strlen(field->edit_text);
-            if (len_text + 1 < sizeof(field->edit_text)) {
-                field->edit_text[len_text] = c;
-                field->edit_text[len_text + 1] = '\0';
+        if ((c >= '0' && c <= '9') || c == '.' || c == '-') {
+            size_t n = strlen(k->edit_text);
+            if (n + 1 < sizeof(k->edit_text)) {
+                k->edit_text[n] = c;
+                k->edit_text[n + 1] = '\0';
                 ui->needs_redraw = true;
             }
         }
@@ -366,6 +435,12 @@ static void* event_thread_main(void* arg) {
                     break;
                 case ButtonPress:
                     handle_button_press(ui, &ev.xbutton);
+                    break;
+                case ButtonRelease:
+                    handle_button_release(ui);
+                    break;
+                case MotionNotify:
+                    handle_motion(ui, &ev.xmotion);
                     break;
                 case KeyPress:
                     handle_key(ui, &ev.xkey);
@@ -407,12 +482,15 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
 
     ui->write = write_function;
     ui->controller = controller;
+    ui->active_knob = -1;
     ui->active_edit = -1;
-    ui->clear_on_type = false;
-    ui->field_count = (int)(sizeof(kFields) / sizeof(kFields[0]));
+    ui->knob_count = (int)(sizeof(kControls) / sizeof(kControls[0]));
+    ui->toggle_count = 2;
 
-    ui->width = 360;
-    ui->height = MARGIN * 2 + TITLE_HEIGHT + (ui->field_count * (FIELD_HEIGHT + FIELD_GAP));
+    const int row_block_h = KNOB_HEIGHT + EDIT_HEIGHT + LABEL_HEIGHT;
+    const int knob_row_w = 5 * KNOB_DIAMETER + 4 * KNOB_SPACING;
+    ui->width = MARGIN * 2 + knob_row_w + 140;
+    ui->height = MARGIN * 2 + TITLE_HEIGHT + row_block_h * 2 + ROW_GAP + 10;
 
     void* parent = NULL;
     for (const LV2_Feature* const* f = features; f && *f; ++f) {
@@ -432,12 +510,12 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
         free(ui);
         return NULL;
     }
-
     ui->screen = DefaultScreen(ui->display);
 
     XSetWindowAttributes attrs;
     attrs.background_pixel = BlackPixel(ui->display, ui->screen);
-    attrs.event_mask = ExposureMask | StructureNotifyMask | ButtonPressMask | KeyPressMask;
+    attrs.event_mask = ExposureMask | StructureNotifyMask | ButtonPressMask |
+                       ButtonReleaseMask | PointerMotionMask | KeyPressMask;
 
     ui->window = XCreateWindow(
         ui->display,
@@ -471,21 +549,46 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
         ui->height);
     cairo_xlib_surface_set_size(ui->surface, ui->width, ui->height);
 
-    int y = MARGIN + TITLE_HEIGHT;
-    for (int i = 0; i < ui->field_count; ++i) {
-        ui->fields[i].label = kFields[i].label;
-        ui->fields[i].port = kFields[i].port;
-        ui->fields[i].min = kFields[i].min;
-        ui->fields[i].max = kFields[i].max;
-        ui->fields[i].value = kFields[i].def;
-        ui->fields[i].type = kFields[i].type;
-        ui->fields[i].x = MARGIN;
-        ui->fields[i].y = y;
-        ui->fields[i].w = ui->width - (MARGIN * 2);
-        ui->fields[i].h = FIELD_HEIGHT;
-        format_value(&ui->fields[i], ui->fields[i].edit_text, sizeof(ui->fields[i].edit_text));
-        y += FIELD_HEIGHT + FIELD_GAP;
+    const int row1_y = MARGIN + TITLE_HEIGHT;
+    const int row2_y = row1_y + row_block_h + ROW_GAP;
+
+    for (int i = 0; i < ui->knob_count; ++i) {
+        Knob* k = &ui->knobs[i];
+        const int col = i % 5;
+        const int row = (i < 5) ? 0 : 1;
+        const int y = (row == 0) ? row1_y : row2_y;
+
+        k->label = kControls[i].label;
+        k->port = kControls[i].port;
+        k->min = kControls[i].min;
+        k->max = kControls[i].max;
+        k->value = kControls[i].def;
+        k->is_int = kControls[i].is_int;
+
+        k->x = MARGIN + col * (KNOB_DIAMETER + KNOB_SPACING);
+        k->y = y;
+        k->w = KNOB_DIAMETER;
+        k->h = KNOB_HEIGHT;
+        k->edit_x = k->x;
+        k->edit_y = y + KNOB_HEIGHT + LABEL_HEIGHT;
+        k->edit_w = KNOB_DIAMETER;
+        k->edit_h = EDIT_HEIGHT;
+        update_edit_text(k);
     }
+
+    ui->toggles[0].port = PORT_NOCAP_PASSTHROUGH;
+    ui->toggles[0].label = "NOCAP";
+    ui->toggles[0].value = 0.0f;
+    ui->toggles[0].size = 18;
+    ui->toggles[0].x = MARGIN + knob_row_w + 28;
+    ui->toggles[0].y = row1_y + 24;
+
+    ui->toggles[1].port = PORT_CLEAR_TRIGGER;
+    ui->toggles[1].label = "CLEAR";
+    ui->toggles[1].value = 1.0f;
+    ui->toggles[1].size = 18;
+    ui->toggles[1].x = MARGIN + knob_row_w + 28;
+    ui->toggles[1].y = row2_y + 24;
 
     pthread_mutex_init(&ui->mutex, NULL);
     ui->running = true;
@@ -509,13 +612,6 @@ static void ui_cleanup(LV2UI_Handle handle) {
     if (!ui) {
         return;
     }
-
-    pthread_mutex_lock(&ui->mutex);
-    if (ui->active_edit >= 0 && ui->active_edit < ui->field_count) {
-        commit_edit(ui, &ui->fields[ui->active_edit]);
-        ui->active_edit = -1;
-    }
-    pthread_mutex_unlock(&ui->mutex);
 
     ui->running = false;
     pthread_join(ui->thread, NULL);
@@ -544,9 +640,12 @@ static void ui_port_event(LV2UI_Handle handle,
         return;
     }
 
+    const float incoming = *(const float*)buffer;
     pthread_mutex_lock(&ui->mutex);
-    for (int i = 0; i < ui->field_count; ++i) {
-        if (ui->fields[i].port != port_index) {
+
+    for (int i = 0; i < ui->knob_count; ++i) {
+        Knob* k = &ui->knobs[i];
+        if (k->port != port_index) {
             continue;
         }
 
@@ -555,21 +654,35 @@ static void ui_port_event(LV2UI_Handle handle,
             return;
         }
 
-        float value = *(const float*)buffer;
-        value = clamp_value(&ui->fields[i], value);
-        if (ui->fields[i].type != FIELD_TOGGLE) {
+        float value = clampf_knob(k, incoming);
+        if (k->is_int) {
             value = roundf(value);
         }
 
-        if (fabsf(value - ui->fields[i].value) > 0.0001f) {
-            ui->fields[i].value = value;
-            format_value(&ui->fields[i], ui->fields[i].edit_text, sizeof(ui->fields[i].edit_text));
+        if (fabsf(value - k->value) > 0.0001f) {
+            k->value = value;
+            update_edit_text(k);
             ui->needs_redraw = true;
         }
 
         pthread_mutex_unlock(&ui->mutex);
         return;
     }
+
+    for (int i = 0; i < ui->toggle_count; ++i) {
+        Toggle* t = &ui->toggles[i];
+        if (t->port != port_index) {
+            continue;
+        }
+        const float value = (incoming >= 0.5f) ? 1.0f : 0.0f;
+        if (fabsf(value - t->value) > 0.0001f) {
+            t->value = value;
+            ui->needs_redraw = true;
+        }
+        pthread_mutex_unlock(&ui->mutex);
+        return;
+    }
+
     pthread_mutex_unlock(&ui->mutex);
 }
 

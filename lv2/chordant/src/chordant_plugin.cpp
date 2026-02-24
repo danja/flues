@@ -28,6 +28,9 @@ enum PortIndex {
     PORT_NOCAP_PASSTHROUGH,
     PORT_CLEAR_TRIGGER,
     PORT_CAPTURE_MODE,
+    PORT_DRY_WET,
+    PORT_ATTACK_MS,
+    PORT_DECAY_MS,
     PORT_TOTAL_COUNT
 };
 
@@ -60,6 +63,9 @@ struct ChordantURIDs {
     LV2_URID state_nocap_passthrough = 0;
     LV2_URID state_clear_trigger = 0;
     LV2_URID state_capture_mode = 0;
+    LV2_URID state_dry_wet = 0;
+    LV2_URID state_attack_ms = 0;
+    LV2_URID state_decay_ms = 0;
 };
 
 struct TimeInfo {
@@ -77,7 +83,7 @@ struct Segment {
 };
 
 struct MixSegment {
-    const Segment* segment = nullptr;
+    Segment segment;
     size_t pos = 0;
 };
 
@@ -97,21 +103,27 @@ struct Chordant {
     const float* nocap_passthrough_port = nullptr;
     const float* clear_trigger_port = nullptr;
     const float* capture_mode_port = nullptr;
+    const float* dry_wet_port = nullptr;
+    const float* attack_ms_port = nullptr;
+    const float* decay_ms_port = nullptr;
 
     LV2_URID_Map* map = nullptr;
     ChordantURIDs urids{};
 
     double sample_rate = 48000.0;
 
-    float cached_total_bars = 16.0f;
-    float cached_division = 16.0f;
-    float cached_steps = 4.0f;
+    float cached_total_bars = 2.0f;
+    float cached_division = 8.0f;
+    float cached_steps = 2.0f;
     float cached_offset = 0.0f;
     float cached_fade = 0.0f;
     float cached_max_segments = 8.0f;
-    float cached_nocap_passthrough = 1.0f;
+    float cached_nocap_passthrough = 0.0f;
     float cached_clear_trigger = 1.0f;
     float cached_capture_mode = 0.0f;
+    float cached_dry_wet = 100.0f;
+    float cached_attack_ms = 8.0f;
+    float cached_decay_ms = 180.0f;
 
     bool transport_was_playing = false;
     double cycle_origin_bar = 0.0;
@@ -129,6 +141,12 @@ struct Chordant {
 
     std::vector<MixSegment> active_mix;
     uint32_t active_mix_count = 0;
+
+    uint32_t env_attack_samples = 1;
+    uint32_t env_decay_samples = 1;
+    uint32_t env_attack_remaining = 0;
+    uint32_t env_decay_remaining = 0;
+    float env_value = 0.0f;
 };
 
 static inline float clampf(float value, float minValue, float maxValue) {
@@ -196,6 +214,7 @@ static bool read_time_info(const LV2_Atom_Sequence* control, const ChordantURIDs
         const LV2_Atom* beatsPerBarAtom = nullptr;
         const LV2_Atom* bpmAtom = nullptr;
         const LV2_Atom* speedAtom = nullptr;
+        bool saw_speed = false;
 
         lv2_atom_object_get(obj,
                             urids.time_bar, &barAtom,
@@ -219,7 +238,12 @@ static bool read_time_info(const LV2_Atom_Sequence* control, const ChordantURIDs
             local.bpm = value;
         }
         if (atom_to_double(speedAtom, urids, &value)) {
+            saw_speed = true;
             local.playing = value > 0.0;
+        }
+        if (!saw_speed) {
+            // Some hosts omit time:speed in Position events while transport is running.
+            local.playing = true;
         }
     }
 
@@ -249,6 +273,9 @@ static void update_cached_params(Chordant* self) {
     self->cached_nocap_passthrough = self->nocap_passthrough_port ? *self->nocap_passthrough_port : self->cached_nocap_passthrough;
     self->cached_clear_trigger = self->clear_trigger_port ? *self->clear_trigger_port : self->cached_clear_trigger;
     self->cached_capture_mode = self->capture_mode_port ? *self->capture_mode_port : self->cached_capture_mode;
+    self->cached_dry_wet = self->dry_wet_port ? *self->dry_wet_port : self->cached_dry_wet;
+    self->cached_attack_ms = self->attack_ms_port ? *self->attack_ms_port : self->cached_attack_ms;
+    self->cached_decay_ms = self->decay_ms_port ? *self->decay_ms_port : self->cached_decay_ms;
 }
 
 static uint32_t capture_target_frames(CaptureMode mode, double step_frames, double bar_frames) {
@@ -298,7 +325,7 @@ static void start_mix_trigger(Chordant* self, bool clear_trigger) {
 
     for (size_t i = 0; i < self->captures.size(); ++i) {
         MixSegment ms;
-        ms.segment = &self->captures[i];
+        ms.segment = self->captures[i];
         ms.pos = 0;
         self->active_mix.push_back(ms);
     }
@@ -319,6 +346,49 @@ static float compute_mix_weight(bool active, double local_bar, double block_bars
     const double in_gain = clampf(static_cast<float>(local_bar / fade), 0.0f, 1.0f);
     const double out_gain = clampf(static_cast<float>((block_bars - local_bar) / fade), 0.0f, 1.0f);
     return static_cast<float>(in_gain < out_gain ? in_gain : out_gain);
+}
+
+static inline uint32_t ms_to_samples(double sample_rate, float ms) {
+    const double samples = (sample_rate * static_cast<double>(ms)) * 0.001;
+    return static_cast<uint32_t>(samples < 1.0 ? 1.0 : std::lround(samples));
+}
+
+static inline void trigger_envelope(Chordant* self) {
+    if (!self) {
+        return;
+    }
+    self->env_value = 0.0f;
+    self->env_attack_remaining = self->env_attack_samples;
+    self->env_decay_remaining = self->env_decay_samples;
+}
+
+static inline float advance_envelope(Chordant* self) {
+    if (!self) {
+        return 0.0f;
+    }
+
+    if (self->env_attack_remaining > 0) {
+        const float step = 1.0f / static_cast<float>(self->env_attack_samples);
+        self->env_value += step;
+        if (self->env_value > 1.0f) {
+            self->env_value = 1.0f;
+        }
+        self->env_attack_remaining--;
+        return self->env_value;
+    }
+
+    if (self->env_decay_remaining > 0) {
+        const float step = 1.0f / static_cast<float>(self->env_decay_samples);
+        self->env_value -= step;
+        if (self->env_value < 0.0f) {
+            self->env_value = 0.0f;
+        }
+        self->env_decay_remaining--;
+        return self->env_value;
+    }
+
+    self->env_value = 0.0f;
+    return 0.0f;
 }
 
 static LV2_State_Status chordant_state_save(
@@ -344,6 +414,9 @@ static LV2_State_Status chordant_state_save(
     store(handle, self->urids.state_nocap_passthrough, &self->cached_nocap_passthrough, sizeof(float), self->urids.atom_Float, flags);
     store(handle, self->urids.state_clear_trigger, &self->cached_clear_trigger, sizeof(float), self->urids.atom_Float, flags);
     store(handle, self->urids.state_capture_mode, &self->cached_capture_mode, sizeof(float), self->urids.atom_Float, flags);
+    store(handle, self->urids.state_dry_wet, &self->cached_dry_wet, sizeof(float), self->urids.atom_Float, flags);
+    store(handle, self->urids.state_attack_ms, &self->cached_attack_ms, sizeof(float), self->urids.atom_Float, flags);
+    store(handle, self->urids.state_decay_ms, &self->cached_decay_ms, sizeof(float), self->urids.atom_Float, flags);
 
     return LV2_STATE_SUCCESS;
 }
@@ -382,6 +455,9 @@ static LV2_State_Status chordant_state_restore(
     restore_value(self->urids.state_nocap_passthrough, &self->cached_nocap_passthrough);
     restore_value(self->urids.state_clear_trigger, &self->cached_clear_trigger);
     restore_value(self->urids.state_capture_mode, &self->cached_capture_mode);
+    restore_value(self->urids.state_dry_wet, &self->cached_dry_wet);
+    restore_value(self->urids.state_attack_ms, &self->cached_attack_ms);
+    restore_value(self->urids.state_decay_ms, &self->cached_decay_ms);
 
     return LV2_STATE_SUCCESS;
 }
@@ -436,6 +512,9 @@ static LV2_Handle instantiate(const LV2_Descriptor* /*descriptor*/,
     self->urids.state_nocap_passthrough = self->map->map(self->map->handle, CHORDANT_URI "#nocap_passthrough");
     self->urids.state_clear_trigger = self->map->map(self->map->handle, CHORDANT_URI "#clear_trigger");
     self->urids.state_capture_mode = self->map->map(self->map->handle, CHORDANT_URI "#capture_mode");
+    self->urids.state_dry_wet = self->map->map(self->map->handle, CHORDANT_URI "#dry_wet");
+    self->urids.state_attack_ms = self->map->map(self->map->handle, CHORDANT_URI "#attack_ms");
+    self->urids.state_decay_ms = self->map->map(self->map->handle, CHORDANT_URI "#decay_ms");
 
     return self;
 }
@@ -489,6 +568,15 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_CAPTURE_MODE:
             self->capture_mode_port = static_cast<const float*>(data);
             break;
+        case PORT_DRY_WET:
+            self->dry_wet_port = static_cast<const float*>(data);
+            break;
+        case PORT_ATTACK_MS:
+            self->attack_ms_port = static_cast<const float*>(data);
+            break;
+        case PORT_DECAY_MS:
+            self->decay_ms_port = static_cast<const float*>(data);
+            break;
         default:
             break;
     }
@@ -512,6 +600,9 @@ static void activate(LV2_Handle instance) {
     self->current_remaining = 0;
     self->active_mix.clear();
     self->active_mix_count = 0;
+    self->env_attack_remaining = 0;
+    self->env_decay_remaining = 0;
+    self->env_value = 0.0f;
 }
 
 static void run(LV2_Handle instance, uint32_t nframes) {
@@ -522,15 +613,20 @@ static void run(LV2_Handle instance, uint32_t nframes) {
 
     update_cached_params(self);
 
-    const int total_bars = clampi(static_cast<int>(std::lround(self->cached_total_bars)), 1, 1024);
-    const int division = clampi(static_cast<int>(std::lround(self->cached_division)), 1, 256);
+    const float total_bars = clampf(self->cached_total_bars, 0.125f, 8.0f);
+    const int division = clampi(static_cast<int>(std::lround(self->cached_division)), 1, 16);
     const int steps = clampi(static_cast<int>(std::lround(self->cached_steps)), 0, division);
     const int offset = clampi(static_cast<int>(std::lround(self->cached_offset)), 0, division - 1);
-    const float fade_bars = clampf(self->cached_fade, 0.0f, static_cast<float>(total_bars));
-    const int max_segments = clampi(static_cast<int>(std::lround(self->cached_max_segments)), 1, 64);
+    const float fade_bars = clampf(self->cached_fade, 0.0f, 1.0f);
+    const int max_segments = clampi(static_cast<int>(std::lround(self->cached_max_segments)), 1, 12);
     const bool nocap_passthrough = self->cached_nocap_passthrough >= 0.5f;
     const bool clear_trigger = self->cached_clear_trigger >= 0.5f;
     const CaptureMode capture_mode = static_cast<CaptureMode>(clampi(static_cast<int>(std::lround(self->cached_capture_mode)), 0, 3));
+    const float dry_wet = clampf(self->cached_dry_wet, 0.0f, 100.0f) * 0.01f;
+    const float attack_ms = clampf(self->cached_attack_ms, 1.0f, 200.0f);
+    const float decay_ms = clampf(self->cached_decay_ms, 10.0f, 800.0f);
+    self->env_attack_samples = ms_to_samples(self->sample_rate, attack_ms);
+    self->env_decay_samples = ms_to_samples(self->sample_rate, decay_ms);
 
     TimeInfo time_info;
     time_info.bpm = 120.0;
@@ -580,7 +676,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
         float out_l = in_l;
         float out_r = in_r;
 
-        if (!host_playing || block_bars <= 0.0) {
+        if (block_bars <= 0.0) {
             if (self->out_l) self->out_l[i] = out_l;
             if (self->out_r) self->out_r[i] = out_r;
             bar_pos += bar_step;
@@ -606,6 +702,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
                     self->current_remaining = 0;
                 }
                 start_mix_trigger(self, clear_trigger);
+                trigger_envelope(self);
             } else {
                 self->current_remaining = target_frames;
                 self->current_l.clear();
@@ -632,6 +729,10 @@ static void run(LV2_Handle instance, uint32_t nframes) {
                 self->current_l.clear();
                 self->current_r.clear();
             }
+
+            // Capture while output stays silent; active steps play back the accumulated content.
+            out_l = 0.0f;
+            out_r = 0.0f;
         }
 
         float wet_l = 0.0f;
@@ -640,22 +741,16 @@ static void run(LV2_Handle instance, uint32_t nframes) {
             uint32_t contributing = 0;
             for (size_t m = 0; m < self->active_mix.size(); ++m) {
                 MixSegment& ms = self->active_mix[m];
-                if (!ms.segment) {
-                    continue;
-                }
-                if (ms.pos < ms.segment->l.size() && ms.pos < ms.segment->r.size()) {
-                    wet_l += ms.segment->l[ms.pos];
-                    wet_r += ms.segment->r[ms.pos];
+                if (ms.pos < ms.segment.l.size() && ms.pos < ms.segment.r.size()) {
+                    wet_l += ms.segment.l[ms.pos];
+                    wet_r += ms.segment.r[ms.pos];
                     contributing++;
                     ms.pos++;
                 }
             }
 
             if (contributing > 0) {
-                // Normalize by trigger capture count to keep output predictable.
-                const float norm = 1.0f / static_cast<float>(self->active_mix_count);
-                wet_l *= norm;
-                wet_r *= norm;
+                // Intentionally summed stabs: each captured segment contributes directly.
             } else {
                 self->active_mix.clear();
                 self->active_mix_count = 0;
@@ -680,6 +775,12 @@ static void run(LV2_Handle instance, uint32_t nframes) {
             out_l = in_l * dry_w + wet_l * mix_w;
             out_r = in_r * dry_w + wet_r * mix_w;
         }
+
+        const float env = advance_envelope(self);
+        const float processed_l = out_l * env;
+        const float processed_r = out_r * env;
+        out_l = in_l * (1.0f - dry_wet) + processed_l * dry_wet;
+        out_r = in_r * (1.0f - dry_wet) + processed_r * dry_wet;
 
         if (self->out_l) self->out_l[i] = out_l;
         if (self->out_r) self->out_r[i] = out_r;

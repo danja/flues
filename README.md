@@ -26,6 +26,7 @@
 - **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).
 - **[E-Mix](lv2/e-mix/)** — Euclidean mixer with bar-block gating and offset/fade controls.
+- **[Chordant](lv2/chordant/)** — Euclidean capture mixer with silence-then-stab playback.
 - **[MIDI Flip](lv2/midi-flip/)** — MIDI note mirror around a pivot.
 - **[Quantico](lv2/quantico/)** — MIDI scale quantizer (key + scale).
 - **[Slimmer](lv2/slimmer/)** — Monophonic MIDI filter with note selection modes.
@@ -231,6 +232,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
 - [lv2/padseq/README.md](lv2/padseq/README.md) - Launchpad drum sequencer
 - [docs/p-mix--manual.md](docs/p-mix--manual.md) - P-Mix user manual
+- [lv2/chordant/README.md](lv2/chordant/README.md) - Chordant user guide
 - [lv2/midi-flip/README.md](lv2/midi-flip/README.md) - MIDI Flip user guide
 - [lv2/quantico/README.md](lv2/quantico/README.md) - Quantico user guide
 - [lv2/slimmer/README.md](lv2/slimmer/README.md) - Slimmer user guide
