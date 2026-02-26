@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <unistd.h>
 
 #define PLUGIN_URI "https://danja.github.io/flues/plugins/euclid"
@@ -93,11 +94,15 @@ typedef enum {
 #define GROUP_PADDING 8
 #define GROUP_GAP_X 10
 #define GROUP_GAP_Y 12
-#define TITLE_HEIGHT 12
+#define TITLE_HEIGHT 14
 #define SLIDER_WIDTH 24
-#define SLIDER_HEIGHT 90
-#define SLIDER_LABEL_HEIGHT 14
+#define SLIDER_HEIGHT 120
+#define SLIDER_VALUE_Y 12
+#define SLIDER_LABEL_Y 26
+#define SLIDER_TEXT_AREA_HEIGHT 30
 #define SLIDER_GAP_X 12
+#define RANDOM_BUTTON_WIDTH 18
+#define RANDOM_BUTTON_HEIGHT 16
 
 // Control descriptor
 typedef struct {
@@ -125,6 +130,14 @@ typedef struct {
     int height;
 } Slider;
 
+typedef struct {
+    GroupIndex group;
+    bool used;
+    int x;
+    int y;
+    int width;
+    int height;
+} RandomButton;
 
 // Group layout state
 typedef struct {
@@ -161,9 +174,11 @@ typedef struct {
     int slider_by_port[PORT_TOTAL_COUNT];
 
     GroupState groups[GROUP_COUNT];
+    RandomButton random_buttons[GROUP_COUNT];
 
     volatile bool needs_redraw;
     int active_slider;
+    uint32_t rand_state;
 } EuclidUI;
 
 // Control definitions
@@ -294,12 +309,72 @@ static int slider_at(EuclidUI* ui, int x, int y) {
         const int left = slider->x;
         const int top = slider->y;
         const int right = left + slider->width;
-        const int bottom = top + slider->height + SLIDER_LABEL_HEIGHT;
+        const int bottom = top + slider->height + SLIDER_TEXT_AREA_HEIGHT;
         if (x >= left && x <= right && y >= top && y <= bottom) {
             return i;
         }
     }
     return -1;
+}
+
+static int random_button_at(EuclidUI* ui, int x, int y) {
+    for (int g = 0; g < GROUP_COUNT; ++g) {
+        const RandomButton* btn = &ui->random_buttons[g];
+        if (!btn->used) {
+            continue;
+        }
+        if (x >= btn->x && x <= btn->x + btn->width &&
+            y >= btn->y && y <= btn->y + btn->height) {
+            return g;
+        }
+    }
+    return -1;
+}
+
+static uint32_t next_u32(EuclidUI* ui) {
+    ui->rand_state = ui->rand_state * 1664525u + 1013904223u;
+    return ui->rand_state;
+}
+
+static float random_unit(EuclidUI* ui) {
+    return (float)(next_u32(ui) & 0x00FFFFFFu) / 16777215.0f;
+}
+
+static void set_slider_value(EuclidUI* ui, Slider* slider, float value) {
+    value = clamp_value(slider, value);
+    if (slider->is_int) {
+        value = floorf(value + 0.5f);
+    }
+    if (fabsf(value - slider->value) > 0.0001f) {
+        slider->value = value;
+        notify_host(ui, slider->port, value);
+        ui->needs_redraw = true;
+    }
+}
+
+static void randomize_slider(EuclidUI* ui, Slider* slider) {
+    const float t = random_unit(ui);
+    const float value = slider->min + t * (slider->max - slider->min);
+    set_slider_value(ui, slider, value);
+}
+
+static void randomize_group(EuclidUI* ui, GroupIndex group) {
+    for (int i = 0; i < kControlCount; ++i) {
+        const ControlDesc* desc = &kControls[i];
+        if (desc->group != group || !ui->slider_used[desc->port]) {
+            continue;
+        }
+        randomize_slider(ui, &ui->sliders[desc->port]);
+    }
+}
+
+static void randomize_all(EuclidUI* ui) {
+    for (int i = 0; i < PORT_TOTAL_COUNT; ++i) {
+        if (!ui->slider_used[i]) {
+            continue;
+        }
+        randomize_slider(ui, &ui->sliders[i]);
+    }
 }
 
 static float slider_value_from_y(const Slider* slider, int y) {
@@ -334,6 +409,31 @@ static void draw_group_background(cairo_t* cr, const GroupState* group, const ch
     cairo_move_to(cr, x + GROUP_PADDING, y + GROUP_PADDING + 10);
     cairo_show_text(cr, title);
 
+    cairo_new_path(cr);
+}
+
+static void draw_random_button(cairo_t* cr, const RandomButton* btn) {
+    if (!btn->used) {
+        return;
+    }
+    cairo_rectangle(cr, btn->x, btn->y, btn->width, btn->height);
+    cairo_set_source_rgb(cr, 0.22, 0.24, 0.28);
+    cairo_fill(cr);
+
+    cairo_rectangle(cr, btn->x, btn->y, btn->width, btn->height);
+    cairo_set_source_rgb(cr, 0.90, 0.72, 0.36);
+    cairo_set_line_width(cr, 1.0);
+    cairo_stroke(cr);
+
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 10.0);
+    cairo_set_source_rgb(cr, 0.97, 0.95, 0.90);
+    cairo_text_extents_t extents;
+    cairo_text_extents(cr, "R", &extents);
+    cairo_move_to(cr,
+                  btn->x + (btn->width - extents.width) / 2.0 - extents.x_bearing,
+                  btn->y + (btn->height - extents.height) / 2.0 - extents.y_bearing);
+    cairo_show_text(cr, "R");
     cairo_new_path(cr);
 }
 
@@ -375,11 +475,11 @@ static void draw_slider(cairo_t* cr, const Slider* slider) {
     }
     cairo_text_extents_t extents;
     cairo_text_extents(cr, value_str, &extents);
-    cairo_move_to(cr, x + (w - extents.width) / 2.0, y + h + 10.0);
+    cairo_move_to(cr, x + (w - extents.width) / 2.0, y + h + SLIDER_VALUE_Y);
     cairo_show_text(cr, value_str);
 
     cairo_text_extents(cr, slider->label, &extents);
-    cairo_move_to(cr, x + (w - extents.width) / 2.0, y + h + SLIDER_LABEL_HEIGHT + 2.0);
+    cairo_move_to(cr, x + (w - extents.width) / 2.0, y + h + SLIDER_LABEL_Y);
     cairo_show_text(cr, slider->label);
 
     cairo_new_path(cr);
@@ -396,6 +496,7 @@ static void draw_ui(EuclidUI* ui) {
     for (int g = 0; g < GROUP_COUNT; ++g) {
         if (ui->groups[g].count > 0) {
             draw_group_background(cr, &ui->groups[g], kGroupNames[g]);
+            draw_random_button(cr, &ui->random_buttons[g]);
         }
     }
 
@@ -412,7 +513,7 @@ static void draw_ui(EuclidUI* ui) {
 
 static void setup_layout(EuclidUI* ui) {
     const int group_width = GROUP_PADDING * 2 + (SLIDER_WIDTH * 4) + (SLIDER_GAP_X * 3);
-    const int group_height = GROUP_PADDING * 2 + TITLE_HEIGHT + SLIDER_HEIGHT + SLIDER_LABEL_HEIGHT + 8;
+    const int group_height = GROUP_PADDING * 2 + TITLE_HEIGHT + SLIDER_HEIGHT + SLIDER_TEXT_AREA_HEIGHT + 6;
 
     for (int g = 0; g < GROUP_COUNT; ++g) {
         ui->groups[g].count = 0;
@@ -420,6 +521,8 @@ static void setup_layout(EuclidUI* ui) {
         ui->groups[g].columns = kGroupColumns[g];
         ui->groups[g].row = 0;
         ui->groups[g].col = 0;
+        ui->random_buttons[g].group = (GroupIndex)g;
+        ui->random_buttons[g].used = false;
     }
 
     for (int r = 0; r < kRowCount; ++r) {
@@ -449,6 +552,11 @@ static void setup_layout(EuclidUI* ui) {
         group->height = group_height;
         group->x = margin + group->col * (group_width + GROUP_GAP_X);
         group->y = margin + group->row * (group_height + GROUP_GAP_Y);
+        ui->random_buttons[g].used = true;
+        ui->random_buttons[g].width = RANDOM_BUTTON_WIDTH;
+        ui->random_buttons[g].height = RANDOM_BUTTON_HEIGHT;
+        ui->random_buttons[g].x = group->x + group->width - GROUP_PADDING - RANDOM_BUTTON_WIDTH;
+        ui->random_buttons[g].y = group->y + GROUP_PADDING;
     }
 
     memset(ui->slider_used, 0, sizeof(ui->slider_used));
@@ -500,18 +608,22 @@ static void handle_motion(EuclidUI* ui, XMotionEvent* motion) {
 
 static void handle_button_press(EuclidUI* ui, XButtonEvent* button) {
     if (button->button != Button1) return;
+    const int random_group = random_button_at(ui, button->x, button->y);
+    if (random_group >= 0) {
+        ui->active_slider = -1;
+        if (random_group == GROUP_GLOBAL) {
+            randomize_all(ui);
+        } else {
+            randomize_group(ui, (GroupIndex)random_group);
+        }
+        return;
+    }
     int index = slider_at(ui, button->x, button->y);
     if (index >= 0) {
         ui->active_slider = index;
         Slider* slider = &ui->sliders[index];
         float value = slider_value_from_y(slider, button->y);
-        if (slider->is_int) {
-            value = floorf(value + 0.5f);
-        }
-        value = clamp_value(slider, value);
-        slider->value = value;
-        notify_host(ui, slider->port, value);
-        ui->needs_redraw = true;
+        set_slider_value(ui, slider, value);
     }
 }
 
@@ -581,6 +693,7 @@ static LV2UI_Handle ui_instantiate(
     ui->write = write_function;
     ui->controller = controller;
     ui->active_slider = -1;
+    ui->rand_state = (uint32_t)time(NULL) ^ 0x9E3779B9u;
 
     ui->display = XOpenDisplay(NULL);
     if (!ui->display) {
