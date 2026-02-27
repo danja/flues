@@ -125,6 +125,8 @@ public:
     void setRandomness(float v) { randomness_ = std::clamp(v, 0.0f, 1.0f); }
     void setHeat(float v) { heat_ = std::clamp(v, 0.0f, 1.0f); }
     void setOutput(float v) { output_ = std::clamp(v, 0.0f, 1.0f); }
+    void setDrive(float v) { drive_ = std::clamp(v, 0.0f, 1.0f); }
+    void setNoiseFloor(float v) { noiseFloor_ = std::clamp(v, 0.0f, 1.0f); }
 
     void noteOn(uint8_t midi, float velocity) {
         gate_ = true;
@@ -161,10 +163,13 @@ public:
         const float band = low1 - low2;
 
         flowAmp_ += (flowTarget_ - flowAmp_) * 0.0008f;
-        const float flowEnergy = (0.04f + flowRate_ * 0.7f) * (0.25f + flowAmp_ * 0.75f);
+        const float flowEnergy =
+            (0.005f + noiseFloor_ * 0.09f + flowRate_ * 0.35f)
+            * (0.20f + flowAmp_ * 0.80f)
+            * (0.70f + density_ * 0.50f + heat_ * 0.20f);
         const float turb1 = turbulenceBand1_.process(n);
         const float turb2 = turbulenceBand2_.process(n);
-        const float turbulence = (0.50f * band + 0.20f * turb1 + 0.12f * turb2) * flowEnergy;
+        const float turbulence = (0.28f * band + 0.10f * turb1 + 0.05f * turb2) * flowEnergy;
 
         maybeSpawnBubble(mix.bubbleRateMul);
         maybeSpawnDrip(mix.dripRateMul);
@@ -175,9 +180,10 @@ public:
                 continue;
             }
             v.env *= v.decay;
-            const float exc = whiteNoise() * 0.55f;
+            v.impulse *= v.impulseDecay;
+            const float exc = v.impulse + whiteNoise() * (0.005f + noiseFloor_ * 0.05f);
             const float reson = v.reson.process(exc);
-            bubble += (reson + v.noiseMix * exc) * v.env;
+            bubble += (reson * 0.92f + exc * 0.08f) * v.env;
             if (v.env < 8.0e-5f) {
                 v.active = false;
             }
@@ -190,9 +196,9 @@ public:
             }
             d.env *= d.decay;
             d.impact *= d.impactDecay;
-            const float exc = d.impact + whiteNoise() * 0.12f;
+            const float exc = d.impact + whiteNoise() * (0.005f + noiseFloor_ * 0.05f);
             const float ring = d.resonA.process(exc) + 0.65f * d.resonB.process(exc);
-            drip += ring * d.env;
+            drip += (ring * 0.9f + exc * 0.1f) * d.env;
             if (d.env < 8.0e-5f) {
                 d.active = false;
             }
@@ -210,12 +216,22 @@ public:
         const float mixed = (1.0f - depthMix) * body + depthMix * wetBody;
 
         float out = mixed;
-        out *= (0.12f + intensity_ * 1.1f) * velocity_ * env_;
+        const float synthGain = (0.20f + intensity_ * 1.8f) * velocity_ * env_;
+        out *= synthGain;
         out = dcBlocker_.process(out);
-        out = std::tanh(out * 1.1f);
+
+        // First saturator catches dense event spikes while preserving transients.
+        const float preDrive = 1.2f + drive_ * 2.2f;
+        out = softClip(out, preDrive);
 
         const StereoFrame spatial = processSpace(out);
-        return {spatial.left * output_, spatial.right * output_};
+
+        // Output control now has a wider usable range with a final safety clipper.
+        const float outGain = 0.25f + output_ * 3.75f;
+        const float postDrive = 1.8f + drive_ * 3.6f;
+        const float left = softClip(spatial.left * outGain, postDrive);
+        const float right = softClip(spatial.right * outGain, postDrive);
+        return {left, right};
     }
 
 private:
@@ -223,7 +239,8 @@ private:
         bool active = false;
         float env = 0.0f;
         float decay = 1.0f;
-        float noiseMix = 0.0f;
+        float impulse = 0.0f;
+        float impulseDecay = 1.0f;
         BiquadBandPass reson;
     };
 
@@ -264,6 +281,8 @@ private:
     float randomness_ = 0.4f;
     float heat_ = 0.3f;
     float output_ = 0.8f;
+    float drive_ = 0.35f;
+    float noiseFloor_ = 0.12f;
 
     bool gate_ = false;
     uint8_t note_ = 0;
@@ -313,23 +332,24 @@ private:
     ModeMix modeMix() const {
         switch (mode_) {
             case FLOW:
-                return {0.90f, 0.42f, 0.18f, 0.62f, 0.60f, 0.55f, 0.35f, 0.0f};
+                return {0.62f, 0.52f, 0.24f, 0.68f, 0.62f, 0.65f, 0.45f, 0.0f};
             case BUBBLE:
-                return {0.12f, 1.45f, 0.20f, 0.54f, 0.50f, 1.95f, 0.60f, 0.0f};
+                return {0.06f, 1.55f, 0.22f, 0.60f, 0.52f, 2.10f, 0.70f, 0.0f};
             case DRIP:
-                return {0.08f, 0.20f, 1.55f, 0.56f, 0.56f, 0.30f, 2.30f, 0.0f};
+                return {0.05f, 0.16f, 1.68f, 0.62f, 0.58f, 0.25f, 2.45f, 0.0f};
             case UNDERWATER:
-                return {0.34f, 0.70f, 0.18f, 0.40f, 0.38f, 1.30f, 0.70f, 0.55f};
+                return {0.22f, 0.78f, 0.22f, 0.44f, 0.40f, 1.45f, 0.75f, 0.55f};
             case HYBRID:
             default:
-                return {0.38f, 0.95f, 0.92f, 0.58f, 0.54f, 1.0f, 1.0f, 0.0f};
+                return {0.22f, 1.05f, 1.00f, 0.64f, 0.56f, 1.15f, 1.10f, 0.0f};
         }
     }
 
     void maybeSpawnBubble(float modeRateMul) {
         const float baseRate = 0.8f + density_ * 13.0f;
         const float boilRate = heat_ * (6.0f + density_ * 28.0f);
-        const float p = (baseRate + boilRate) * modeRateMul / sampleRate_;
+        const float flowCoupling = 0.7f + flowRate_ * 0.6f;
+        const float p = (baseRate + boilRate) * modeRateMul * flowCoupling / sampleRate_;
         if (uniform() >= p) {
             return;
         }
@@ -340,14 +360,15 @@ private:
             }
 
             const float r = std::clamp(size_ + (uniform() - 0.5f) * randomness_, 0.04f, 0.97f);
-            const float freq = 170.0f + (1.0f - r) * 1900.0f;
-            const float q = 0.7f + resonance_ * 3.4f;
-            const float decayMs = 10.0f + r * 110.0f + heat_ * 24.0f;
+            const float freq = chooseBubbleFreq(r);
+            const float q = 0.7f + resonance_ * 3.0f + brightness_ * 0.8f;
+            const float decayMs = 14.0f + r * 140.0f + heat_ * 24.0f;
 
             v.active = true;
-            v.env = (0.03f + intensity_ * 0.12f) * (0.65f + 0.7f * uniform());
+            v.env = (0.04f + intensity_ * 0.14f) * (0.65f + 0.7f * uniform());
             v.decay = decayFromMs(decayMs);
-            v.noiseMix = 0.05f + (1.0f - r) * 0.15f;
+            v.impulse = 1.0f + 0.8f * uniform();
+            v.impulseDecay = decayFromMs(1.2f + uniform() * 2.5f);
             v.reson.set(sampleRate_, freq, q);
             return;
         }
@@ -355,7 +376,7 @@ private:
 
     void maybeSpawnDrip(float modeRateMul) {
         const float sparseBias = 1.0f - flowRate_;
-        const float rate = (0.2f + density_ * 2.7f + sparseBias * 1.5f) * modeRateMul;
+        const float rate = (0.2f + density_ * 2.7f + sparseBias * 1.5f + heat_ * 0.6f) * modeRateMul;
         const float p = rate / sampleRate_;
         if (uniform() >= p) {
             return;
@@ -366,16 +387,16 @@ private:
                 continue;
             }
 
-            const float baseFreq = 420.0f + uniform() * 1600.0f;
-            const float spread = 1.35f + uniform() * 0.8f;
+            const float baseFreq = chooseDripFreq(size_);
+            const float spread = 1.28f + uniform() * 0.45f;
 
             d.active = true;
             d.env = 0.14f + intensity_ * 0.15f;
-            d.decay = decayFromMs(18.0f + uniform() * 80.0f);
+            d.decay = decayFromMs(24.0f + uniform() * 120.0f);
             d.impact = 0.9f + uniform() * 0.5f;
             d.impactDecay = decayFromMs(2.5f + uniform() * 7.0f);
-            d.resonA.set(sampleRate_, baseFreq, 1.0f + resonance_ * 1.9f);
-            d.resonB.set(sampleRate_, baseFreq * spread, 0.7f + resonance_ * 1.3f);
+            d.resonA.set(sampleRate_, baseFreq, 1.0f + resonance_ * 1.7f + brightness_ * 0.4f);
+            d.resonB.set(sampleRate_, baseFreq * spread, 0.7f + resonance_ * 1.1f + brightness_ * 0.35f);
             return;
         }
     }
@@ -416,6 +437,34 @@ private:
         updateBodyModes();
     }
 
+    float chooseBubbleFreq(float sizeNorm) {
+        static constexpr std::array<float, 8> kBubbleHz = {
+            230.0f, 310.0f, 420.0f, 560.0f, 730.0f, 920.0f, 1180.0f, 1480.0f
+        };
+        const int maxIndex = static_cast<int>(kBubbleHz.size()) - 1;
+        const int idxFromSize = static_cast<int>((1.0f - sizeNorm) * static_cast<float>(maxIndex));
+        const int jitter = static_cast<int>(uniform() * 3.0f) - 1;
+        const int idx = std::clamp(idxFromSize + jitter, 0, maxIndex);
+        return kBubbleHz[idx] * (0.95f + 0.1f * uniform());
+    }
+
+    float chooseDripFreq(float sizeNorm) {
+        static constexpr std::array<float, 7> kDripHz = {
+            380.0f, 520.0f, 690.0f, 860.0f, 1040.0f, 1270.0f, 1540.0f
+        };
+        const int maxIndex = static_cast<int>(kDripHz.size()) - 1;
+        const int idxFromSize = static_cast<int>((1.0f - sizeNorm) * static_cast<float>(maxIndex));
+        const int jitterRange = 1 + static_cast<int>(randomness_ * 2.0f);
+        const int jitter = static_cast<int>(uniform() * static_cast<float>(2 * jitterRange + 1)) - jitterRange;
+        const int idx = std::clamp(idxFromSize + jitter, 0, maxIndex);
+        return kDripHz[idx] * (0.96f + 0.08f * uniform());
+    }
+
+    float softClip(float x, float drive) const {
+        const float d = std::max(drive, 0.01f);
+        return std::tanh(x * d) / std::tanh(d);
+    }
+
     void updateTurbulenceBands(bool force) {
         constexpr uint32_t updateStride = 64;
         if (!force) {
@@ -431,13 +480,14 @@ private:
             bright *= 0.5f;
         }
 
-        const float center1 = 90.0f + bright * 700.0f + uniform() * 240.0f;
-        const float center2 = 320.0f + bright * 1200.0f + uniform() * 520.0f;
+        const float randAmt = 0.25f + randomness_ * 0.75f;
+        const float center1 = 90.0f + bright * 700.0f + uniform() * (120.0f + 220.0f * randAmt);
+        const float center2 = 320.0f + bright * 1200.0f + uniform() * (220.0f + 500.0f * randAmt);
 
         turbulenceBand1_.set(sampleRate_, center1, 0.45f + bright * 1.2f);
         turbulenceBand2_.set(sampleRate_, center2, 0.35f + bright * 0.9f);
 
-        flowTarget_ = 0.2f + 0.8f * uniform();
+        flowTarget_ = (0.2f + 0.8f * uniform()) * (0.75f + 0.5f * randomness_);
     }
 
     StereoFrame processSpace(float x) {

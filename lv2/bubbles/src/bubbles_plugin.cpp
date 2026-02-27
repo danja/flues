@@ -32,6 +32,8 @@ enum PortIndex : uint32_t {
     PORT_HEAT,
     PORT_OUTPUT,
     PORT_MODE,
+    PORT_NOISE_FLOOR,
+    PORT_DRIVE,
     PORT_TOTAL_COUNT
 };
 
@@ -54,7 +56,9 @@ struct BubblesLV2 {
     const float* randomness;
     const float* heat;
     const float* output;
+    const float* drive;
     const float* mode;
+    const float* noiseFloor;
 
     LV2_URID_Map* map;
     LV2_URID midiEventUrid;
@@ -85,7 +89,9 @@ static void apply_parameters(BubblesLV2* self) {
     apply(self->randomness, &BubblesEngine::setRandomness);
     apply(self->heat, &BubblesEngine::setHeat);
     apply(self->output, &BubblesEngine::setOutput);
+    apply(self->drive, &BubblesEngine::setDrive);
     apply(self->mode, &BubblesEngine::setMode);
+    apply(self->noiseFloor, &BubblesEngine::setNoiseFloor);
 }
 
 static void handle_midi(BubblesLV2* self, const uint8_t* msg, uint32_t size) {
@@ -155,7 +161,9 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->randomness = nullptr;
     self->heat = nullptr;
     self->output = nullptr;
+    self->drive = nullptr;
     self->mode = nullptr;
+    self->noiseFloor = nullptr;
 
     self->map = nullptr;
     self->midiEventUrid = 0;
@@ -203,7 +211,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_RANDOMNESS: self->randomness = static_cast<const float*>(data); break;
         case PORT_HEAT: self->heat = static_cast<const float*>(data); break;
         case PORT_OUTPUT: self->output = static_cast<const float*>(data); break;
+        case PORT_DRIVE: self->drive = static_cast<const float*>(data); break;
         case PORT_MODE: self->mode = static_cast<const float*>(data); break;
+        case PORT_NOISE_FLOOR: self->noiseFloor = static_cast<const float*>(data); break;
         default: break;
     }
 }
