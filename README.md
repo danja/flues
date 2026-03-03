@@ -15,6 +15,7 @@
 - **[Trajectory](https://danja.github.io/flues/trajectory/)** — Polygon bounce oscillator driven by the y-position.
 
 ### LV2
+- **[LV2 Plugins Overview](docs/lv2-plugins.md)** — Quick reference for all LV2 plugins in this repository.
 - **[PM-Synth](lv2/pm-synth/)** — Physical modeling plugin based on Stove.
 - **[Disyn](lv2/disyn/)** — Distortion synthesis plugin with 17 algorithms.
 - **[Chatterbox](lv2/chatterbox/)** — Speech synthesis plugin with formant controls.
@@ -23,6 +24,7 @@
 - **[Floozy Poly](lv2/floozy-poly/)** — 8-voice hybrid instrument.
 - **[Drumkit](lv2/drumkit/)** — Industrial drum synth with master FX.
 - **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
+- **[EuclidMono](lv2/euclid-mono/)** — Two-pattern Euclidean generator with logic operators and single-note output.
 - **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).
 - **[E-Mix](lv2/e-mix/)** — Euclidean mixer with bar-block gating and offset/fade controls.
@@ -146,6 +148,7 @@ The Euclidean Gate experiment applies those rhythm concepts to any audio source 
 **Available as:**
 - 🔌 **LV2 plugin** - 11 voices, 43 parameters, drum synth mapping ([lv2/drumkit/](lv2/drumkit/))
 - 🔌 **LV2 plugin** - Euclidean rhythm generator for Drumkit ([lv2/euclid/](lv2/euclid/))
+- 🔌 **LV2 plugin** - Logic-combined two-pattern Euclidean single-note generator ([lv2/euclid-mono/](lv2/euclid-mono/))
 - 🔌 **LV2 plugin** - Euclidean gate (audio effect) for rhythmic chopping ([lv2/euclidean-gate/](lv2/euclidean-gate/))
 
 ---
@@ -228,6 +231,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/floozy-poly/README.md](lv2/floozy-poly/README.md) - Hybrid poly
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
+- [lv2/euclid-mono/README.md](lv2/euclid-mono/README.md) - Two-pattern Euclidean logic generator
 - [lv2/euclidean-gate/README.md](lv2/euclidean-gate/README.md) - Euclidean gate effect
 - [lv2/e-mix/README.md](lv2/e-mix/README.md) - Euclidean mixer effect
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
