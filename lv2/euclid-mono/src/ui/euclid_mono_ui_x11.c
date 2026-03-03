@@ -44,9 +44,9 @@ typedef enum {
 
 typedef enum {
     GROUP_GLOBAL = 0,
+    GROUP_LOGIC,
     GROUP_PATTERN_A,
     GROUP_PATTERN_B,
-    GROUP_LOGIC,
     GROUP_COUNT
 } GroupIndex;
 
@@ -74,6 +74,7 @@ typedef enum {
 #define RANDOM_BUTTON_HEIGHT 16
 #define NOTE_BOX_WIDTH 66
 #define NOTE_BOX_HEIGHT 20
+#define NOTE_KNOB_RADIUS 26
 #define TOGGLE_WIDTH 58
 #define TOGGLE_HEIGHT 20
 #define DROPDOWN_HEIGHT 22
@@ -156,6 +157,18 @@ typedef struct {
 } NoteBox;
 
 typedef struct {
+    uint32_t port;
+    int min;
+    int max;
+    int value;
+    int x;
+    int y;
+    int radius;
+    bool active;
+    int last_y;
+} NoteKnob;
+
+typedef struct {
     LV2UI_Write_Function write;
     LV2UI_Controller controller;
 
@@ -181,9 +194,11 @@ typedef struct {
     ToggleButton invert_b;
     Dropdown logic_dropdown;
     NoteBox note_box;
+    NoteKnob note_knob;
 
     volatile bool needs_redraw;
     int active_slider;
+    bool active_note_knob;
     uint32_t rand_state;
 } EuclidMonoUI;
 
@@ -206,7 +221,7 @@ static const ControlDesc kControls[] = {
 static const int kControlCount = sizeof(kControls) / sizeof(kControls[0]);
 
 static const char* kGroupNames[GROUP_COUNT] = {
-    "GLOBAL", "PATTERN A", "PATTERN B", "LOGIC"
+    "GLOBAL", "LOGIC", "PATTERN A", "PATTERN B"
 };
 
 static const char* kLogicNames[LOGIC_COUNT] = {
@@ -214,17 +229,17 @@ static const char* kLogicNames[LOGIC_COUNT] = {
 };
 
 static const GroupIndex kRowGroups[][2] = {
-    { GROUP_GLOBAL, GROUP_PATTERN_A },
-    { GROUP_PATTERN_B, GROUP_LOGIC }
+    { GROUP_GLOBAL, GROUP_LOGIC },
+    { GROUP_PATTERN_A, GROUP_PATTERN_B }
 };
 
 static const int kRowCount = sizeof(kRowGroups) / sizeof(kRowGroups[0]);
 
 static const int kGroupColumns[GROUP_COUNT] = {
     3,
+    0,
     4,
-    4,
-    0
+    4
 };
 
 static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -346,6 +361,7 @@ static void set_note_value(EuclidMonoUI* ui, int value, bool notify) {
     value = clamp_int(value, 0, 127);
     if (ui->note_box.value != value) {
         ui->note_box.value = value;
+        ui->note_knob.value = value;
         if (notify) {
             notify_host(ui, ui->note_box.port, (float)value);
         }
@@ -388,18 +404,6 @@ static void randomize_logic(EuclidMonoUI* ui) {
 }
 
 static void randomize_group(EuclidMonoUI* ui, GroupIndex group) {
-    if (group == GROUP_GLOBAL) {
-        for (int i = 0; i < PORT_TOTAL_COUNT; ++i) {
-            if (!ui->slider_used[i]) {
-                continue;
-            }
-            randomize_slider(ui, &ui->sliders[i]);
-        }
-        randomize_logic(ui);
-        set_note_value(ui, random_int(ui, 0, 127), true);
-        return;
-    }
-
     if (group == GROUP_LOGIC) {
         randomize_logic(ui);
         return;
@@ -626,6 +630,38 @@ static void draw_note_box(cairo_t* cr, const NoteBox* note_box) {
     cairo_new_path(cr);
 }
 
+static void draw_note_knob(cairo_t* cr, const NoteKnob* knob) {
+    const double cx = (double)knob->x;
+    const double cy = (double)knob->y;
+    const double r = (double)knob->radius;
+    const double t = (double)(knob->value - knob->min) / (double)(knob->max - knob->min);
+    const double angle = (M_PI * 1.25) - (t * M_PI * 1.5);
+
+    cairo_arc(cr, cx, cy, r, 0.0, 2.0 * M_PI);
+    cairo_set_source_rgb(cr, 0.17, 0.18, 0.21);
+    cairo_fill(cr);
+
+    cairo_arc(cr, cx, cy, r, 0.0, 2.0 * M_PI);
+    cairo_set_source_rgb(cr, 0.90, 0.72, 0.36);
+    cairo_set_line_width(cr, 1.2);
+    cairo_stroke(cr);
+
+    cairo_move_to(cr, cx, cy);
+    cairo_line_to(cr, cx + cos(angle) * (r - 6.0), cy - sin(angle) * (r - 6.0));
+    cairo_set_source_rgb(cr, 0.95, 0.95, 0.95);
+    cairo_set_line_width(cr, 2.0);
+    cairo_stroke(cr);
+
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 9.0);
+    cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
+    cairo_text_extents_t ext;
+    cairo_text_extents(cr, "NOTE KNOB", &ext);
+    cairo_move_to(cr, cx - ext.width / 2.0, cy + r + 14.0);
+    cairo_show_text(cr, "NOTE KNOB");
+    cairo_new_path(cr);
+}
+
 static void draw_ui(EuclidMonoUI* ui) {
     if (!ui->surface) return;
 
@@ -645,6 +681,7 @@ static void draw_ui(EuclidMonoUI* ui) {
     }
 
     draw_note_box(cr, &ui->note_box);
+    draw_note_knob(cr, &ui->note_knob);
     draw_toggle(cr, &ui->invert_a);
     draw_toggle(cr, &ui->invert_b);
     draw_dropdown(cr, &ui->logic_dropdown);
@@ -719,34 +756,46 @@ static void setup_layout(EuclidMonoUI* ui) {
         ui->slider_used[desc->port] = true;
     }
 
-    GroupState* global = &ui->groups[GROUP_GLOBAL];
+    GroupState* logic = &ui->groups[GROUP_LOGIC];
+    const int knob_diameter = NOTE_KNOB_RADIUS * 2;
+    const int knob_column_w = knob_diameter + 12;
+    const int logic_inner_x = logic->x + GROUP_PADDING;
+    const int logic_controls_w = logic->width - GROUP_PADDING * 2 - knob_column_w - 6;
+
     ui->note_box.port = PORT_MIDI_NOTE;
     ui->note_box.value = 60;
     ui->note_box.editing = false;
-    ui->note_box.width = NOTE_BOX_WIDTH;
+    ui->note_box.width = logic_controls_w;
     ui->note_box.height = NOTE_BOX_HEIGHT;
-    ui->note_box.x = global->x + global->width - GROUP_PADDING - RANDOM_BUTTON_WIDTH - 6 - NOTE_BOX_WIDTH;
-    ui->note_box.y = global->y + GROUP_PADDING + 4;
+    ui->note_box.x = logic_inner_x;
+    ui->note_box.y = logic->y + GROUP_PADDING + TITLE_HEIGHT + 6;
     reset_note_text(ui);
 
-    GroupState* logic = &ui->groups[GROUP_LOGIC];
-    const int logic_inner_x = logic->x + GROUP_PADDING;
-    const int logic_inner_y = logic->y + GROUP_PADDING + TITLE_HEIGHT + 10;
+    ui->note_knob.port = PORT_MIDI_NOTE;
+    ui->note_knob.min = 0;
+    ui->note_knob.max = 127;
+    ui->note_knob.value = 60;
+    ui->note_knob.radius = NOTE_KNOB_RADIUS;
+    ui->note_knob.active = false;
+    ui->note_knob.x = logic->x + logic->width - GROUP_PADDING - NOTE_KNOB_RADIUS;
+    ui->note_knob.y = logic->y + GROUP_PADDING + TITLE_HEIGHT + NOTE_KNOB_RADIUS + 4;
+
+    const int logic_inner_y = ui->note_box.y + ui->note_box.height + 10;
 
     ui->invert_a.port = PORT_INVERT_A;
     ui->invert_a.label = "INV A";
     ui->invert_a.value = false;
     ui->invert_a.x = logic_inner_x;
     ui->invert_a.y = logic_inner_y;
-    ui->invert_a.width = TOGGLE_WIDTH;
+    ui->invert_a.width = logic_controls_w;
     ui->invert_a.height = TOGGLE_HEIGHT;
 
     ui->invert_b.port = PORT_INVERT_B;
     ui->invert_b.label = "INV B";
     ui->invert_b.value = false;
-    ui->invert_b.x = logic_inner_x + TOGGLE_WIDTH + 8;
-    ui->invert_b.y = logic_inner_y;
-    ui->invert_b.width = TOGGLE_WIDTH;
+    ui->invert_b.x = logic_inner_x;
+    ui->invert_b.y = logic_inner_y + TOGGLE_HEIGHT + 6;
+    ui->invert_b.width = logic_controls_w;
     ui->invert_b.height = TOGGLE_HEIGHT;
 
     ui->logic_dropdown.port = PORT_LOGIC_OP;
@@ -754,12 +803,21 @@ static void setup_layout(EuclidMonoUI* ui) {
     ui->logic_dropdown.open = false;
     ui->logic_dropdown.item_height = 18;
     ui->logic_dropdown.x = logic_inner_x;
-    ui->logic_dropdown.y = logic_inner_y + TOGGLE_HEIGHT + 10;
-    ui->logic_dropdown.width = logic->width - GROUP_PADDING * 2;
+    ui->logic_dropdown.y = ui->invert_b.y + TOGGLE_HEIGHT + 8;
+    ui->logic_dropdown.width = logic_controls_w;
     ui->logic_dropdown.height = DROPDOWN_HEIGHT;
 }
 
 static void handle_motion(EuclidMonoUI* ui, XMotionEvent* motion) {
+    if (ui->active_note_knob) {
+        const int dy = ui->note_knob.last_y - motion->y;
+        if (dy != 0) {
+            set_note_value(ui, ui->note_knob.value + dy, true);
+            ui->note_knob.last_y = motion->y;
+        }
+        return;
+    }
+
     if (ui->active_slider < 0) {
         return;
     }
@@ -817,6 +875,15 @@ static void handle_button_press(EuclidMonoUI* ui, XButtonEvent* button) {
         return;
     }
 
+    const int kdx = button->x - ui->note_knob.x;
+    const int kdy = button->y - ui->note_knob.y;
+    if ((kdx * kdx + kdy * kdy) <= (ui->note_knob.radius * ui->note_knob.radius)) {
+        ui->active_note_knob = true;
+        ui->note_knob.active = true;
+        ui->note_knob.last_y = button->y;
+        return;
+    }
+
     if (point_in_rect(button->x, button->y,
                       ui->invert_a.x, ui->invert_a.y,
                       ui->invert_a.width, ui->invert_a.height)) {
@@ -851,6 +918,8 @@ static void handle_button_press(EuclidMonoUI* ui, XButtonEvent* button) {
 static void handle_button_release(EuclidMonoUI* ui, XButtonEvent* button) {
     if (button->button == Button1) {
         ui->active_slider = -1;
+        ui->active_note_knob = false;
+        ui->note_knob.active = false;
     }
 }
 
@@ -962,6 +1031,7 @@ static LV2UI_Handle ui_instantiate(
     ui->write = write_function;
     ui->controller = controller;
     ui->active_slider = -1;
+    ui->active_note_knob = false;
     ui->rand_state = (uint32_t)time(NULL) ^ 0x9E3779B9u;
 
     ui->display = XOpenDisplay(NULL);
@@ -1063,6 +1133,7 @@ static void ui_port_event(
         const int note = clamp_int((int)lroundf(value), 0, 127);
         if (ui->note_box.value != note) {
             ui->note_box.value = note;
+            ui->note_knob.value = note;
             if (!ui->note_box.editing) {
                 reset_note_text(ui);
             }
