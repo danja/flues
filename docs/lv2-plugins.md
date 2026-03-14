@@ -161,4 +161,22 @@ MetaLV is an LV2 host plugin that can load and route other LV2 plugins in multip
 
 ## Installation
 
+### Prerequisites
+1. Update your package lists and install the base toolchain: `sudo apt update && sudo apt install build-essential cmake meson ninja-build pkg-config git`. These provide the compiler, build systems, and helper utilities used by every plugin.
+2. Install the LV2 and audio libraries: `sudo apt install lv2-dev libx11-dev libcairo2-dev libasound2-dev`. Add `libpulse-dev libgtk-4-dev` if you plan to build the GTK-based front-ends or host tools described elsewhere in the repo.
+3. If you are on a non-Debian/Ubuntu system, use the equivalent packages for your distro (for example `dnf install` or `pacman -S` with the same package names). Confirm each command succeeds before continuing.
 
+### Building the plugins
+1. From the repo root (`/home/danny/github/flues`), pick the LV2 directory you want to build (for example `lv2/disyn`).
+2. Run CMake to configure, build, and install the plugin: `cmake -S lv2/<plugin> -B lv2/<plugin>/build`, `cmake --build lv2/<plugin>/build`, `cmake --install lv2/<plugin>/build --prefix "$HOME/.lv2"`. Each plugin installs into `~/.lv2`, which is scanned by hosts such as Ardour, Reaper, and Carla.
+3. After the install step, verify the plugin is registered by running `lv2ls | grep flues`.
+
+### Helper scripts
+`./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `chatterbox`, `chatgen`, `drumkit`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
+
+Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-arpiso.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
+
+For Meson-based builds such as `grid-seq`, the scripts wrap `meson setup`, `meson compile`, and `meson install`, so those commands can also be run manually if you prefer. If you want fine-grained control, open `lv2/<plugin>/README.md` for plugin-specific notes and repeat the manual CMake/Meson commands outlined in this section.
+
+### Final checks
+Once the system-wide dependencies are installed and the chosen plugin(s) have been built, host applications will find them automatically. If you run into linker errors, double-check that the `pkg-config` packages listed above are installed, then re-run the CMake/Meson configuration so the build system picks them up.
