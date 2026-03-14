@@ -163,8 +163,9 @@ MetaLV is an LV2 host plugin that can load and route other LV2 plugins in multip
 
 ### Prerequisites
 1. Update your package lists and install the base toolchain: `sudo apt update && sudo apt install build-essential cmake meson ninja-build pkg-config git`. These provide the compiler, build systems, and helper utilities used by every plugin.
-2. Install the LV2 and audio libraries: `sudo apt install lv2-dev libx11-dev libcairo2-dev libasound2-dev`. Add `libpulse-dev libgtk-4-dev` if you plan to build the GTK-based front-ends or host tools described elsewhere in the repo.
-3. If you are on a non-Debian/Ubuntu system, use the equivalent packages for your distro (for example `dnf install` or `pacman -S` with the same package names). Confirm each command succeeds before continuing.
+2. Clone the repository so you have the source you’ll build: `git clone https://github.com/danja/flues.git` and then `cd flues`. You only need to do this once unless you want a fresh copy.
+3. Install the LV2 and audio libraries: `sudo apt install lv2-dev libx11-dev libcairo2-dev libasound2-dev`. Add `libpulse-dev libgtk-4-dev` if you plan to build the GTK-based front-ends or host tools described elsewhere in the repo.
+4. If you are on a non-Debian/Ubuntu system, use the equivalent packages for your distro (for example `dnf install` or `pacman -S` with the same package names). Confirm each command succeeds before continuing.
 
 ### Building the plugins
 1. From the repo root (`/home/danny/github/flues`), pick the LV2 directory you want to build (for example `lv2/disyn`).
