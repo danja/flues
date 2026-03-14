@@ -4,7 +4,7 @@ This repository contains a broad set of LV2 instruments, MIDI tools, and audio e
 
 **The plugins are all experimental, most work to some degree, none could be called complete...**
 
-Right now they have to be built before installation, see instructions below. Standard Linux tooling and libs are used. So far, nostly only tested with Reaper on Ubuntu Studio.
+Right now they have to be built before installation, see instructions below. Standard Linux tooling and libs are used. So far, mostly only tested with Reaper on Ubuntu Studio.
 
 They (should) all have my name in their metadata, so searching for the keyword "Ayers" should select them.
 
