@@ -53,6 +53,16 @@ The plugin is intended to generate musically usable bass phrases from a small se
   - Integer MIDI note or root-class + octave representation
 - `scale`
   - Dropdown list
+  - Current options:
+    - `Minor`
+    - `Major`
+    - `Dorian`
+    - `Phrygian`
+    - `Pent Minor`
+    - `Blues`
+    - `Mixolydian`
+    - `Harmonic Minor`
+    - `Pent Major`
 - `genre`
   - Dropdown list
   - Used to bias phrase heuristics
@@ -191,9 +201,10 @@ Suggested blocks:
 - `Actions`
   - new, notes, rhythm
 
-Future enhancement:
+Current implementation:
 
 - a simple phrase preview panel showing note positions and relative pitch
+- the preview is currently schematic, derived from current controls and recent action state rather than being a direct DSP-fed rendering of persisted pattern data
 
 ## MIDI Output Requirements
 
@@ -221,6 +232,10 @@ Recommended internal structure:
 - transport/playback scheduler
 - LV2 wrapper
 - X11/Cairo UI
+
+Current implementation note:
+
+- the code now has clearer helper-level separation for phrase generation, transport restart/stop handling, and per-boundary MIDI scheduling, though it is still housed primarily within `lv2/bassgen/src/bassgen_plugin.cpp`
 
 ## First Version Scope
 

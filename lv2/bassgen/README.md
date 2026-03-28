@@ -23,6 +23,8 @@ From the repo root:
 - Host `time:Position` sync
 - Bar-relative playback and rewind reset
 - UI for the main controls and action buttons
+- Dropdown selectors for scale, genre, channel, and subdivision
+- Root-note name display and compact phrase preview panel
 - Exact pattern persistence through LV2 state
 
 ## Notes
@@ -30,3 +32,4 @@ From the repo root:
 - `New` regenerates the whole phrase.
 - `Notes` mutates pitch while keeping the current rhythm shape.
 - `Rhythm` mutates note timing while preserving the current note set as much as possible.
+- The preview panel is schematic: it reflects the current controls closely, but it is not yet a direct rendering of the persisted DSP pattern.
