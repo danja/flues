@@ -448,6 +448,35 @@ static int note_from_degree(const ControlSnapshot& controls, int degree_index) {
     return clampi(base + interval, 0, 127);
 }
 
+static float genre_density_bias(int genre, bool strong) {
+    switch (genre) {
+        case GENRE_TECHNO: return strong ? 1.15f : 0.78f;
+        case GENRE_ACID: return strong ? 0.95f : 1.10f;
+        case GENRE_HOUSE: return strong ? 0.80f : 1.20f;
+        case GENRE_ELECTRO: return strong ? 1.00f : 1.05f;
+        case GENRE_DUB: return strong ? 1.20f : 0.58f;
+        case GENRE_AMBIENT: return strong ? 0.90f : 0.45f;
+        default: return 1.0f;
+    }
+}
+
+static int next_onset_step(const bool* onset, int pattern_steps, int step) {
+    for (int j = step + 1; j < pattern_steps; ++j) {
+        if (onset[j]) {
+            return j;
+        }
+    }
+    return pattern_steps;
+}
+
+static int choose_duration_steps(const ControlSnapshot& controls, Rng* rng, int available_steps) {
+    if (available_steps <= 1) {
+        return 1;
+    }
+    const int max_hold = clampi((int)floorf(1.0f + controls.hold * (float)(available_steps - 1)), 1, available_steps);
+    return clampi(1 + rng->next_int(0, max_hold - 1), 1, available_steps);
+}
+
 static void ensure_first_event(PatternStateBlob* pattern, const ControlSnapshot& controls) {
     if (pattern->event_count > 0) {
         return;
@@ -473,27 +502,7 @@ static void generate_rhythm(PatternStateBlob* pattern, const ControlSnapshot& co
 
     for (int step = 1; step < pattern->pattern_steps; ++step) {
         const bool strong = (step % pattern->steps_per_beat) == 0;
-        float probability = controls.density;
-        switch (controls.genre) {
-            case GENRE_TECHNO:
-                probability *= strong ? 1.15f : 0.78f;
-                break;
-            case GENRE_ACID:
-                probability *= strong ? 0.95f : 1.10f;
-                break;
-            case GENRE_HOUSE:
-                probability *= strong ? 0.80f : 1.20f;
-                break;
-            case GENRE_ELECTRO:
-                probability *= strong ? 1.00f : 1.05f;
-                break;
-            case GENRE_DUB:
-                probability *= strong ? 1.20f : 0.58f;
-                break;
-            case GENRE_AMBIENT:
-                probability *= strong ? 0.90f : 0.45f;
-                break;
-        }
+        float probability = controls.density * genre_density_bias(controls.genre, strong);
 
         if (cooldown > 0) {
             probability *= 0.30f;
@@ -511,20 +520,9 @@ static void generate_rhythm(PatternStateBlob* pattern, const ControlSnapshot& co
             continue;
         }
 
-        int next_step = pattern->pattern_steps;
-        for (int j = step + 1; j < pattern->pattern_steps; ++j) {
-            if (onset[j]) {
-                next_step = j;
-                break;
-            }
-        }
-
+        const int next_step = next_onset_step(onset, pattern->pattern_steps, step);
         const int available = clampi(next_step - step, 1, pattern->pattern_steps);
-        int duration = 1;
-        if (available > 1) {
-            const int max_hold = clampi((int)floorf(1.0f + controls.hold * (float)(available - 1)), 1, available);
-            duration = clampi(1 + rng->next_int(0, max_hold - 1), 1, available);
-        }
+        const int duration = choose_duration_steps(controls, rng, available);
 
         pattern->events[pattern->event_count].start_step = step;
         pattern->events[pattern->event_count].duration_steps = duration;
@@ -621,6 +619,13 @@ static void update_pattern_if_needed(BassGen* self, const ControlSnapshot& fresh
     self->previous_controls = fresh;
 }
 
+static void clear_active_note(BassGen* self, uint32_t frame) {
+    if (self->active_note >= 0) {
+        emit_note_off(self, frame, self->active_note);
+        self->active_note = -1;
+    }
+}
+
 static void sync_note_state_to_position(BassGen* self, double local_step_pos) {
     const NoteEventData* ev = self->pattern_valid ? find_active_event(self->pattern, local_step_pos) : nullptr;
     const int should_note = ev ? ev->note : -1;
@@ -631,6 +636,81 @@ static void sync_note_state_to_position(BassGen* self, double local_step_pos) {
     if (should_note >= 0 && self->active_note < 0) {
         emit_note_on(self, 0, should_note, ev->velocity);
         self->active_note = should_note;
+    }
+}
+
+static void reset_transport_state(BassGen* self) {
+    self->was_playing = false;
+    self->last_transport_step = -1;
+}
+
+static void handle_stopped_transport(BassGen* self) {
+    clear_active_note(self, 0);
+    reset_transport_state(self);
+}
+
+static bool transport_restart_detected(const BassGen* self, int64_t start_step_floor) {
+    return !self->was_playing || (self->last_transport_step >= 0 && start_step_floor < self->last_transport_step);
+}
+
+static void handle_transport_restart(BassGen* self, double abs_steps_start) {
+    clear_active_note(self, 0);
+    const double local_step = fmod(abs_steps_start, (double)self->pattern.pattern_steps);
+    sync_note_state_to_position(self, local_step < 0.0 ? local_step + self->pattern.pattern_steps : local_step);
+}
+
+static void prepare_midi_output(BassGen* self) {
+    self->midi_out->atom.type = self->urids.atom_Sequence;
+    self->midi_out->atom.size = sizeof(LV2_Atom_Sequence_Body);
+    self->midi_out->body.unit = 0;
+    self->midi_out->body.pad = 0;
+}
+
+static const NoteEventData* find_event_starting_at(const PatternStateBlob& pattern, int local_step) {
+    for (int i = 0; i < pattern.event_count; ++i) {
+        if (pattern.events[i].start_step == local_step) {
+            return &pattern.events[i];
+        }
+    }
+    return nullptr;
+}
+
+static bool any_event_ends_at(const PatternStateBlob& pattern, int local_step) {
+    for (int i = 0; i < pattern.event_count; ++i) {
+        const int end_step = (pattern.events[i].start_step + pattern.events[i].duration_steps) % pattern.pattern_steps;
+        if (pattern.events[i].duration_steps < pattern.pattern_steps && end_step == local_step) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static uint32_t frame_for_boundary(double abs_steps_start, double abs_steps_end, uint32_t nframes, int64_t boundary) {
+    const double rel_steps = (double)boundary - abs_steps_start;
+    const double t = rel_steps / (abs_steps_end - abs_steps_start + 1e-12);
+    return (uint32_t)clampi((int)floor(t * (double)nframes), 0, (int)nframes - 1);
+}
+
+static int local_step_for_boundary(const PatternStateBlob& pattern, int64_t boundary) {
+    const double local_step_d = fmod((double)boundary, (double)pattern.pattern_steps);
+    return (int)(local_step_d < 0.0 ? local_step_d + pattern.pattern_steps : local_step_d);
+}
+
+static void process_boundary(BassGen* self, uint32_t nframes, double abs_steps_start, double abs_steps_end, int64_t boundary) {
+    const uint32_t frame = frame_for_boundary(abs_steps_start, abs_steps_end, nframes, boundary);
+    const int local_step = local_step_for_boundary(self->pattern, boundary);
+    const bool ending_here = any_event_ends_at(self->pattern, local_step);
+    const NoteEventData* start_event = find_event_starting_at(self->pattern, local_step);
+
+    if (ending_here) {
+        clear_active_note(self, frame);
+    }
+
+    if (start_event) {
+        const uint32_t on_frame = (uint32_t)clampi((int)frame + kSafetyGapSamples, 0, (int)nframes - 1);
+        clear_active_note(self, frame);
+        emit_note_on(self, on_frame, start_event->note, start_event->velocity);
+        self->active_note = start_event->note;
     }
 }
 
@@ -757,8 +837,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
 static void activate(LV2_Handle instance) {
     BassGen* self = (BassGen*)instance;
     self->active_note = -1;
-    self->last_transport_step = -1;
-    self->was_playing = false;
+    reset_transport_state(self);
     self->controls = read_controls(self);
     self->previous_controls = self->controls;
     if (!self->pattern_valid) {
@@ -772,10 +851,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
         return;
     }
 
-    self->midi_out->atom.type = self->urids.atom_Sequence;
-    self->midi_out->atom.size = sizeof(LV2_Atom_Sequence_Body);
-    self->midi_out->body.unit = 0;
-    self->midi_out->body.pad = 0;
+    prepare_midi_output(self);
 
     update_pattern_if_needed(self, read_controls(self));
 
@@ -790,12 +866,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
 
     const bool playing = info.valid && info.playing && info.bpm > 0.0 && info.beatsPerBar > 0.0;
     if (!playing || !self->pattern_valid) {
-        if (self->active_note >= 0) {
-            emit_note_off(self, 0, self->active_note);
-            self->active_note = -1;
-        }
-        self->was_playing = false;
-        self->last_transport_step = -1;
+        handle_stopped_transport(self);
         return;
     }
 
@@ -806,13 +877,8 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     const double abs_steps_end = (abs_beats_start + abs_beats_step) * (double)spb;
     const int64_t start_step_floor = (int64_t)floor(abs_steps_start + 1e-9);
 
-    if (!self->was_playing || (self->last_transport_step >= 0 && start_step_floor < self->last_transport_step)) {
-        if (self->active_note >= 0) {
-            emit_note_off(self, 0, self->active_note);
-            self->active_note = -1;
-        }
-        const double local_step = fmod(abs_steps_start, (double)self->pattern.pattern_steps);
-        sync_note_state_to_position(self, local_step < 0.0 ? local_step + self->pattern.pattern_steps : local_step);
+    if (transport_restart_detected(self, start_step_floor)) {
+        handle_transport_restart(self, abs_steps_start);
     }
 
     self->was_playing = true;
@@ -822,47 +888,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     const int64_t boundary_end = (int64_t)floor(abs_steps_end + 1e-9);
 
     while (boundary <= boundary_end) {
-        const double rel_steps = (double)boundary - abs_steps_start;
-        const double t = rel_steps / (abs_steps_end - abs_steps_start + 1e-12);
-        uint32_t frame = (uint32_t)clampi((int)floor(t * (double)nframes), 0, (int)nframes - 1);
-
-        const double local_step_d = fmod((double)boundary, (double)self->pattern.pattern_steps);
-        const int local_step = (int)(local_step_d < 0.0 ? local_step_d + self->pattern.pattern_steps : local_step_d);
-
-        bool started_here = false;
-        const NoteEventData* start_event = nullptr;
-        for (int i = 0; i < self->pattern.event_count; ++i) {
-            if (self->pattern.events[i].start_step == local_step) {
-                start_event = &self->pattern.events[i];
-                started_here = true;
-                break;
-            }
-        }
-
-        bool ending_here = false;
-        for (int i = 0; i < self->pattern.event_count; ++i) {
-            const int end_step = (self->pattern.events[i].start_step + self->pattern.events[i].duration_steps) % self->pattern.pattern_steps;
-            if (self->pattern.events[i].duration_steps < self->pattern.pattern_steps && end_step == local_step) {
-                ending_here = true;
-                break;
-            }
-        }
-
-        if (ending_here && self->active_note >= 0) {
-            emit_note_off(self, frame, self->active_note);
-            self->active_note = -1;
-        }
-
-        if (started_here && start_event) {
-            const uint32_t on_frame = (uint32_t)clampi((int)frame + kSafetyGapSamples, 0, (int)nframes - 1);
-            if (self->active_note >= 0) {
-                emit_note_off(self, frame, self->active_note);
-                self->active_note = -1;
-            }
-            emit_note_on(self, on_frame, start_event->note, start_event->velocity);
-            self->active_note = start_event->note;
-        }
-
+        process_boundary(self, nframes, abs_steps_start, abs_steps_end, boundary);
         boundary += 1;
     }
 }
@@ -870,8 +896,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
 static void deactivate(LV2_Handle instance) {
     BassGen* self = (BassGen*)instance;
     self->active_note = -1;
-    self->last_transport_step = -1;
-    self->was_playing = false;
+    reset_transport_state(self);
 }
 
 static void cleanup(LV2_Handle instance) {

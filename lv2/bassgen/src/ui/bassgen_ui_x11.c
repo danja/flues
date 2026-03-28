@@ -159,6 +159,51 @@ static const char* kNoteNames[] = {
     "F#", "G", "G#", "A", "A#", "B"
 };
 
+typedef struct {
+    uint32_t state;
+} PreviewRng;
+
+typedef struct {
+    int start_step;
+    int duration_steps;
+    int note;
+    int velocity;
+} PreviewEvent;
+
+typedef struct {
+    int steps_per_beat;
+    int pattern_steps;
+    int event_count;
+    PreviewEvent events[96];
+} PreviewPattern;
+
+static const int kPreviewScaleMinor[] = {0, 2, 3, 5, 7, 8, 10};
+static const int kPreviewScaleMajor[] = {0, 2, 4, 5, 7, 9, 11};
+static const int kPreviewScaleDorian[] = {0, 2, 3, 5, 7, 9, 10};
+static const int kPreviewScalePhrygian[] = {0, 1, 3, 5, 7, 8, 10};
+static const int kPreviewScalePentMinor[] = {0, 3, 5, 7, 10};
+static const int kPreviewScaleBlues[] = {0, 3, 5, 6, 7, 10};
+static const int kPreviewScaleMixolydian[] = {0, 2, 4, 5, 7, 9, 10};
+static const int kPreviewScaleHarmMinor[] = {0, 2, 3, 5, 7, 8, 11};
+static const int kPreviewScalePentMajor[] = {0, 2, 4, 7, 9};
+
+typedef struct {
+    const int* intervals;
+    int count;
+} PreviewScaleDef;
+
+static const PreviewScaleDef kPreviewScales[] = {
+    {kPreviewScaleMinor, 7},
+    {kPreviewScaleMajor, 7},
+    {kPreviewScaleDorian, 7},
+    {kPreviewScalePhrygian, 7},
+    {kPreviewScalePentMinor, 5},
+    {kPreviewScaleBlues, 6},
+    {kPreviewScaleMixolydian, 7},
+    {kPreviewScaleHarmMinor, 7},
+    {kPreviewScalePentMajor, 5}
+};
+
 static const ControlDesc kControlDescs[] = {
     { GROUP_GLOBAL, "ROOT", PORT_ROOT_NOTE, 0.0f, 127.0f, 36.0f, true },
     { GROUP_PATTERN, "LENGTH", PORT_LENGTH_BEATS, 8.0f, 32.0f, 16.0f, true },
@@ -191,6 +236,192 @@ static float clampf_local(float value, float min_value, float max_value) {
     if (value < min_value) return min_value;
     if (value > max_value) return max_value;
     return value;
+}
+
+static int clampi_local(int value, int min_value, int max_value) {
+    if (value < min_value) return min_value;
+    if (value > max_value) return max_value;
+    return value;
+}
+
+static void preview_rng_seed(PreviewRng* rng, uint32_t seed_value) {
+    rng->state = seed_value ? seed_value : 0x13579BDFu;
+}
+
+static uint32_t preview_rng_next_u32(PreviewRng* rng) {
+    rng->state = rng->state * 1664525u + 1013904223u;
+    return rng->state;
+}
+
+static float preview_rng_next_float(PreviewRng* rng) {
+    return (float)(preview_rng_next_u32(rng) & 0x00FFFFFFu) / 16777215.0f;
+}
+
+static int preview_rng_next_int(PreviewRng* rng, int min_value, int max_value) {
+    if (max_value <= min_value) {
+        return min_value;
+    }
+    const uint32_t span = (uint32_t)(max_value - min_value + 1);
+    return min_value + (int)(preview_rng_next_u32(rng) % span);
+}
+
+static int preview_steps_per_beat(int subdivision) {
+    switch (subdivision) {
+        case 0: return 2;
+        case 1: return 4;
+        case 2: return 6;
+        default: return 4;
+    }
+}
+
+static int preview_register_offset(int reg) {
+    switch (reg) {
+        case 0: return -12;
+        case 1: return 0;
+        case 2: return 12;
+        case 3: return 24;
+        default: return 0;
+    }
+}
+
+static int preview_choose_degree(PreviewRng* rng, int genre, int strong_beat, int prev_degree) {
+    const float roll = preview_rng_next_float(rng);
+    if (strong_beat) {
+        if (roll < 0.45f) return 0;
+        if (roll < 0.70f) return 4;
+        if (roll < 0.82f) return 2;
+    }
+
+    switch (genre) {
+        case 1:
+            if (roll < 0.25f) return prev_degree;
+            if (roll < 0.55f) return clampi_local(prev_degree + preview_rng_next_int(rng, -1, 1), 0, 6);
+            return preview_rng_next_int(rng, 0, 6);
+        case 4:
+            if (roll < 0.55f) return 0;
+            if (roll < 0.75f) return 4;
+            return clampi_local(prev_degree + preview_rng_next_int(rng, -1, 1), 0, 6);
+        case 5:
+            if (roll < 0.40f) return prev_degree;
+            return clampi_local(prev_degree + preview_rng_next_int(rng, -1, 1), 0, 6);
+        default:
+            if (roll < 0.30f) return 0;
+            if (roll < 0.50f) return 4;
+            return clampi_local(prev_degree + preview_rng_next_int(rng, -1, 1), 0, 6);
+    }
+}
+
+static int preview_note_from_degree(int root_note, int scale_index, int reg, int degree_index) {
+    const PreviewScaleDef* scale = &kPreviewScales[clampi_local(scale_index, 0, (int)(sizeof(kPreviewScales) / sizeof(kPreviewScales[0])) - 1)];
+    const int octave = degree_index / scale->count;
+    const int degree = degree_index % scale->count;
+    const int interval = scale->intervals[degree] + 12 * octave;
+    return clampi_local(root_note + preview_register_offset(reg) + interval, 0, 127);
+}
+
+static uint32_t preview_seed_from_ui(const BassGenUI* ui) {
+    uint32_t seed = 2166136261u;
+    for (int i = 0; i < ui->slider_count; ++i) {
+        const uint32_t scaled = (uint32_t)lroundf(ui->sliders[i].value * 1000.0f);
+        seed ^= scaled + 0x9E3779B9u + (seed << 6) + (seed >> 2);
+    }
+    for (int i = 0; i < ui->selector_count; ++i) {
+        seed ^= (uint32_t)(ui->selectors[i].value + i * 131u) + 0x9E3779B9u + (seed << 6) + (seed >> 2);
+    }
+    for (int i = 0; i < 3; ++i) {
+        seed ^= (uint32_t)(ui->actions[i].counter * (17 + i * 13)) + 0x9E3779B9u + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+}
+
+static void build_preview_pattern(const BassGenUI* ui, PreviewPattern* pattern) {
+    memset(pattern, 0, sizeof(*pattern));
+
+    const int root_note = (int)lroundf(ui->sliders[0].value);
+    const int scale = ui->selectors[0].value;
+    const int genre = ui->selectors[1].value;
+    const int length_beats = (int)lroundf(ui->sliders[1].value);
+    const int subdivision = ui->selectors[3].value;
+    const float density = ui->sliders[2].value;
+    const int reg = (int)lroundf(ui->sliders[3].value);
+    const float hold = ui->sliders[4].value;
+    const float accent = ui->sliders[5].value;
+
+    pattern->steps_per_beat = preview_steps_per_beat(subdivision);
+    pattern->pattern_steps = clampi_local(length_beats * pattern->steps_per_beat, 1, 192);
+
+    bool onset[192];
+    memset(onset, 0, sizeof(onset));
+    onset[0] = true;
+
+    PreviewRng rng;
+    preview_rng_seed(&rng, preview_seed_from_ui(ui));
+
+    int cooldown = 0;
+    for (int step = 1; step < pattern->pattern_steps; ++step) {
+        const int strong = (step % pattern->steps_per_beat) == 0;
+        float probability = density;
+        switch (genre) {
+            case 0: probability *= strong ? 1.15f : 0.78f; break;
+            case 1: probability *= strong ? 0.95f : 1.10f; break;
+            case 2: probability *= strong ? 0.80f : 1.20f; break;
+            case 3: probability *= strong ? 1.00f : 1.05f; break;
+            case 4: probability *= strong ? 1.20f : 0.58f; break;
+            case 5: probability *= strong ? 0.90f : 0.45f; break;
+        }
+        if (cooldown > 0) {
+            probability *= 0.30f;
+            cooldown -= 1;
+        }
+        if (preview_rng_next_float(&rng) < clampf_local(probability, 0.02f, 0.95f)) {
+            onset[step] = true;
+            cooldown = 1;
+        }
+    }
+
+    for (int step = 0; step < pattern->pattern_steps && pattern->event_count < 96; ++step) {
+        if (!onset[step]) {
+            continue;
+        }
+        int next_step = pattern->pattern_steps;
+        for (int j = step + 1; j < pattern->pattern_steps; ++j) {
+            if (onset[j]) {
+                next_step = j;
+                break;
+            }
+        }
+        const int available = clampi_local(next_step - step, 1, pattern->pattern_steps);
+        int duration = 1;
+        if (available > 1) {
+            const int max_hold = clampi_local((int)floorf(1.0f + hold * (float)(available - 1)), 1, available);
+            duration = clampi_local(1 + preview_rng_next_int(&rng, 0, max_hold - 1), 1, available);
+        }
+
+        PreviewEvent* ev = &pattern->events[pattern->event_count++];
+        ev->start_step = step;
+        ev->duration_steps = duration;
+        ev->note = root_note;
+        ev->velocity = 96;
+    }
+
+    if (pattern->event_count == 0) {
+        pattern->event_count = 1;
+        pattern->events[0].start_step = 0;
+        pattern->events[0].duration_steps = pattern->steps_per_beat;
+        pattern->events[0].note = clampi_local(root_note + preview_register_offset(reg), 0, 127);
+        pattern->events[0].velocity = 96;
+    }
+
+    preview_rng_seed(&rng, preview_seed_from_ui(ui) ^ 0xA5A5A5A5u);
+    int prev_degree = 0;
+    for (int i = 0; i < pattern->event_count; ++i) {
+        PreviewEvent* ev = &pattern->events[i];
+        const int strong = (ev->start_step % pattern->steps_per_beat) == 0;
+        const int degree = preview_choose_degree(&rng, genre, strong, prev_degree);
+        prev_degree = degree;
+        ev->note = preview_note_from_degree(root_note, scale, reg, degree);
+        ev->velocity = clampi_local(86 + (strong ? (int)lroundf(accent * 28.0f) : 0) + preview_rng_next_int(&rng, 0, 10), 1, 127);
+    }
 }
 
 static bool point_in_rect(int x, int y, int rx, int ry, int rw, int rh) {
@@ -428,6 +659,76 @@ static void draw_action(cairo_t* cr, const ActionButton* a) {
     cairo_show_text(cr, a->label);
 }
 
+static void draw_preview(cairo_t* cr, BassGenUI* ui, int x, int y, int width, int height) {
+    PreviewPattern pattern;
+    build_preview_pattern(ui, &pattern);
+
+    cairo_rectangle(cr, x, y, width, height);
+    cairo_set_source_rgb(cr, 0.10, 0.11, 0.14);
+    cairo_fill(cr);
+
+    cairo_rectangle(cr, x, y, width, height);
+    cairo_set_source_rgb(cr, 0.30, 0.33, 0.38);
+    cairo_set_line_width(cr, 1.0);
+    cairo_stroke(cr);
+
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 10.0);
+    cairo_set_source_rgb(cr, 0.86, 0.86, 0.86);
+    cairo_move_to(cr, x + 8, y + 14);
+    cairo_show_text(cr, "PREVIEW");
+
+    const int inner_x = x + 8;
+    const int inner_y = y + 20;
+    const int inner_w = width - 16;
+    const int inner_h = height - 28;
+
+    int note_min = 127;
+    int note_max = 0;
+    for (int i = 0; i < pattern.event_count; ++i) {
+        if (pattern.events[i].note < note_min) note_min = pattern.events[i].note;
+        if (pattern.events[i].note > note_max) note_max = pattern.events[i].note;
+    }
+    if (note_min > note_max) {
+        note_min = 36;
+        note_max = 48;
+    }
+    if (note_min == note_max) {
+        note_min -= 1;
+        note_max += 1;
+    }
+
+    for (int beat = 0; beat <= (int)lroundf(ui->sliders[1].value); ++beat) {
+        const double t = (double)beat / fmax(1.0, ui->sliders[1].value);
+        const double gx = inner_x + t * inner_w;
+        cairo_set_source_rgba(cr, 0.70, 0.70, 0.70, beat < (int)lroundf(ui->sliders[1].value) ? 0.18 : 0.10);
+        cairo_set_line_width(cr, (beat % 4) == 0 ? 1.1 : 0.6);
+        cairo_move_to(cr, gx, inner_y);
+        cairo_line_to(cr, gx, inner_y + inner_h);
+        cairo_stroke(cr);
+    }
+
+    for (int i = 0; i < pattern.event_count; ++i) {
+        const PreviewEvent* ev = &pattern.events[i];
+        const double start_t = (double)ev->start_step / (double)pattern.pattern_steps;
+        const double end_t = (double)(ev->start_step + ev->duration_steps) / (double)pattern.pattern_steps;
+        const double lane_t = (double)(ev->note - note_min) / (double)(note_max - note_min);
+        const double bar_x = inner_x + start_t * inner_w;
+        const double bar_w = fmax(3.0, (end_t - start_t) * inner_w - 1.0);
+        const double bar_y = inner_y + (1.0 - lane_t) * (inner_h - 12.0);
+        const double hue = clampf_local((float)ev->velocity / 127.0f, 0.25f, 1.0f);
+
+        cairo_rectangle(cr, bar_x, bar_y, bar_w, 10.0);
+        cairo_set_source_rgb(cr, 0.82, 0.36 + 0.22 * hue, 0.18);
+        cairo_fill(cr);
+
+        cairo_rectangle(cr, bar_x, bar_y, bar_w, 10.0);
+        cairo_set_source_rgba(cr, 0.98, 0.90, 0.80, 0.55);
+        cairo_set_line_width(cr, 0.7);
+        cairo_stroke(cr);
+    }
+}
+
 static void draw_ui(BassGenUI* ui) {
     cairo_t* cr = cairo_create(ui->surface);
     cairo_set_source_rgb(cr, 0.09, 0.09, 0.11);
@@ -446,6 +747,8 @@ static void draw_ui(BassGenUI* ui) {
     for (int i = 0; i < 3; ++i) {
         draw_action(cr, &ui->actions[i]);
     }
+    draw_preview(cr, ui, ui->groups[GROUP_ACTIONS].x + 18, ui->groups[GROUP_ACTIONS].y + 76,
+                 ui->groups[GROUP_ACTIONS].width - 36, 78);
     if (ui->open_selector >= 0) {
         draw_selector_with_ui(cr, ui, &ui->selectors[ui->open_selector]);
     }
@@ -472,11 +775,11 @@ static void draw_ui(BassGenUI* ui) {
 
 static void setup_layout(BassGenUI* ui) {
     ui->width = 760;
-    ui->height = 396;
+    ui->height = 474;
 
     ui->groups[GROUP_GLOBAL] = (GroupRect){10, 10, 360, 240};
     ui->groups[GROUP_PATTERN] = (GroupRect){380, 10, 370, 240};
-    ui->groups[GROUP_ACTIONS] = (GroupRect){10, 260, 740, 92};
+    ui->groups[GROUP_ACTIONS] = (GroupRect){10, 260, 740, 170};
 
     ui->slider_count = 0;
     ui->selector_count = 0;
@@ -515,9 +818,9 @@ static void setup_layout(BassGenUI* ui) {
     s->port = PORT_SUBDIVISION; s->label = "Subdivision"; s->items = kSubdivisionNames; s->count = 3; s->value = 1; s->open = false; s->item_height = 20;
     s->x = ui->groups[GROUP_PATTERN].x + 196; s->y = ui->groups[GROUP_PATTERN].y + 198; s->width = 158; s->height = 24;
 
-    ui->actions[0] = (ActionButton){PORT_ACTION_NEW, "NEW", 0, 34, 282, 200, 48};
-    ui->actions[1] = (ActionButton){PORT_ACTION_NOTES, "NOTES", 0, 280, 282, 200, 48};
-    ui->actions[2] = (ActionButton){PORT_ACTION_RHYTHM, "RHYTHM", 0, 526, 282, 200, 48};
+    ui->actions[0] = (ActionButton){PORT_ACTION_NEW, "NEW", 0, 34, 282, 200, 42};
+    ui->actions[1] = (ActionButton){PORT_ACTION_NOTES, "NOTES", 0, 280, 282, 200, 42};
+    ui->actions[2] = (ActionButton){PORT_ACTION_RHYTHM, "RHYTHM", 0, 526, 282, 200, 42};
     ui->open_selector = -1;
 }
 
