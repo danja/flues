@@ -25,6 +25,7 @@
 - **[Drumkit](lv2/drumkit/)** — Industrial drum synth with master FX.
 - **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
 - **[EuclidMono](lv2/euclid-mono/)** — Two-pattern Euclidean generator with logic operators and single-note output.
+- **[BassGen](lv2/bassgen/)** — Host-synced monophonic bassline MIDI generator with genre-biased phrase generation.
 - **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).
 - **[E-Mix](lv2/e-mix/)** — Euclidean mixer with bar-block gating and offset/fade controls.
@@ -232,6 +233,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
 - [lv2/euclid-mono/README.md](lv2/euclid-mono/README.md) - Two-pattern Euclidean logic generator
+- [lv2/bassgen/README.md](lv2/bassgen/README.md) - Monophonic bassline MIDI generator
 - [lv2/euclidean-gate/README.md](lv2/euclidean-gate/README.md) - Euclidean gate effect
 - [lv2/e-mix/README.md](lv2/e-mix/README.md) - Euclidean mixer effect
 - [lv2/quadrangle/README.md](lv2/quadrangle/README.md) - Launchpad performance instrument
