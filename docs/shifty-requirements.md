@@ -14,7 +14,7 @@ The effect is intended as a pattern-driven shifter rather than a continuously au
 - Each block contains a configurable number of equal divisions.
 - Each division has an integer semitone shift value.
 - The active semitone shift is determined by the current transport position within the block.
-- If host time is unavailable or transport is stopped, the first version may pass audio through unchanged.
+- If host time is unavailable or transport is stopped, the effect should fall back to clean pass-through.
 
 ## Timing Model
 
@@ -69,6 +69,7 @@ Required:
 - basic smoothing at shift transitions
 - stereo support
 - safe bypass/pass-through behaviour when timing is invalid
+- a pragmatic first-pass real-time pitch shifter, without promising high-end quality
 
 Not required in v1:
 
@@ -94,8 +95,10 @@ Not required in v1:
 ### Recommended Additional Controls
 
 - `mix`
-  - wet/dry blend
+  - wet percentage control
   - useful because strong pitch shifting may be more effective blended than fully wet
+  - recommended range `0..100`
+  - recommended default `100`
 - `smooth_ms`
   - transition smoothing time for shift changes
 

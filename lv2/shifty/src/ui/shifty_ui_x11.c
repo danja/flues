@@ -226,7 +226,7 @@ static void setup_layout(ShiftyUI* ui) {
 
     ui->globals[0] = (EditField){ "BLOCK BARS", PORT_BLOCK_BARS, 1.0f, 8.0f, 2.0f, true, 18, 70, 110, 26, "" };
     ui->globals[1] = (EditField){ "DIVISIONS", PORT_DIVISION_COUNT, 1.0f, 16.0f, 8.0f, true, 146, 70, 110, 26, "" };
-    ui->globals[2] = (EditField){ "MIX", PORT_MIX, 0.0f, 1.0f, 1.0f, false, 274, 70, 110, 26, "" };
+    ui->globals[2] = (EditField){ "WET %", PORT_MIX, 0.0f, 100.0f, 100.0f, true, 274, 70, 110, 26, "" };
     ui->globals[3] = (EditField){ "SMOOTH MS", PORT_SMOOTH_MS, 0.0f, 250.0f, 30.0f, true, 402, 70, 110, 26, "" };
 
     for (int i = 0; i < 4; ++i) {

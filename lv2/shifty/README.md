@@ -1,6 +1,6 @@
 # Shifty
 
-Shifty is a transport-synchronised LV2 audio effect for block-based pitch shifting. It tracks the active division from host transport, exposes editable semitone values per division, and now includes a first real-time granular/resampling pitch-shift core with wet/dry mix and transition smoothing.
+Shifty is a transport-synchronised LV2 audio effect for block-based pitch shifting. It tracks the active division from host transport, exposes editable semitone values per division, and now includes a first real-time granular/resampling pitch-shift core with an explicit `Wet %` control and transition smoothing.
 
 ## Build
 
@@ -22,6 +22,7 @@ From the repo root:
 - Stereo audio in/out LV2 effect
 - Host `time:Position` parsing
 - Block-bars and division-count controls
+- `Wet %` defaults to `100` for fully shifted output
 - Sixteen editable semitone division controls
 - UI highlighting of the active transport-selected division
 - First granular pitch-shift implementation with smoothed transport-selected shift changes

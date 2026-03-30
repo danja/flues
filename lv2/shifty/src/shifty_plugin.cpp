@@ -406,7 +406,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     const int division_count = clampi((int)lroundf(self->division_count ? *self->division_count : 8.0f), 1, kMaxDivisions);
     const int active_division = active_division_for_time(self, info, block_bars, division_count);
     const float shift = shift_value_for_division(self, active_division);
-    const float mix = clampf(self->mix ? *self->mix : 1.0f, 0.0f, 1.0f);
+    const float mix = clampf((self->mix ? *self->mix : 100.0f) * 0.01f, 0.0f, 1.0f);
     const float smooth_ms = clampf(self->smooth_ms ? *self->smooth_ms : 30.0f, 0.0f, 250.0f);
 
     self->last_division = active_division;
