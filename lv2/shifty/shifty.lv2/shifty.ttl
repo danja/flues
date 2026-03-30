@@ -1,0 +1,200 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/shifty>
+    a lv2:AudioPlugin , lv2:EffectPlugin ;
+    doap:name "Shifty" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    ui:ui <https://danja.github.io/flues/plugins/shifty#ui> ;
+    rdfs:comment "Transport-synchronised audio pitch-shift pattern effect scaffold." ;
+
+    lv2:port [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "control" ;
+        lv2:name "Control" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports time:Position ;
+        rdfs:comment "Host transport and tempo input" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ;
+        lv2:index 1 ;
+        lv2:symbol "in_l" ;
+        lv2:name "Input L" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ;
+        lv2:index 2 ;
+        lv2:symbol "in_r" ;
+        lv2:name "Input R" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ;
+        lv2:index 3 ;
+        lv2:symbol "out_l" ;
+        lv2:name "Output L" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ;
+        lv2:index 4 ;
+        lv2:symbol "out_r" ;
+        lv2:name "Output R" ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "block_bars" ;
+        lv2:name "Block Bars" ;
+        lv2:default 2 ;
+        lv2:minimum 1 ;
+        lv2:maximum 8 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "division_count" ;
+        lv2:name "Division Count" ;
+        lv2:default 8 ;
+        lv2:minimum 1 ;
+        lv2:maximum 16 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "mix" ;
+        lv2:name "Mix" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "smooth_ms" ;
+        lv2:name "Smooth ms" ;
+        lv2:default 30 ;
+        lv2:minimum 0 ;
+        lv2:maximum 250 ;
+    ] ,
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "shift_1" ;
+        lv2:name "Shift 1" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "shift_2" ;
+        lv2:name "Shift 2" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "shift_3" ;
+        lv2:name "Shift 3" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "shift_4" ;
+        lv2:name "Shift 4" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "shift_5" ;
+        lv2:name "Shift 5" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "shift_6" ;
+        lv2:name "Shift 6" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "shift_7" ;
+        lv2:name "Shift 7" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "shift_8" ;
+        lv2:name "Shift 8" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "shift_9" ;
+        lv2:name "Shift 9" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "shift_10" ;
+        lv2:name "Shift 10" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "shift_11" ;
+        lv2:name "Shift 11" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:symbol "shift_12" ;
+        lv2:name "Shift 12" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:symbol "shift_13" ;
+        lv2:name "Shift 13" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:symbol "shift_14" ;
+        lv2:name "Shift 14" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:symbol "shift_15" ;
+        lv2:name "Shift 15" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 24 ;
+        lv2:symbol "shift_16" ;
+        lv2:name "Shift 16" ;
+        lv2:default 0 ; lv2:minimum -24 ; lv2:maximum 24 ; lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 25 ;
+        lv2:symbol "active_division" ;
+        lv2:name "Active Division" ;
+        lv2:minimum -1 ;
+        lv2:maximum 15 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 26 ;
+        lv2:symbol "active_shift" ;
+        lv2:name "Active Shift" ;
+        lv2:minimum -24 ;
+        lv2:maximum 24 ;
+        lv2:portProperty lv2:integer ;
+    ] .
