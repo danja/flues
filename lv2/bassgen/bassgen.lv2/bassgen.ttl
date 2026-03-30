@@ -55,7 +55,7 @@
         lv2:name "Scale" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
-        lv2:maximum 8 ;
+        lv2:maximum 10 ;
         lv2:portProperty lv2:integer , lv2:enumeration ;
         lv2:scalePoint [ rdfs:label "Minor" ; rdf:value 0 ] ;
         lv2:scalePoint [ rdfs:label "Major" ; rdf:value 1 ] ;
@@ -66,6 +66,8 @@
         lv2:scalePoint [ rdfs:label "Mixolydian" ; rdf:value 6 ] ;
         lv2:scalePoint [ rdfs:label "Harmonic Minor" ; rdf:value 7 ] ;
         lv2:scalePoint [ rdfs:label "Pent Major" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Locrian" ; rdf:value 9 ] ;
+        lv2:scalePoint [ rdfs:label "Phrygian Dominant" ; rdf:value 10 ] ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 4 ;
@@ -73,7 +75,7 @@
         lv2:name "Genre" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
-        lv2:maximum 5 ;
+        lv2:maximum 7 ;
         lv2:portProperty lv2:integer , lv2:enumeration ;
         lv2:scalePoint [ rdfs:label "Techno" ; rdf:value 0 ] ;
         lv2:scalePoint [ rdfs:label "Acid" ; rdf:value 1 ] ;
@@ -81,6 +83,8 @@
         lv2:scalePoint [ rdfs:label "Electro" ; rdf:value 3 ] ;
         lv2:scalePoint [ rdfs:label "Dub" ; rdf:value 4 ] ;
         lv2:scalePoint [ rdfs:label "Ambient" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Funk" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Sabbath" ; rdf:value 7 ] ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 5 ;

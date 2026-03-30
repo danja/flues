@@ -63,9 +63,20 @@ The plugin is intended to generate musically usable bass phrases from a small se
     - `Mixolydian`
     - `Harmonic Minor`
     - `Pent Major`
+    - `Locrian`
+    - `Phrygian Dominant`
 - `genre`
   - Dropdown list
   - Used to bias phrase heuristics
+  - Current options:
+    - `Techno`
+    - `Acid`
+    - `House`
+    - `Electro`
+    - `Dub`
+    - `Ambient`
+    - `Funk`
+    - `Sabbath`
 - `channel`
   - Dropdown list
   - MIDI channels `1-16`
@@ -117,6 +128,8 @@ Genres should not fully determine the phrase; they should bias generation. Initi
 - `Electro`
 - `Dub`
 - `Ambient`
+- `Funk`
+- `Sabbath`
 
 Genre heuristics may influence:
 
@@ -127,6 +140,13 @@ Genre heuristics may influence:
 - phrase movement vs static ostinato behavior
 - average note sustain
 - accent placement
+
+Current implemented bias highlights:
+
+- `Funk`
+  - favors syncopated off-beat activity, shorter notes, and root/fifth/octave interplay
+- `Sabbath`
+  - favors heavier downbeats, longer sustains, darker stable tones, and more riff-like repetition
 
 ## Generation Model
 

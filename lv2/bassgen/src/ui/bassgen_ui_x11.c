@@ -138,11 +138,11 @@ static const char* kGroupNames[GROUP_COUNT] = {
 
 static const char* kScaleNames[] = {
     "Minor", "Major", "Dorian", "Phrygian", "Pent Minor", "Blues",
-    "Mixolydian", "Harm Minor", "Pent Major"
+    "Mixolydian", "Harm Minor", "Pent Major", "Locrian", "Phryg Dom"
 };
 
 static const char* kGenreNames[] = {
-    "Techno", "Acid", "House", "Electro", "Dub", "Ambient"
+    "Techno", "Acid", "House", "Electro", "Dub", "Ambient", "Funk", "Sabbath"
 };
 
 static const char* kSubdivisionNames[] = {
@@ -186,6 +186,8 @@ static const int kPreviewScaleBlues[] = {0, 3, 5, 6, 7, 10};
 static const int kPreviewScaleMixolydian[] = {0, 2, 4, 5, 7, 9, 10};
 static const int kPreviewScaleHarmMinor[] = {0, 2, 3, 5, 7, 8, 11};
 static const int kPreviewScalePentMajor[] = {0, 2, 4, 7, 9};
+static const int kPreviewScaleLocrian[] = {0, 1, 3, 5, 6, 8, 10};
+static const int kPreviewScalePhrygDom[] = {0, 1, 4, 5, 7, 8, 10};
 
 typedef struct {
     const int* intervals;
@@ -201,7 +203,9 @@ static const PreviewScaleDef kPreviewScales[] = {
     {kPreviewScaleBlues, 6},
     {kPreviewScaleMixolydian, 7},
     {kPreviewScaleHarmMinor, 7},
-    {kPreviewScalePentMajor, 5}
+    {kPreviewScalePentMajor, 5},
+    {kPreviewScaleLocrian, 7},
+    {kPreviewScalePhrygDom, 7}
 };
 
 static const ControlDesc kControlDescs[] = {
@@ -287,12 +291,36 @@ static int preview_register_offset(int reg) {
 static int preview_choose_degree(PreviewRng* rng, int genre, int strong_beat, int prev_degree) {
     const float roll = preview_rng_next_float(rng);
     if (strong_beat) {
+        if (genre == 6) {
+            if (roll < 0.35f) return 0;
+            if (roll < 0.58f) return 4;
+            if (roll < 0.76f) return 7;
+            return 2;
+        }
+        if (genre == 7) {
+            if (roll < 0.52f) return 0;
+            if (roll < 0.76f) return 4;
+            if (roll < 0.90f) return 6;
+            return 1;
+        }
         if (roll < 0.45f) return 0;
         if (roll < 0.70f) return 4;
         if (roll < 0.82f) return 2;
     }
 
     switch (genre) {
+        case 6:
+            if (roll < 0.24f) return prev_degree;
+            if (roll < 0.45f) return (prev_degree < 7) ? prev_degree + 1 : 4;
+            if (roll < 0.61f) return (prev_degree > 0) ? prev_degree - 1 : 0;
+            if (roll < 0.78f) return 7;
+            return (preview_rng_next_float(rng) < 0.5f) ? 0 : 4;
+        case 7:
+            if (roll < 0.36f) return 0;
+            if (roll < 0.58f) return 4;
+            if (roll < 0.74f) return 6;
+            if (roll < 0.86f) return 1;
+            return (roll < 0.93f) ? prev_degree : 3;
         case 1:
             if (roll < 0.25f) return prev_degree;
             if (roll < 0.55f) return clampi_local(prev_degree + preview_rng_next_int(rng, -1, 1), 0, 6);
@@ -317,6 +345,46 @@ static int preview_note_from_degree(int root_note, int scale_index, int reg, int
     const int degree = degree_index % scale->count;
     const int interval = scale->intervals[degree] + 12 * octave;
     return clampi_local(root_note + preview_register_offset(reg) + interval, 0, 127);
+}
+
+static int preview_sabbath_cell_length(const PreviewPattern* pattern) {
+    if (pattern->event_count >= 8) return 4;
+    if (pattern->event_count >= 4) return 3;
+    return 2;
+}
+
+static void preview_build_sabbath_cell(int* cell, int cell_len, PreviewRng* rng) {
+    if (cell_len <= 0) {
+        return;
+    }
+    cell[0] = 0;
+    if (cell_len > 1) {
+        const float roll = preview_rng_next_float(rng);
+        cell[1] = (roll < 0.45f) ? 4 : ((roll < 0.78f) ? 6 : 1);
+    }
+    if (cell_len > 2) {
+        const float roll = preview_rng_next_float(rng);
+        cell[2] = (roll < 0.40f) ? 0 : ((roll < 0.68f) ? 6 : ((roll < 0.88f) ? 1 : 3));
+    }
+    if (cell_len > 3) {
+        const float roll = preview_rng_next_float(rng);
+        cell[3] = (roll < 0.50f) ? 4 : ((roll < 0.78f) ? 0 : 6);
+    }
+}
+
+static int preview_sabbath_cell_degree(const PreviewPattern* pattern, PreviewRng* rng, const int* cell, int cell_len, int event_index) {
+    const int degree = cell[event_index % cell_len];
+    const int phrase_restart = (event_index % cell_len) == 0;
+    const int late_phrase = event_index >= cell_len && pattern->event_count > cell_len;
+    if (!late_phrase || phrase_restart || preview_rng_next_float(rng) < 0.70f) {
+        return degree;
+    }
+
+    const float roll = preview_rng_next_float(rng);
+    if (roll < 0.45f) return degree;
+    if (roll < 0.72f) return 0;
+    if (roll < 0.86f) return 4;
+    return (degree == 6) ? 1 : 6;
 }
 
 static uint32_t preview_seed_from_ui(const BassGenUI* ui) {
@@ -368,6 +436,8 @@ static void build_preview_pattern(const BassGenUI* ui, PreviewPattern* pattern) 
             case 3: probability *= strong ? 1.00f : 1.05f; break;
             case 4: probability *= strong ? 1.20f : 0.58f; break;
             case 5: probability *= strong ? 0.90f : 0.45f; break;
+            case 6: probability *= strong ? 0.84f : 1.28f; break;
+            case 7: probability *= strong ? 1.22f : 0.52f; break;
         }
         if (cooldown > 0) {
             probability *= 0.30f;
@@ -393,7 +463,13 @@ static void build_preview_pattern(const BassGenUI* ui, PreviewPattern* pattern) 
         const int available = clampi_local(next_step - step, 1, pattern->pattern_steps);
         int duration = 1;
         if (available > 1) {
-            const int max_hold = clampi_local((int)floorf(1.0f + hold * (float)(available - 1)), 1, available);
+            float hold_bias = hold;
+            if (genre == 6) {
+                hold_bias *= 0.72f;
+            } else if (genre == 7) {
+                hold_bias = clampf_local(hold_bias * 1.35f + 0.12f, 0.0f, 1.0f);
+            }
+            const int max_hold = clampi_local((int)floorf(1.0f + hold_bias * (float)(available - 1)), 1, available);
             duration = clampi_local(1 + preview_rng_next_int(&rng, 0, max_hold - 1), 1, available);
         }
 
@@ -414,10 +490,18 @@ static void build_preview_pattern(const BassGenUI* ui, PreviewPattern* pattern) 
 
     preview_rng_seed(&rng, preview_seed_from_ui(ui) ^ 0xA5A5A5A5u);
     int prev_degree = 0;
+    int sabbath_cell[4] = {0, 4, 6, 0};
+    int sabbath_cell_len = 0;
+    if (genre == 7) {
+        sabbath_cell_len = preview_sabbath_cell_length(pattern);
+        preview_build_sabbath_cell(sabbath_cell, sabbath_cell_len, &rng);
+    }
     for (int i = 0; i < pattern->event_count; ++i) {
         PreviewEvent* ev = &pattern->events[i];
         const int strong = (ev->start_step % pattern->steps_per_beat) == 0;
-        const int degree = preview_choose_degree(&rng, genre, strong, prev_degree);
+        const int degree = (genre == 7)
+            ? preview_sabbath_cell_degree(pattern, &rng, sabbath_cell, sabbath_cell_len, i)
+            : preview_choose_degree(&rng, genre, strong, prev_degree);
         prev_degree = degree;
         ev->note = preview_note_from_degree(root_note, scale, reg, degree);
         ev->velocity = clampi_local(86 + (strong ? (int)lroundf(accent * 28.0f) : 0) + preview_rng_next_int(&rng, 0, 10), 1, 127);
@@ -803,11 +887,11 @@ static void setup_layout(BassGenUI* ui) {
     }
 
     Selector* s = &ui->selectors[ui->selector_count++];
-    s->port = PORT_SCALE; s->label = "Scale"; s->items = kScaleNames; s->count = 9; s->value = 0; s->open = false; s->item_height = 20;
+    s->port = PORT_SCALE; s->label = "Scale"; s->items = kScaleNames; s->count = 11; s->value = 0; s->open = false; s->item_height = 20;
     s->x = ui->groups[GROUP_GLOBAL].x + 70; s->y = ui->groups[GROUP_GLOBAL].y + 38; s->width = 260; s->height = 24;
 
     s = &ui->selectors[ui->selector_count++];
-    s->port = PORT_GENRE; s->label = "Genre"; s->items = kGenreNames; s->count = 6; s->value = 0; s->open = false; s->item_height = 20;
+    s->port = PORT_GENRE; s->label = "Genre"; s->items = kGenreNames; s->count = 8; s->value = 0; s->open = false; s->item_height = 20;
     s->x = ui->groups[GROUP_GLOBAL].x + 70; s->y = ui->groups[GROUP_GLOBAL].y + 72; s->width = 260; s->height = 24;
 
     s = &ui->selectors[ui->selector_count++];

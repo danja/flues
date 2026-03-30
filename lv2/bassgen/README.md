@@ -2,6 +2,8 @@
 
 BassGen is a monophonic LV2 MIDI bassline generator. It creates host-synced phrases from root, scale, genre, length, subdivision, density, and related controls, and persists the generated pattern with LV2 state.
 
+Current genre list includes `Techno`, `Acid`, `House`, `Electro`, `Dub`, `Ambient`, `Funk`, and `Sabbath`. Scale choices include the original modal/pentatonic set plus `Locrian` and `Phrygian Dominant` for darker material.
+
 ## Build
 
 ```bash
@@ -32,4 +34,6 @@ From the repo root:
 - `New` regenerates the whole phrase.
 - `Notes` mutates pitch while keeping the current rhythm shape.
 - `Rhythm` mutates note timing while preserving the current note set as much as possible.
+- `Funk` biases toward syncopated, clipped, octave-friendly lines.
+- `Sabbath` biases toward heavier downbeats, longer holds, and darker riff movement.
 - The preview panel is schematic: it reflects the current controls closely, but it is not yet a direct rendering of the persisted DSP pattern.

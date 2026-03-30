@@ -48,6 +48,8 @@ enum ScaleId {
     SCALE_MIXOLYDIAN,
     SCALE_HARMONIC_MINOR,
     SCALE_PENT_MAJOR,
+    SCALE_LOCRIAN,
+    SCALE_PHRYGIAN_DOMINANT,
     SCALE_COUNT
 };
 
@@ -58,6 +60,8 @@ enum GenreId {
     GENRE_ELECTRO,
     GENRE_DUB,
     GENRE_AMBIENT,
+    GENRE_FUNK,
+    GENRE_SABBATH,
     GENRE_COUNT
 };
 
@@ -149,6 +153,8 @@ static const int kScaleBlues[] = {0, 3, 5, 6, 7, 10};
 static const int kScaleMixolydian[] = {0, 2, 4, 5, 7, 9, 10};
 static const int kScaleHarmonicMinor[] = {0, 2, 3, 5, 7, 8, 11};
 static const int kScalePentMajor[] = {0, 2, 4, 7, 9};
+static const int kScaleLocrian[] = {0, 1, 3, 5, 6, 8, 10};
+static const int kScalePhrygianDominant[] = {0, 1, 4, 5, 7, 8, 10};
 
 static const ScaleDef kScales[SCALE_COUNT] = {
     {kScaleMinor, 7},
@@ -159,7 +165,9 @@ static const ScaleDef kScales[SCALE_COUNT] = {
     {kScaleBlues, 6},
     {kScaleMixolydian, 7},
     {kScaleHarmonicMinor, 7},
-    {kScalePentMajor, 5}
+    {kScalePentMajor, 5},
+    {kScaleLocrian, 7},
+    {kScalePhrygianDominant, 7}
 };
 
 struct BassGenURIDs {
@@ -415,12 +423,36 @@ static const NoteEventData* find_active_event(const PatternStateBlob& pattern, d
 static int choose_degree(Rng* rng, int genre, bool strong_beat, int prev_degree) {
     const float roll = rng->next_float();
     if (strong_beat) {
+        if (genre == GENRE_FUNK) {
+            if (roll < 0.35f) return 0;
+            if (roll < 0.58f) return 4;
+            if (roll < 0.76f) return 7;
+            return 2;
+        }
+        if (genre == GENRE_SABBATH) {
+            if (roll < 0.52f) return 0;
+            if (roll < 0.76f) return 4;
+            if (roll < 0.90f) return 6;
+            return 1;
+        }
         if (roll < 0.45f) return 0;
         if (roll < 0.70f) return 4;
         if (roll < 0.82f) return 2;
     }
 
     switch (genre) {
+        case GENRE_FUNK:
+            if (roll < 0.24f) return prev_degree;
+            if (roll < 0.45f) return (prev_degree < 7) ? prev_degree + 1 : 4;
+            if (roll < 0.61f) return (prev_degree > 0) ? prev_degree - 1 : 0;
+            if (roll < 0.78f) return 7;
+            return (rng->next_float() < 0.5f) ? 0 : 4;
+        case GENRE_SABBATH:
+            if (roll < 0.36f) return 0;
+            if (roll < 0.58f) return 4;
+            if (roll < 0.74f) return 6;
+            if (roll < 0.86f) return 1;
+            return (roll < 0.93f) ? prev_degree : 3;
         case GENRE_ACID:
             if (roll < 0.25f) return prev_degree;
             if (roll < 0.55f) return clampi(prev_degree + rng->next_int(-1, 1), 0, 6);
@@ -456,6 +488,8 @@ static float genre_density_bias(int genre, bool strong) {
         case GENRE_ELECTRO: return strong ? 1.00f : 1.05f;
         case GENRE_DUB: return strong ? 1.20f : 0.58f;
         case GENRE_AMBIENT: return strong ? 0.90f : 0.45f;
+        case GENRE_FUNK: return strong ? 0.84f : 1.28f;
+        case GENRE_SABBATH: return strong ? 1.22f : 0.52f;
         default: return 1.0f;
     }
 }
@@ -473,8 +507,59 @@ static int choose_duration_steps(const ControlSnapshot& controls, Rng* rng, int 
     if (available_steps <= 1) {
         return 1;
     }
-    const int max_hold = clampi((int)floorf(1.0f + controls.hold * (float)(available_steps - 1)), 1, available_steps);
+    float hold_bias = controls.hold;
+    switch (controls.genre) {
+        case GENRE_FUNK:
+            hold_bias *= 0.72f;
+            break;
+        case GENRE_SABBATH:
+            hold_bias = clampf(hold_bias * 1.35f + 0.12f, 0.0f, 1.0f);
+            break;
+        default:
+            break;
+    }
+    const int max_hold = clampi((int)floorf(1.0f + hold_bias * (float)(available_steps - 1)), 1, available_steps);
     return clampi(1 + rng->next_int(0, max_hold - 1), 1, available_steps);
+}
+
+static int sabbath_cell_length(const PatternStateBlob* pattern) {
+    if (pattern->event_count >= 8) return 4;
+    if (pattern->event_count >= 4) return 3;
+    return 2;
+}
+
+static void build_sabbath_degree_cell(int* cell, int cell_len, Rng* rng) {
+    if (cell_len <= 0) {
+        return;
+    }
+    cell[0] = 0;
+    if (cell_len > 1) {
+        const float roll = rng->next_float();
+        cell[1] = (roll < 0.45f) ? 4 : ((roll < 0.78f) ? 6 : 1);
+    }
+    if (cell_len > 2) {
+        const float roll = rng->next_float();
+        cell[2] = (roll < 0.40f) ? 0 : ((roll < 0.68f) ? 6 : ((roll < 0.88f) ? 1 : 3));
+    }
+    if (cell_len > 3) {
+        const float roll = rng->next_float();
+        cell[3] = (roll < 0.50f) ? 4 : ((roll < 0.78f) ? 0 : 6);
+    }
+}
+
+static int sabbath_cell_degree(const PatternStateBlob* pattern, Rng* rng, const int* cell, int cell_len, int event_index) {
+    const int degree = cell[event_index % cell_len];
+    const bool phrase_restart = (event_index % cell_len) == 0;
+    const bool late_phrase = event_index >= cell_len && pattern->event_count > cell_len;
+    if (!late_phrase || phrase_restart || rng->next_float() < 0.70f) {
+        return degree;
+    }
+
+    const float roll = rng->next_float();
+    if (roll < 0.45f) return degree;
+    if (roll < 0.72f) return 0;
+    if (roll < 0.86f) return 4;
+    return (degree == 6) ? 1 : 6;
 }
 
 static void ensure_first_event(PatternStateBlob* pattern, const ControlSnapshot& controls) {
@@ -536,10 +621,19 @@ static void generate_rhythm(PatternStateBlob* pattern, const ControlSnapshot& co
 
 static void generate_notes(PatternStateBlob* pattern, const ControlSnapshot& controls, Rng* rng) {
     int prev_degree = 0;
+    int sabbath_cell[4] = {0, 4, 6, 0};
+    int sabbath_cell_len = 0;
+    if (controls.genre == GENRE_SABBATH) {
+        sabbath_cell_len = sabbath_cell_length(pattern);
+        build_sabbath_degree_cell(sabbath_cell, sabbath_cell_len, rng);
+    }
+
     for (int i = 0; i < pattern->event_count; ++i) {
         NoteEventData* ev = &pattern->events[i];
         const bool strong = (ev->start_step % pattern->steps_per_beat) == 0;
-        const int degree = choose_degree(rng, controls.genre, strong, prev_degree);
+        const int degree = (controls.genre == GENRE_SABBATH)
+            ? sabbath_cell_degree(pattern, rng, sabbath_cell, sabbath_cell_len, i)
+            : choose_degree(rng, controls.genre, strong, prev_degree);
         prev_degree = degree;
         ev->note = note_from_degree(controls, degree);
 

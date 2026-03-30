@@ -32,7 +32,7 @@ EuclidMono is a two-pattern Euclidean generator for a single MIDI note. It combi
 ### bassgen
 BassGen is a monophonic MIDI bassline generator that builds phrases from root, scale, genre, density, and timing controls. It follows host transport, restarts bar-relative, offers a compact phrase preview in the UI, and persists the generated pattern exactly through LV2 state.
 
-*This is aimed at the gap between a utility sequencer and a phrase generator. The current implementation is a first pass, but the transport model and persistence are in place for deeper heuristics.*
+*This is aimed at the gap between a utility sequencer and a phrase generator. The current implementation now includes broader harmonic support and more characterful style presets, including `Funk` and `Sabbath` biases for distinctly different bass behavior.*
 
 ### midi-flip
 MIDI Flip mirrors note events around a user-defined pivot note. It is a compact utility for inversion-like transformations in melodic material.
