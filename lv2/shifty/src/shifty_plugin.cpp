@@ -251,14 +251,29 @@ static void spawn_grain(Shifty* self) {
     self->grains[slot].start_pos = (float)wrap_index(self->write_pos - kBaseLatency);
 }
 
-static void process_pitch_shift(Shifty* self, uint32_t n_samples, float mix, float smooth_ms) {
+static int active_division_for_bar_position(double absolute_bars, int block_bars, int division_count);
+static float shift_value_for_division(Shifty* self, int division);
+
+static void process_pitch_shift(Shifty* self,
+                                uint32_t n_samples,
+                                float mix,
+                                float smooth_ms,
+                                double start_bar_pos,
+                                double bars_per_sample,
+                                int block_bars,
+                                int division_count) {
     const float input_mix = 1.0f - mix;
     const float smooth_samples = fmaxf(1.0f, (smooth_ms * 0.001f) * (float)self->sample_rate);
     const float smooth_coeff = 1.0f / smooth_samples;
+    double bar_pos = start_bar_pos;
 
     for (uint32_t i = 0; i < n_samples; ++i) {
         const float in_l = self->in_l ? self->in_l[i] : 0.0f;
         const float in_r = self->in_r ? self->in_r[i] : 0.0f;
+
+        const int active_division = active_division_for_bar_position(bar_pos, block_bars, division_count);
+        self->last_division = active_division;
+        self->target_shift = shift_value_for_division(self, active_division);
 
         self->buffer_l[self->write_pos] = in_l;
         self->buffer_r[self->write_pos] = in_r;
@@ -304,19 +319,25 @@ static void process_pitch_shift(Shifty* self, uint32_t n_samples, float mix, flo
         self->out_l[i] = in_l * input_mix + wet_l * mix;
         self->out_r[i] = in_r * input_mix + wet_r * mix;
         self->write_pos = wrap_index(self->write_pos + 1);
+        bar_pos += bars_per_sample;
     }
 }
 
-static int active_division_for_time(Shifty* self, const TimeInfo& info, int block_bars, int division_count) {
-    if (!info.valid || !info.playing || block_bars <= 0 || division_count <= 0) {
+static int active_division_for_bar_position(double absolute_bars, int block_bars, int division_count) {
+    if (block_bars <= 0 || division_count <= 0) {
         return -1;
     }
-
-    const double absolute_bars = info.bar + (info.barBeat / info.beatsPerBar);
     const double block_phase = fmod(absolute_bars, (double)block_bars);
     const double positive_phase = block_phase < 0.0 ? block_phase + (double)block_bars : block_phase;
     const double division_span = (double)block_bars / (double)division_count;
     return clampi((int)floor(positive_phase / division_span), 0, division_count - 1);
+}
+
+static int active_division_for_time(const TimeInfo& info, int block_bars, int division_count) {
+    if (!info.valid || !info.playing || info.beatsPerBar <= 0.0) {
+        return -1;
+    }
+    return active_division_for_bar_position(info.bar + (info.barBeat / info.beatsPerBar), block_bars, division_count);
 }
 
 static float shift_value_for_division(Shifty* self, int division) {
@@ -404,7 +425,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
     const int block_bars = clampi((int)lroundf(self->block_bars ? *self->block_bars : 2.0f), 1, 8);
     const int division_count = clampi((int)lroundf(self->division_count ? *self->division_count : 8.0f), 1, kMaxDivisions);
-    const int active_division = active_division_for_time(self, info, block_bars, division_count);
+    const int active_division = active_division_for_time(info, block_bars, division_count);
     const float shift = shift_value_for_division(self, active_division);
     const float mix = clampf((self->mix ? *self->mix : 100.0f) * 0.01f, 0.0f, 1.0f);
     const float smooth_ms = clampf(self->smooth_ms ? *self->smooth_ms : 30.0f, 0.0f, 250.0f);
@@ -420,14 +441,16 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             self->out_r[i] = self->in_r ? self->in_r[i] : 0.0f;
         }
     } else {
-        process_pitch_shift(self, n_samples, mix, smooth_ms);
+        const double start_bar_pos = info.bar + (info.barBeat / info.beatsPerBar);
+        const double bars_per_sample = (info.bpm / (60.0 * self->sample_rate)) / info.beatsPerBar;
+        process_pitch_shift(self, n_samples, mix, smooth_ms, start_bar_pos, bars_per_sample, block_bars, division_count);
     }
 
     if (self->active_division) {
-        *self->active_division = (float)active_division;
+        *self->active_division = (float)self->last_division;
     }
     if (self->active_shift) {
-        *self->active_shift = shift;
+        *self->active_shift = self->target_shift;
     }
 }
 
