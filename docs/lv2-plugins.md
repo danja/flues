@@ -142,6 +142,11 @@ Memone is a predictive audio effect that applies lightweight online sequence mod
 
 These are designed for use with an Akai Launchpad Mini Mk3.
 
+### achord
+Achord is a Launchpad chord instrument that treats the 8x8 grid like a banked accordion-style button table, with fifths across the columns and fixed chord families on the rows.
+
+*The current build has Launchpad LED feedback, a minimal X11 status UI, and live controls for bank, octave, scale, register, trigger mode, hold mode, bass, add9, sus, inversion, spread, accent, voice-leading, and panic. It is usable now, but still clearly experimental and likely to evolve.*
+
 ### arpiso
 ArpIso is a Euclidean gravity arpeggiator built around the Launchpad Mini MK3. Held pads act as wells that drive playheads and generate quantized note output synced to host transport.
 
@@ -185,7 +190,7 @@ MetaLV is an LV2 host plugin that can load and route other LV2 plugins in multip
 ### Helper scripts
 `./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `chatterbox`, `chatgen`, `drumkit`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
 
-Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
+Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
 
 For Meson-based builds such as `grid-seq`, the scripts wrap `meson setup`, `meson compile`, and `meson install`, so those commands can also be run manually if you prefer. If you want fine-grained control, open `lv2/<plugin>/README.md` for plugin-specific notes and repeat the manual CMake/Meson commands outlined in this section.
 

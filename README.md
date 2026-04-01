@@ -16,6 +16,7 @@
 
 ### LV2
 - **[LV2 Plugins Overview](docs/lv2-plugins.md)** — Quick reference for all LV2 plugins in this repository.
+- **[Achord](lv2/achord/)** — Launchpad Mini MK3 chord instrument with accordion-style mapping, LED feedback, and a compact X11 status UI.
 - **[PM-Synth](lv2/pm-synth/)** — Physical modeling plugin based on Stove.
 - **[Disyn](lv2/disyn/)** — Distortion synthesis plugin with 17 algorithms.
 - **[Chatterbox](lv2/chatterbox/)** — Speech synthesis plugin with formant controls.
