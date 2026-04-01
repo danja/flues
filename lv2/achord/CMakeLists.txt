@@ -45,6 +45,7 @@ set_target_properties(achord PROPERTIES
 
 add_library(achord_ui SHARED
     src/ui/achord_ui_x11.c
+    src/chord_map.c
 )
 target_link_libraries(achord_ui
     ${X11_LIBRARIES}

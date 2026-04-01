@@ -33,12 +33,14 @@
 #define PAD_GAP 4
 #define MARGIN 18
 #define LEFT_LABEL_W 76
-#define TOP_LABEL_H 34
+#define TOP_BUTTON_SIZE 28
+#define COLUMN_LABEL_H 16
+#define TOP_SECTION_H (TOP_BUTTON_SIZE + COLUMN_LABEL_H + 8)
 #define SIDE_BUTTON_W 40
-#define INFO_HEIGHT 170
+#define INFO_HEIGHT 280
 
 #define WINDOW_WIDTH (MARGIN * 2 + LEFT_LABEL_W + GRID_DIM * (PAD_SIZE + PAD_GAP) + SIDE_BUTTON_W + 12)
-#define WINDOW_HEIGHT (MARGIN * 2 + TOP_LABEL_H + GRID_DIM * (PAD_SIZE + PAD_GAP) + INFO_HEIGHT)
+#define WINDOW_HEIGHT (MARGIN * 2 + TOP_SECTION_H + GRID_DIM * (PAD_SIZE + PAD_GAP) + INFO_HEIGHT)
 
 typedef struct {
     double r, g, b;
@@ -129,9 +131,16 @@ static double palette_brightness(uint8_t index) {
         return 0.98;
     }
     if (index == 1 || index == 4 || index == 7 || index == 20 || index == 33 || index == 44 || index == 48 || index == 56) {
-        return 0.48;
+        return 0.66;
     }
     return 0.78;
+}
+
+static void draw_text_centered(cairo_t *cr, double center_x, double baseline_y, const char *text) {
+    cairo_text_extents_t extents;
+    cairo_text_extents(cr, text, &extents);
+    cairo_move_to(cr, center_x - (extents.width * 0.5 + extents.x_bearing), baseline_y);
+    cairo_show_text(cr, text);
 }
 
 static void draw_pad(cairo_t *cr, double x, double y, double size, Color color, double brightness) {
@@ -199,6 +208,14 @@ static const char *inversion_name(int inversion) {
     }
 }
 
+static const char *clock_source_name(uint8_t source) {
+    switch (source) {
+        case 1: return "Host";
+        case 2: return "Internal";
+        default: return "Off";
+    }
+}
+
 static int apply_launchpad_led_triplet(AchordUI *ui, uint8_t key, uint8_t color) {
     uint8_t row = 0;
     uint8_t col = 0;
@@ -254,7 +271,7 @@ static int apply_launchpad_midi_to_ui_state(AchordUI *ui, const uint8_t *midi, u
 
 static int grid_hit_test(int x, int y, uint8_t *out_row, uint8_t *out_col) {
     const int grid_x = x - (MARGIN + LEFT_LABEL_W);
-    const int grid_y = y - (MARGIN + TOP_LABEL_H);
+    const int grid_y = y - (MARGIN + TOP_SECTION_H);
     if (grid_x < 0 || grid_y < 0) return 0;
 
     const int cell = PAD_SIZE + PAD_GAP;
@@ -271,12 +288,12 @@ static int grid_hit_test(int x, int y, uint8_t *out_row, uint8_t *out_col) {
 static int top_hit_test(int x, int y, uint8_t *out_index) {
     const int local_x = x - (MARGIN + LEFT_LABEL_W);
     const int local_y = y - MARGIN;
-    if (local_x < 0 || local_y < 0 || local_y >= TOP_LABEL_H) return 0;
+    if (local_x < 0 || local_y < 0 || local_y >= TOP_BUTTON_SIZE) return 0;
 
     const int cell = PAD_SIZE + PAD_GAP;
     const int col = local_x / cell;
     if (col >= 0 && col < 8) {
-        if ((local_x % cell) >= (TOP_LABEL_H - 6)) return 0;
+        if ((local_x % cell) >= TOP_BUTTON_SIZE) return 0;
         *out_index = (uint8_t)col;
         return 1;
     }
@@ -285,7 +302,7 @@ static int top_hit_test(int x, int y, uint8_t *out_index) {
 
 static int side_hit_test(int x, int y, uint8_t *out_index) {
     const int local_x = x - (MARGIN + LEFT_LABEL_W + GRID_DIM * (PAD_SIZE + PAD_GAP) + 4);
-    const int local_y = y - (MARGIN + TOP_LABEL_H);
+    const int local_y = y - (MARGIN + TOP_SECTION_H);
     if (local_x < 0 || local_y < 0 || local_x >= SIDE_BUTTON_W) return 0;
 
     const int cell = PAD_SIZE + PAD_GAP;
@@ -303,6 +320,7 @@ static void draw_ui(AchordUI *ui) {
 
     const char *top_labels[8] = {"Bank-", "Bank+", "Oct-", "Oct+", "Scale", "Reg", "Trig", "Hold"};
     const char *side_labels[8] = {"Bass", "Add9", "Sus", "Inv", "Spread", "Accent", "Lead", "Panic"};
+    const double grid_top = MARGIN + TOP_SECTION_H;
 
     cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     cairo_set_font_size(cr, 12);
@@ -311,22 +329,24 @@ static void draw_ui(AchordUI *ui) {
     cairo_show_text(cr, "Achord");
 
     for (uint8_t c = 0; c < GRID_DIM; ++c) {
-        char root_name[8];
-        achord_root_name_for_column(ui->state.tonic_note, ui->state.bank_offset, c, root_name, sizeof(root_name));
         const double x = MARGIN + LEFT_LABEL_W + c * (PAD_SIZE + PAD_GAP);
-        const double y = MARGIN + 22;
-        draw_pad(cr, x, MARGIN, TOP_LABEL_H - 6, palette_color(ui->state.top[c]), palette_brightness(ui->state.top[c]));
+        draw_pad(cr, x, MARGIN, TOP_BUTTON_SIZE, palette_color(ui->state.top[c]), palette_brightness(ui->state.top[c]));
         cairo_set_source_rgba(cr, 0.98, 0.98, 0.98, 0.92);
         cairo_set_font_size(cr, 8.5);
-        cairo_move_to(cr, x + 4, MARGIN + TOP_LABEL_H - 11);
-        cairo_show_text(cr, top_labels[c]);
-        cairo_set_font_size(cr, 11.0);
-        cairo_move_to(cr, x + 4, y);
-        cairo_show_text(cr, root_name);
+        draw_text_centered(cr, x + TOP_BUTTON_SIZE * 0.5, MARGIN + TOP_BUTTON_SIZE - 8, top_labels[c]);
+    }
+
+    cairo_set_source_rgba(cr, 0.84, 0.84, 0.88, 0.82);
+    cairo_set_font_size(cr, 10.0);
+    for (uint8_t c = 0; c < GRID_DIM; ++c) {
+        char root_name[8];
+        const double x = MARGIN + LEFT_LABEL_W + c * (PAD_SIZE + PAD_GAP);
+        achord_root_name_for_column(ui->state.tonic_note, ui->state.bank_offset, c, root_name, sizeof(root_name));
+        draw_text_centered(cr, x + PAD_SIZE * 0.5, MARGIN + TOP_BUTTON_SIZE + COLUMN_LABEL_H - 2, root_name);
     }
 
     for (uint8_t r = 0; r < GRID_DIM; ++r) {
-        const double label_y = MARGIN + TOP_LABEL_H + (GRID_DIM - 1 - r) * (PAD_SIZE + PAD_GAP) + PAD_SIZE * 0.62;
+        const double label_y = grid_top + (GRID_DIM - 1 - r) * (PAD_SIZE + PAD_GAP) + PAD_SIZE * 0.62;
         cairo_set_source_rgba(cr, 0.88, 0.88, 0.90, 0.82);
         cairo_set_font_size(cr, 10.5);
         cairo_move_to(cr, MARGIN, label_y);
@@ -336,7 +356,7 @@ static void draw_ui(AchordUI *ui) {
     for (uint8_t r = 0; r < GRID_DIM; ++r) {
         for (uint8_t c = 0; c < GRID_DIM; ++c) {
             const double x = MARGIN + LEFT_LABEL_W + c * (PAD_SIZE + PAD_GAP);
-            const double y = MARGIN + TOP_LABEL_H + (GRID_DIM - 1 - r) * (PAD_SIZE + PAD_GAP);
+            const double y = grid_top + (GRID_DIM - 1 - r) * (PAD_SIZE + PAD_GAP);
             const uint8_t palette = ui->state.grid[r][c];
             draw_pad(cr, x, y, PAD_SIZE, palette_color(palette), palette_brightness(palette));
         }
@@ -344,7 +364,7 @@ static void draw_ui(AchordUI *ui) {
 
     for (uint8_t idx = 0; idx < GRID_DIM; ++idx) {
         const double x = MARGIN + LEFT_LABEL_W + GRID_DIM * (PAD_SIZE + PAD_GAP) + 4;
-        const double y = MARGIN + TOP_LABEL_H + (GRID_DIM - 1 - idx) * (PAD_SIZE + PAD_GAP);
+        const double y = grid_top + (GRID_DIM - 1 - idx) * (PAD_SIZE + PAD_GAP);
         draw_pad(cr, x, y, SIDE_BUTTON_W - 6,
                  palette_color(ui->state.side[idx]),
                  palette_brightness(ui->state.side[idx]));
@@ -354,14 +374,17 @@ static void draw_ui(AchordUI *ui) {
         cairo_show_text(cr, side_labels[idx]);
     }
 
-    const double info_y = MARGIN + TOP_LABEL_H + GRID_DIM * (PAD_SIZE + PAD_GAP) + 10;
+    const double info_y = grid_top + GRID_DIM * (PAD_SIZE + PAD_GAP) + 10;
     cairo_set_source_rgba(cr, 0.96, 0.96, 0.98, 0.95);
     cairo_set_font_size(cr, 12);
 
     char line[256];
+    char tonic_name[16];
+    achord_note_name(ui->state.tonic_note, tonic_name, sizeof(tonic_name));
     snprintf(line, sizeof(line),
-             "%s | %u active | BPM %u | Step %u",
-             ui->state.host_playing ? "Host Playing" : "Host Stopped",
+             "Host %s | Clock %s | %u active | BPM %u | Step %u",
+             ui->state.host_playing ? "Playing" : "Stopped",
+             clock_source_name(ui->state.clock_source),
              (unsigned)ui->state.active_chord_count,
              (unsigned)ui->state.bpm,
              (unsigned)ui->state.current_step16);
@@ -398,10 +421,42 @@ static void draw_ui(AchordUI *ui) {
 
     cairo_set_source_rgba(cr, 0.84, 0.84, 0.88, 0.74);
     cairo_set_font_size(cr, 10);
-    cairo_move_to(cr, MARGIN, info_y + 122);
-    cairo_show_text(cr, "Grid: play chords. Top: bank/octave/scale/register/trigger/hold. Right: modifiers.");
+    cairo_move_to(cr, MARGIN, info_y + 116);
+    cairo_show_text(cr, "Control keys:");
 
-    cairo_move_to(cr, MARGIN, info_y + 142);
+    cairo_set_source_rgba(cr, 0.90, 0.90, 0.94, 0.82);
+    cairo_move_to(cr, MARGIN, info_y + 136);
+    snprintf(line, sizeof(line), "91/92 Bank %+d fifths   93/94 Octave %s", (int)ui->state.bank_offset, tonic_name);
+    cairo_show_text(cr, line);
+
+    cairo_move_to(cr, MARGIN, info_y + 154);
+    snprintf(line, sizeof(line), "95 Scale %s   96 Reg %s", achord_scale_name(ui->state.scale_index), achord_register_name(ui->state.register_mode));
+    cairo_show_text(cr, line);
+
+    cairo_move_to(cr, MARGIN, info_y + 172);
+    snprintf(line, sizeof(line), "97 Trig %s   98 Hold %s", achord_trigger_name(ui->state.trigger_mode), achord_hold_name(ui->state.hold_mode));
+    cairo_show_text(cr, line);
+
+    cairo_move_to(cr, MARGIN, info_y + 190);
+    snprintf(line, sizeof(line), "19 Bass %s   29 Add9 %s   39 Sus %s   49 Inv %s",
+             ui->state.bass_enabled ? "On" : "Off",
+             ui->state.add9_enabled ? "On" : "Off",
+             achord_sus_name(ui->state.sus_mode),
+             inversion_name(ui->state.inversion_offset));
+    cairo_show_text(cr, line);
+
+    cairo_move_to(cr, MARGIN, info_y + 208);
+    snprintf(line, sizeof(line), "59 Spread %s   69 Accent %s   79 Lead %s   89 Panic Ready",
+             achord_spread_name(ui->state.spread_mode),
+             ui->state.accent_enabled ? "On" : "Off",
+             ui->state.voice_lead_enabled ? "On" : "Off");
+    cairo_show_text(cr, line);
+
+    cairo_set_source_rgba(cr, 0.84, 0.84, 0.88, 0.74);
+    cairo_move_to(cr, MARGIN, info_y + 236);
+    cairo_show_text(cr, "Grid: white flash = quantized pending, pulse = repeat/strum, bright flash = latched.");
+
+    cairo_move_to(cr, MARGIN, info_y + 254);
     cairo_show_text(cr, "Rows bottom->top: Bass Shell, Counterbass, Major, Minor, Dom7, Diminished, Maj7, Min7.");
 }
 

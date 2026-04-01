@@ -76,10 +76,12 @@ typedef struct {
     double block_abs_steps_start;
     double block_abs_steps_end;
     double block_steps_per_frame;
+    double free_run_abs_steps;
     uint32_t block_n_samples;
 
     uint8_t current_step16;
     uint8_t active_chord_count;
+    uint8_t clock_source;
     uint32_t order_counter;
 
     AchordPadState pads[GRID_HEIGHT][GRID_WIDTH];

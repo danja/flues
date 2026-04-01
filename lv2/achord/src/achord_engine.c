@@ -122,6 +122,7 @@ static void reset_runtime(AchordEngine *engine) {
     engine->midi_event_count = 0;
     engine->current_step16 = 0;
     engine->active_chord_count = 0;
+    engine->clock_source = 0;
     grid_state_clear(&engine->grid_state);
 }
 
@@ -138,6 +139,20 @@ static double frame_for_boundary(double abs_steps_start,
     if (frame < 0) frame = 0;
     if (frame >= (int)nframes) frame = (int)nframes - 1;
     return (double)frame;
+}
+
+static double current_clock_bpm(const AchordEngine *engine) {
+    double bpm = engine->bpm ? (double)engine->bpm : 120.0;
+    if (bpm < 1.0) bpm = 120.0;
+    return bpm;
+}
+
+static uint16_t strum_spacing_frames(const AchordEngine *engine, double fraction_of_16th) {
+    const double frames_per_16th = (60.0 * engine->sample_rate) / (current_clock_bpm(engine) * 4.0);
+    uint32_t spacing = (uint32_t)lrint(frames_per_16th * fraction_of_16th);
+    if (spacing < 180) spacing = 180;
+    if (spacing > 2400) spacing = 2400;
+    return (uint16_t)spacing;
 }
 
 static uint8_t current_base_velocity(const AchordPadState *pad) {
@@ -260,15 +275,15 @@ static void activate_sustained_pad(AchordEngine *engine,
     const uint8_t velocity = current_base_velocity(pad);
 
     if (engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_DOWN) {
-        schedule_strum(engine, pad, &voicing, velocity, frame, 180, 0);
+        schedule_strum(engine, pad, &voicing, velocity, frame, strum_spacing_frames(engine, 0.22), 0);
         return;
     }
     if (engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_UP) {
-        schedule_strum(engine, pad, &voicing, velocity, frame, 180, 1);
+        schedule_strum(engine, pad, &voicing, velocity, frame, strum_spacing_frames(engine, 0.22), 1);
         return;
     }
     if (engine->config.accent_enabled) {
-        schedule_strum(engine, pad, &voicing, velocity, frame, 96, 0);
+        schedule_strum(engine, pad, &voicing, velocity, frame, strum_spacing_frames(engine, 0.12), 0);
         return;
     }
 
@@ -329,8 +344,12 @@ static void activate_pad(AchordEngine *engine, uint8_t row, uint8_t col, uint32_
 
     if (engine->config.trigger_mode == ACHORD_TRIGGER_DIRECT ||
         engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_DOWN ||
-        engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_UP ||
-        !engine->host_time_valid || !engine->host_playing) {
+        engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_UP) {
+        activate_sustained_pad(engine, row, col, frame);
+        return;
+    }
+
+    if (engine->block_steps_per_frame <= 0.0) {
         activate_sustained_pad(engine, row, col, frame);
         return;
     }
@@ -470,6 +489,8 @@ void achord_reset(AchordEngine *engine) {
     engine->host_bar = 0.0;
     engine->host_bar_beat = 0.0;
     engine->beats_per_bar = 4.0;
+    engine->free_run_abs_steps = 0.0;
+    engine->clock_source = 0;
     engine->grid_state.tempo_bpm = (uint8_t)engine->bpm;
     engine->grid_state.playing = 0;
 }
@@ -515,6 +536,7 @@ void achord_begin_block(AchordEngine *engine,
     }
     engine->grid_state.tempo_bpm = (uint8_t)engine->bpm;
     engine->grid_state.playing = host_playing ? 1 : 0;
+    engine->clock_source = 0;
 
     if (host_time_valid && host_playing && bpm > 0.0 && engine->beats_per_bar > 0.0) {
         const double abs_beats = bar * engine->beats_per_bar + bar_beat;
@@ -523,6 +545,15 @@ void achord_begin_block(AchordEngine *engine,
         engine->block_abs_steps_end =
             engine->block_abs_steps_start + engine->block_steps_per_frame * (double)n_samples;
         engine->current_step16 = (uint8_t)(((int64_t)floor(engine->block_abs_steps_start + 1e-9)) & 15);
+        engine->clock_source = 1;
+    } else if (engine->config.trigger_mode == ACHORD_TRIGGER_QUANTIZED ||
+               engine->config.trigger_mode == ACHORD_TRIGGER_REPEAT) {
+        engine->block_abs_steps_start = engine->free_run_abs_steps;
+        engine->block_steps_per_frame = (current_clock_bpm(engine) / (60.0 * engine->sample_rate)) * 4.0;
+        engine->block_abs_steps_end =
+            engine->block_abs_steps_start + engine->block_steps_per_frame * (double)n_samples;
+        engine->current_step16 = (uint8_t)(((int64_t)floor(engine->block_abs_steps_start + 1e-9)) & 15);
+        engine->clock_source = 2;
     } else {
         engine->block_abs_steps_start = 0.0;
         engine->block_abs_steps_end = 0.0;
@@ -736,13 +767,21 @@ void achord_refresh_grid_state(AchordEngine *engine) {
             if (pad->pending_quantized) {
                 state |= CELL_SELECTED;
                 color = COLOR_WHITE;
-            }
-            if (pad->logic_active || pad->is_latched || pad->is_down) {
-                state |= CELL_PLAYING;
-                color = base_row_bright_color(r);
-            }
-            if (pad->logic_active) {
+            } else if (pad->logic_active) {
                 state |= CELL_ARMED;
+                color = base_row_bright_color(r);
+                if (pad->strum_pending ||
+                    engine->config.trigger_mode == ACHORD_TRIGGER_REPEAT) {
+                    state |= CELL_PLAYING;
+                } else if (pad->is_latched && !pad->is_down) {
+                    state |= CELL_SELECTED;
+                }
+            } else if (pad->is_latched) {
+                state |= CELL_SELECTED;
+                color = base_row_bright_color(r);
+            } else if (pad->is_down) {
+                state |= CELL_ARMED;
+                color = COLOR_WHITE;
             }
             grid_state_set_cell(&engine->grid_state, r, c, state, 0, color);
         }
@@ -787,6 +826,8 @@ void achord_refresh_grid_state(AchordEngine *engine) {
                               engine->config.trigger_mode == ACHORD_TRIGGER_DIRECT ? 0 : 1,
                               engine->config.trigger_mode == ACHORD_TRIGGER_REPEAT ? COLOR_GREEN_BRIGHT :
                               engine->config.trigger_mode == ACHORD_TRIGGER_QUANTIZED ? COLOR_GREEN :
+                              engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_DOWN ? COLOR_ORANGE_BRIGHT :
+                              engine->config.trigger_mode == ACHORD_TRIGGER_STRUM_UP ? COLOR_BLUE_BRIGHT :
                               COLOR_GREEN_DIM);
     grid_state_set_top_button(&engine->grid_state, 7,
                               engine->config.hold_mode == ACHORD_HOLD_MOMENTARY ? 0 : 1,
@@ -802,7 +843,7 @@ void achord_process(AchordEngine *engine, uint32_t n_samples) {
     uint32_t boundary_frame = 0;
     int have_boundary = 0;
 
-    if (engine->host_time_valid && engine->host_playing && engine->block_steps_per_frame > 0.0) {
+    if (engine->clock_source != 0 && engine->block_steps_per_frame > 0.0) {
         boundary_step = (int64_t)floor(engine->block_abs_steps_start + 1e-9) + 1;
         boundary_end = (int64_t)floor(engine->block_abs_steps_end + 1e-9);
         if (boundary_step <= boundary_end) {
@@ -873,5 +914,9 @@ void achord_process(AchordEngine *engine, uint32_t n_samples) {
                 pad->strum_next_frame -= n_samples;
             }
         }
+    }
+
+    if (engine->clock_source != 0) {
+        engine->free_run_abs_steps = engine->block_abs_steps_end;
     }
 }

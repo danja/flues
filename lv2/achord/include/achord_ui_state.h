@@ -29,7 +29,8 @@ typedef struct {
     uint8_t active_chord_count;
     uint8_t current_step16;
     uint8_t host_playing;
-    uint8_t reserved[4];
+    uint8_t clock_source;
+    uint8_t reserved[3];
 } AchordUiState;
 
 #endif

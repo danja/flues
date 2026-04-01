@@ -28,7 +28,22 @@ typedef enum {
     PORT_AUDIO_OUT_R = 4,
     PORT_PLAY_STATE = 5,
     PORT_CURRENT_STEP = 6,
-    PORT_NOTIFY_OUT = 7
+    PORT_NOTIFY_OUT = 7,
+    PORT_STATUS_BANK = 8,
+    PORT_STATUS_OCTAVE = 9,
+    PORT_STATUS_SCALE = 10,
+    PORT_STATUS_REGISTER = 11,
+    PORT_STATUS_TRIGGER = 12,
+    PORT_STATUS_HOLD = 13,
+    PORT_STATUS_BASS = 14,
+    PORT_STATUS_ADD9 = 15,
+    PORT_STATUS_SUS = 16,
+    PORT_STATUS_INVERSION = 17,
+    PORT_STATUS_SPREAD = 18,
+    PORT_STATUS_ACCENT = 19,
+    PORT_STATUS_VOICE_LEAD = 20,
+    PORT_STATUS_CLOCK_SOURCE = 21,
+    PORT_STATUS_ACTIVE_CHORDS = 22
 } PortIndex;
 
 typedef struct {
@@ -59,6 +74,21 @@ typedef struct {
     float *audio_out_r;
     float *play_state_out;
     float *current_step_out;
+    float *status_bank_out;
+    float *status_octave_out;
+    float *status_scale_out;
+    float *status_register_out;
+    float *status_trigger_out;
+    float *status_hold_out;
+    float *status_bass_out;
+    float *status_add9_out;
+    float *status_sus_out;
+    float *status_inversion_out;
+    float *status_spread_out;
+    float *status_accent_out;
+    float *status_voice_lead_out;
+    float *status_clock_source_out;
+    float *status_active_chords_out;
 
     LV2_URID_Map *map;
     AchordUrids urids;
@@ -215,6 +245,7 @@ static void emit_ui_state(Achord *self) {
     state.active_chord_count = self->engine.active_chord_count;
     state.current_step16 = self->engine.current_step16;
     state.host_playing = self->engine.host_playing ? 1 : 0;
+    state.clock_source = self->engine.clock_source;
 
     lv2_atom_forge_frame_time(&self->notify_forge, 0);
     lv2_atom_forge_atom(&self->notify_forge, sizeof(state), self->urids.atom_Chunk);
@@ -341,6 +372,21 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
         case PORT_AUDIO_OUT_R: self->audio_out_r = (float *)data; break;
         case PORT_PLAY_STATE: self->play_state_out = (float *)data; break;
         case PORT_CURRENT_STEP: self->current_step_out = (float *)data; break;
+        case PORT_STATUS_BANK: self->status_bank_out = (float *)data; break;
+        case PORT_STATUS_OCTAVE: self->status_octave_out = (float *)data; break;
+        case PORT_STATUS_SCALE: self->status_scale_out = (float *)data; break;
+        case PORT_STATUS_REGISTER: self->status_register_out = (float *)data; break;
+        case PORT_STATUS_TRIGGER: self->status_trigger_out = (float *)data; break;
+        case PORT_STATUS_HOLD: self->status_hold_out = (float *)data; break;
+        case PORT_STATUS_BASS: self->status_bass_out = (float *)data; break;
+        case PORT_STATUS_ADD9: self->status_add9_out = (float *)data; break;
+        case PORT_STATUS_SUS: self->status_sus_out = (float *)data; break;
+        case PORT_STATUS_INVERSION: self->status_inversion_out = (float *)data; break;
+        case PORT_STATUS_SPREAD: self->status_spread_out = (float *)data; break;
+        case PORT_STATUS_ACCENT: self->status_accent_out = (float *)data; break;
+        case PORT_STATUS_VOICE_LEAD: self->status_voice_lead_out = (float *)data; break;
+        case PORT_STATUS_CLOCK_SOURCE: self->status_clock_source_out = (float *)data; break;
+        case PORT_STATUS_ACTIVE_CHORDS: self->status_active_chords_out = (float *)data; break;
     }
 }
 
@@ -460,6 +506,21 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
     if (self->play_state_out) *self->play_state_out = self->engine.host_playing ? 1.0f : 0.0f;
     if (self->current_step_out) *self->current_step_out = (float)(self->engine.current_step16 & 0x0F);
+    if (self->status_bank_out) *self->status_bank_out = (float)self->engine.config.bank_offset;
+    if (self->status_octave_out) *self->status_octave_out = (float)((int)self->engine.config.tonic_note / 12 - 1);
+    if (self->status_scale_out) *self->status_scale_out = (float)self->engine.config.scale_index;
+    if (self->status_register_out) *self->status_register_out = (float)self->engine.config.register_mode;
+    if (self->status_trigger_out) *self->status_trigger_out = (float)self->engine.config.trigger_mode;
+    if (self->status_hold_out) *self->status_hold_out = (float)self->engine.config.hold_mode;
+    if (self->status_bass_out) *self->status_bass_out = self->engine.config.bass_enabled ? 1.0f : 0.0f;
+    if (self->status_add9_out) *self->status_add9_out = self->engine.config.add9_enabled ? 1.0f : 0.0f;
+    if (self->status_sus_out) *self->status_sus_out = (float)self->engine.config.sus_mode;
+    if (self->status_inversion_out) *self->status_inversion_out = (float)self->engine.config.inversion_offset;
+    if (self->status_spread_out) *self->status_spread_out = (float)self->engine.config.spread_mode;
+    if (self->status_accent_out) *self->status_accent_out = self->engine.config.accent_enabled ? 1.0f : 0.0f;
+    if (self->status_voice_lead_out) *self->status_voice_lead_out = self->engine.config.voice_lead_enabled ? 1.0f : 0.0f;
+    if (self->status_clock_source_out) *self->status_clock_source_out = (float)self->engine.clock_source;
+    if (self->status_active_chords_out) *self->status_active_chords_out = (float)self->engine.active_chord_count;
 
     if (self->audio_out_l) memset(self->audio_out_l, 0, n_samples * sizeof(float));
     if (self->audio_out_r) memset(self->audio_out_r, 0, n_samples * sizeof(float));
