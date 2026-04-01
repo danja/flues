@@ -9,14 +9,25 @@ Build `Achord` as a Launchpad Mini MK3 driven LV2 MIDI instrument that reuses th
 - top buttons should handle slower global setup
 - side buttons should handle fast performance modifiers
 
-This should be a MIDI-only performance plugin with Launchpad LED feedback and an X11/Cairo mirror UI in the same general style as `arpiso`.
+This is now implemented as a MIDI-only performance plugin with Launchpad LED feedback and an X11/Cairo mirror UI in the same general style as `arpiso`.
+
+## Current Implementation Notes
+
+The original plan has been adjusted in a few places to match the working build:
+
+- The visible top control row is eight buttons: `Bank-`, `Bank+`, `Oct-`, `Oct+`, `Scale`, `Reg`, `Trig`, `Hold`.
+- Panic was moved off the old phantom top/logo position and onto the topmost side button.
+- The right-side inversion controls were collapsed into a single `Inv` button that cycles `Root -> 1st -> 2nd -> Root`.
+- The LV2/UI wiring now follows `arpiso` more closely, with `play_state`, `current_step`, and `notify_out` exposed for the UI.
+- Launchpad LED output currently favors reliability over efficiency: Achord reasserts programmer mode during startup and emits a full LED state refresh every process block.
+- The UI can track both the explicit notify-state stream and the Launchpad LED stream, so it can still mirror status when one host path is delayed or missing.
 
 ## Core Design
 
 ### Performance model
 
 - The full 8x8 grid is reserved for chord pads.
-- Top row (`CC 91-99`) and right-side buttons (`CC 19-89`) are dedicated controls, matching the physical convention already used by `arpiso`.
+- The eight visible top controls (`CC 91-98`) and right-side buttons (`CC 19-89`) are dedicated controls, matching the physical convention already used by `arpiso`.
 - Default behavior is immediate "latest chord wins" output so the instrument stays tight and accordion-like.
 - Host transport is optional. Direct play should work without clock. If `time:Position` is available, Achord can also offer quantized, strummed, and repeated trigger modes.
 
@@ -84,7 +95,7 @@ Notes:
 
 ## Controls
 
-### Top row: global controls (`CC 91-99`)
+### Top row: global controls (`CC 91-98` visible)
 
 | CC | Function | Behavior |
 | --- | --- | --- |
@@ -93,16 +104,16 @@ Notes:
 | 93 | Octave Down | Lower the base chord register by one octave |
 | 94 | Octave Up | Raise the base chord register by one octave |
 | 95 | Scale | Cycle scale context: Major, Natural Minor, Dorian, Mixolydian, Harmonic Minor, Blues, Chromatic |
-| 96 | Register | Cycle output layering: `8'`, `16'+8'`, `8'+8'+4'`, `16'+8'+4'` |
-| 97 | Trigger Mode | Cycle: Direct, Quantized 1/16, Strum Down, Strum Up, Repeat |
+| 96 | Register | Cycle output layering: `8'`, `16'+8'`, `8'+4'`, `16'+8'+4'` |
+| 97 | Trigger Mode | Cycle: Direct, Quantized 1/16, Strum Down, Strum Up, Repeat 1/8 |
 | 98 | Hold Mode | Cycle: Momentary, Latch, Stack Latch |
-| 99 | Panic | All notes off, clear latches, reset transient modifiers |
 
 Rationale:
 
 - Top buttons are for slower, global choices the player changes between phrases.
 - `Register` borrows directly from accordion thinking: the harmonic map stays the same while the output thickness changes.
 - `Trigger Mode` makes the plugin useful both as a direct accompaniment surface and as a beat-aware chord machine inside a DAW.
+- `CC99` is intentionally left dark in the visible map so the plugin does not imply a nonexistent extra hardware button.
 
 ### Right side: performance modifiers (`CC 19-89`, bottom to top)
 
@@ -111,18 +122,18 @@ Rationale:
 | 19 | Bass | Add root one octave below the resolved chord |
 | 29 | Add9 | Add a scale-aware ninth above the chord |
 | 39 | Sus | Cycle `off -> sus2 -> sus4 -> off` |
-| 49 | Inv- | Move inversion down one step |
-| 59 | Inv+ | Move inversion up one step |
-| 69 | Spread | Cycle voicing width: Close, Open, Drop-2 |
-| 79 | Accent | Boost velocity and apply a slight upper-note delay for a stronger stab |
-| 89 | Voice Lead | Prefer nearest-note voicing from the previous chord |
+| 49 | Inv | Cycle `root -> 1st -> 2nd -> root` |
+| 59 | Spread | Cycle voicing width: Close, Open, Drop-2 |
+| 69 | Accent | Boost velocity and apply a slight upper-note delay for a stronger stab |
+| 79 | Voice Lead | Prefer nearest-note voicing from the previous chord |
+| 89 | Panic | All notes off, clear held/latch state, and stop repeating chords |
 
 Rationale:
 
 - Side buttons should reward live use while the hand is already on the grid.
 - Harmonic color lives lower on the side strip (`Bass`, `Add9`, `Sus`).
-- Voicing lives in the middle (`Inv-`, `Inv+`, `Spread`).
-- Articulation lives near the top (`Accent`, `Voice Lead`).
+- Voicing lives in the middle (`Inv`, `Spread`).
+- Articulation and safety live near the top (`Accent`, `Voice Lead`, `Panic`).
 
 ## Output Behavior
 
@@ -144,7 +155,7 @@ Rationale:
 - **Direct**: notes sound immediately, no transport required.
 - **Quantized 1/16**: note-on happens on the next sixteenth-note boundary when host transport is available; otherwise fall back to Direct.
 - **Strum Down / Strum Up**: notes are slightly staggered low-to-high or high-to-low.
-- **Repeat**: while the pad is held or latched, re-trigger the chord on the selected beat division.
+- **Repeat 1/8**: while the pad is held or latched, re-trigger the chord on eighth-note boundaries.
 
 ### Modifier application rules
 
@@ -182,7 +193,8 @@ Suggested row colors:
 
 - Active side modifiers stay lit.
 - Current top-row mode selections use bright colors; inactive states stay dim.
-- Panic flashes red/white when used.
+- The side-column panic button stays visibly armed in bright red so there is always a clear escape hatch.
+- Current implementation sends a full Launchpad state refresh every block, which is less elegant than diffs but more robust across hosts.
 
 ## UI Plan
 
@@ -195,9 +207,16 @@ The UI should show:
 - row labels at the side
 - current scale, register, trigger mode, hold mode
 - active modifiers
-- current octave and inversion
+- current tonic octave/bank offset and inversion
+- active chord count, BPM, host play state, and current 1/16 step
 
 The UI should also allow mouse clicking on grid pads and buttons so the plugin remains usable without the hardware attached.
+
+Current implementation note:
+
+- The UI is intentionally minimal and status-oriented rather than a full parameter editor.
+- It mirrors the eight visible top controls and the eight side controls (`Bass`, `Add9`, `Sus`, `Inv`, `Spread`, `Accent`, `Lead`, `Panic`).
+- It can update from either the structured UI notify stream or the Launchpad LED MIDI stream.
 
 ## Architecture
 
@@ -230,6 +249,8 @@ Keep the same basic port pattern as `arpiso`:
 - `midi_out` atom sequence for generated chord notes
 - `launchpad_out` atom sequence for Launchpad LED/SysEx output
 - optional silent stereo audio outs for host compatibility
+- `play_state` float output for UI host-transport feedback
+- `current_step` float output for UI step display
 - `notify_out` atom sequence for UI state updates
 
 ### Internal modules
@@ -237,7 +258,7 @@ Keep the same basic port pattern as `arpiso`:
 - **Chord map**: root-bank math, row formulas, scale-aware modifier spelling
 - **Voicing engine**: inversions, spread, register doubling, voice leading
 - **Engine**: active pad tracking, hold/latch logic, note-off safety, panic
-- **MIDI comm**: Launchpad programmer-mode init and LED bulk updates
+- **MIDI comm**: Launchpad programmer-mode init, startup reassertion, and full-state LED refresh
 
 ## State Persistence
 
@@ -260,10 +281,10 @@ Do not persist currently sounding notes. Session restore should come back silent
 1. Fork the `arpiso` scaffold and strip out the Euclidean/well logic.
 2. Implement grid-to-root/row resolution and direct chord note output.
 3. Add top-row and side-button state machines.
-4. Add voicing engine, inversion logic, and register doubling.
-5. Add LED rendering and UI labels.
-6. Add transport-aware trigger modes.
-7. Test note-off safety, panic behavior, latch edge cases, and Launchpad reconnect behavior.
+4. Add voicing engine, cycling inversion logic, and register doubling.
+5. Add LED rendering and a minimal mirror UI.
+6. Add transport-aware trigger modes plus UI-facing `play_state` and `current_step`.
+7. Test note-off safety, panic behavior, latch edge cases, Launchpad reconnect behavior, and host/UI discovery.
 
 ## Summary
 

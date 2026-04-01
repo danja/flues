@@ -4,7 +4,6 @@
 @prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
 @prefix midi: <http://lv2plug.in/ns/ext/midi#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix state: <http://lv2plug.in/ns/ext/state#> .
 @prefix time: <http://lv2plug.in/ns/ext/time#> .
 @prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
@@ -62,10 +61,20 @@
         lv2:symbol "audio_out_r" ;
         lv2:name "Audio Out R" ;
     ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "play_state" ;
+        lv2:name "Play State" ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "current_step" ;
+        lv2:name "Current Step" ;
+    ] , [
         a lv2:OutputPort , atom:AtomPort ;
         atom:bufferType atom:Sequence ;
         atom:supports atom:Chunk ;
-        lv2:index 5 ;
+        lv2:index 7 ;
         lv2:symbol "notify_out" ;
         lv2:name "UI Notify" ;
     ] .
@@ -81,12 +90,22 @@
         ui:protocol ui:atomProtocol
     ] , [
         ui:plugin <https://danja.github.io/flues/plugins/achord> ;
+        ui:port [ lv2:index 5 ; lv2:symbol "play_state" ] ;
+        ui:portIndex 5 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/achord> ;
         ui:port [ lv2:index 2 ; lv2:symbol "launchpad_out" ] ;
         ui:portIndex 2 ;
         ui:protocol ui:atomProtocol
     ] , [
         ui:plugin <https://danja.github.io/flues/plugins/achord> ;
-        ui:port [ lv2:index 5 ; lv2:symbol "notify_out" ] ;
-        ui:portIndex 5 ;
+        ui:port [ lv2:index 6 ; lv2:symbol "current_step" ] ;
+        ui:portIndex 6 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/achord> ;
+        ui:port [ lv2:index 7 ; lv2:symbol "notify_out" ] ;
+        ui:portIndex 7 ;
         ui:protocol ui:atomProtocol
     ] .

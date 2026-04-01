@@ -26,7 +26,9 @@ typedef enum {
     PORT_LAUNCHPAD_OUT = 2,
     PORT_AUDIO_OUT_L = 3,
     PORT_AUDIO_OUT_R = 4,
-    PORT_NOTIFY_OUT = 5
+    PORT_PLAY_STATE = 5,
+    PORT_CURRENT_STEP = 6,
+    PORT_NOTIFY_OUT = 7
 } PortIndex;
 
 typedef struct {
@@ -55,6 +57,8 @@ typedef struct {
     LV2_Atom_Sequence *notify_out;
     float *audio_out_l;
     float *audio_out_r;
+    float *play_state_out;
+    float *current_step_out;
 
     LV2_URID_Map *map;
     AchordUrids urids;
@@ -64,6 +68,9 @@ typedef struct {
 
     AchordEngine engine;
     uint8_t launchpad_initialized;
+    uint8_t launchpad_refresh_retries;
+    uint8_t launchpad_state_valid;
+    LaunchpadState last_launchpad_state;
 } Achord;
 
 typedef struct {
@@ -214,10 +221,26 @@ static void emit_ui_state(Achord *self) {
     lv2_atom_forge_write(&self->notify_forge, &state, sizeof(state));
 }
 
-static void emit_launchpad_bulk(Achord *self) {
+static void emit_launchpad_programmer_mode(Achord *self) {
+    static const uint8_t sysex[] = {0xF0, 0x00, 0x20, 0x29, 0x02, 0x0D, 0x0E, 0x01, 0xF7};
+    emit_midi(&self->lp_forge, self->urids.midi_Event, 0, sysex, sizeof(sysex));
+    emit_midi(&self->forge, self->urids.midi_Event, 0, sysex, sizeof(sysex));
+}
+
+static void emit_launchpad_clear(Achord *self) {
+    MidiMessage clear_msg;
+    midi_build_clear_all(&clear_msg);
+    emit_midi(&self->lp_forge, self->urids.midi_Event, 0, clear_msg.data, clear_msg.size);
+    emit_midi(&self->forge, self->urids.midi_Event, 0, clear_msg.data, clear_msg.size);
+}
+
+static void emit_launchpad_full(Achord *self) {
     MidiMessage bulk;
     midi_update_grid(&bulk, &self->engine.grid_state);
     emit_midi(&self->lp_forge, self->urids.midi_Event, 0, bulk.data, bulk.size);
+    emit_midi(&self->forge, self->urids.midi_Event, 0, bulk.data, bulk.size);
+    self->last_launchpad_state = self->engine.grid_state;
+    self->launchpad_state_valid = 1;
 }
 
 static LV2_State_Status achord_state_save(LV2_Handle instance,
@@ -316,6 +339,8 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data) {
         case PORT_NOTIFY_OUT: self->notify_out = (LV2_Atom_Sequence *)data; break;
         case PORT_AUDIO_OUT_L: self->audio_out_l = (float *)data; break;
         case PORT_AUDIO_OUT_R: self->audio_out_r = (float *)data; break;
+        case PORT_PLAY_STATE: self->play_state_out = (float *)data; break;
+        case PORT_CURRENT_STEP: self->current_step_out = (float *)data; break;
     }
 }
 
@@ -323,6 +348,9 @@ static void activate(LV2_Handle instance) {
     Achord *self = (Achord *)instance;
     achord_reset(&self->engine);
     self->launchpad_initialized = 0;
+    self->launchpad_refresh_retries = 12;
+    self->launchpad_state_valid = 0;
+    memset(&self->last_launchpad_state, 0, sizeof(self->last_launchpad_state));
 }
 
 static void run(LV2_Handle instance, uint32_t n_samples) {
@@ -343,6 +371,8 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                        info.beatsPerBar,
                        info.bpm);
 
+    bool saw_launchpad_input = false;
+
     if (self->control_in) {
         LV2_ATOM_SEQUENCE_FOREACH(self->control_in, ev) {
             if (ev->body.type != self->urids.midi_Event || ev->body.size < 3) {
@@ -357,19 +387,23 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
                 uint8_t row = 0;
                 uint8_t col = 0;
                 if (note_to_grid(m[1], &row, &col)) {
+                    saw_launchpad_input = true;
                     achord_handle_pad_press(&self->engine, row, col, m[2], frame);
                 }
             } else if (msg == 0x80 || (msg == 0x90 && m[2] == 0)) {
                 uint8_t row = 0;
                 uint8_t col = 0;
                 if (note_to_grid(m[1], &row, &col)) {
+                    saw_launchpad_input = true;
                     achord_handle_pad_release(&self->engine, row, col, frame);
                 }
             } else if (msg == 0xB0 && m[2] > 0) {
                 uint8_t index = 0;
                 if (is_side_button(m[1], &index)) {
+                    saw_launchpad_input = true;
                     achord_handle_side_button(&self->engine, index, frame);
                 } else if (is_top_button(m[1], &index)) {
+                    saw_launchpad_input = true;
                     achord_handle_top_button(&self->engine, index, frame);
                 }
             }
@@ -392,15 +426,8 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         lv2_atom_forge_sequence_head(&self->notify_forge, &notify_frame, 0);
     }
 
-    if (!self->launchpad_initialized) {
-        static const uint8_t sysex[] = {0xF0, 0x00, 0x20, 0x29, 0x02, 0x0D, 0x0E, 0x01, 0xF7};
-        emit_midi(&self->lp_forge, self->urids.midi_Event, 0, sysex, sizeof(sysex));
-
-        MidiMessage clear_msg;
-        midi_build_clear_all(&clear_msg);
-        emit_midi(&self->lp_forge, self->urids.midi_Event, 0, clear_msg.data, clear_msg.size);
-
-        self->launchpad_initialized = 1;
+    if (saw_launchpad_input && self->launchpad_refresh_retries < 4) {
+        self->launchpad_refresh_retries = 4;
     }
 
     achord_process(&self->engine, n_samples);
@@ -411,7 +438,18 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         emit_midi(&self->forge, self->urids.midi_Event, ev->frame, ev->data, ev->size);
     }
 
-    emit_launchpad_bulk(self);
+    if (!self->launchpad_initialized) {
+        emit_launchpad_programmer_mode(self);
+        emit_launchpad_clear(self);
+        self->launchpad_initialized = 1;
+    }
+
+    if (self->launchpad_refresh_retries > 0) {
+        emit_launchpad_programmer_mode(self);
+        self->launchpad_refresh_retries--;
+    }
+
+    emit_launchpad_full(self);
     emit_ui_state(self);
 
     lv2_atom_forge_pop(&self->forge, &midi_frame);
@@ -419,6 +457,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     if (self->notify_out) {
         lv2_atom_forge_pop(&self->notify_forge, &notify_frame);
     }
+
+    if (self->play_state_out) *self->play_state_out = self->engine.host_playing ? 1.0f : 0.0f;
+    if (self->current_step_out) *self->current_step_out = (float)(self->engine.current_step16 & 0x0F);
 
     if (self->audio_out_l) memset(self->audio_out_l, 0, n_samples * sizeof(float));
     if (self->audio_out_r) memset(self->audio_out_r, 0, n_samples * sizeof(float));

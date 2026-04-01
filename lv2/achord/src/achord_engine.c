@@ -603,7 +603,6 @@ void achord_handle_pad_release(AchordEngine *engine,
 }
 
 void achord_handle_side_button(AchordEngine *engine, uint8_t index, uint32_t frame) {
-    (void)frame;
     switch (index) {
         case 0:
             engine->config.bass_enabled ^= 1;
@@ -615,19 +614,22 @@ void achord_handle_side_button(AchordEngine *engine, uint8_t index, uint32_t fra
             engine->config.sus_mode = (uint8_t)((engine->config.sus_mode + 1) % 3);
             break;
         case 3:
-            engine->config.inversion_offset = clamp_i8(engine->config.inversion_offset - 1, -3, 3);
+            if (engine->config.inversion_offset < 0 || engine->config.inversion_offset > 2) {
+                engine->config.inversion_offset = 0;
+            }
+            engine->config.inversion_offset = (int8_t)((engine->config.inversion_offset + 1) % 3);
             break;
         case 4:
-            engine->config.inversion_offset = clamp_i8(engine->config.inversion_offset + 1, -3, 3);
-            break;
-        case 5:
             engine->config.spread_mode = (uint8_t)((engine->config.spread_mode + 1) % 3);
             break;
-        case 6:
+        case 5:
             engine->config.accent_enabled ^= 1;
             break;
-        case 7:
+        case 6:
             engine->config.voice_lead_enabled ^= 1;
+            break;
+        case 7:
+            achord_panic(engine, frame);
             break;
         default:
             break;
@@ -746,48 +748,52 @@ void achord_refresh_grid_state(AchordEngine *engine) {
         }
     }
 
-    grid_state_set_side_button(&engine->grid_state, 0, 0,
+    grid_state_set_side_button(&engine->grid_state, 0, engine->config.bass_enabled ? 1 : 0,
                                engine->config.bass_enabled ? COLOR_ORANGE_BRIGHT : COLOR_ORANGE_DIM);
-    grid_state_set_side_button(&engine->grid_state, 1, 0,
+    grid_state_set_side_button(&engine->grid_state, 1, engine->config.add9_enabled ? 1 : 0,
                                engine->config.add9_enabled ? COLOR_CYAN_BRIGHT : COLOR_CYAN_DIM);
-    grid_state_set_side_button(&engine->grid_state, 2, 0,
+    grid_state_set_side_button(&engine->grid_state, 2, engine->config.sus_mode == ACHORD_SUS_OFF ? 0 : 1,
                                engine->config.sus_mode == ACHORD_SUS_OFF ? COLOR_GRAY_DIM :
                                engine->config.sus_mode == ACHORD_SUS_2 ? COLOR_YELLOW :
                                COLOR_YELLOW_BRIGHT);
-    grid_state_set_side_button(&engine->grid_state, 3, 0,
-                               engine->config.inversion_offset < 0 ? COLOR_BLUE_BRIGHT : COLOR_BLUE_DIM);
-    grid_state_set_side_button(&engine->grid_state, 4, 0,
-                               engine->config.inversion_offset > 0 ? COLOR_BLUE_BRIGHT : COLOR_BLUE_DIM);
-    grid_state_set_side_button(&engine->grid_state, 5, 0,
+    grid_state_set_side_button(&engine->grid_state, 3,
+                               engine->config.inversion_offset ? 1 : 0,
+                               engine->config.inversion_offset >= 2 ? COLOR_BLUE_BRIGHT :
+                               engine->config.inversion_offset == 1 ? COLOR_BLUE :
+                               COLOR_BLUE_DIM);
+    grid_state_set_side_button(&engine->grid_state, 4, engine->config.spread_mode == ACHORD_SPREAD_CLOSE ? 0 : 1,
                                engine->config.spread_mode == ACHORD_SPREAD_CLOSE ? COLOR_PURPLE_DIM :
                                engine->config.spread_mode == ACHORD_SPREAD_OPEN ? COLOR_PURPLE :
                                COLOR_PURPLE_BRIGHT);
-    grid_state_set_side_button(&engine->grid_state, 6, 0,
+    grid_state_set_side_button(&engine->grid_state, 5, engine->config.accent_enabled ? 1 : 0,
                                engine->config.accent_enabled ? COLOR_RED_BRIGHT : COLOR_RED_DIM);
-    grid_state_set_side_button(&engine->grid_state, 7, 0,
+    grid_state_set_side_button(&engine->grid_state, 6, engine->config.voice_lead_enabled ? 1 : 0,
                                engine->config.voice_lead_enabled ? COLOR_GREEN_BRIGHT : COLOR_GREEN_DIM);
+    grid_state_set_side_button(&engine->grid_state, 7, 1, COLOR_RED_BRIGHT);
 
-    grid_state_set_top_button(&engine->grid_state, 0, 0,
+    grid_state_set_top_button(&engine->grid_state, 0, engine->config.bank_offset < 0 ? 1 : 0,
                               engine->config.bank_offset < 0 ? COLOR_CYAN_BRIGHT : COLOR_CYAN_DIM);
-    grid_state_set_top_button(&engine->grid_state, 1, 0,
+    grid_state_set_top_button(&engine->grid_state, 1, engine->config.bank_offset > 0 ? 1 : 0,
                               engine->config.bank_offset > 0 ? COLOR_CYAN_BRIGHT : COLOR_CYAN_DIM);
-    grid_state_set_top_button(&engine->grid_state, 2, 0,
+    grid_state_set_top_button(&engine->grid_state, 2, engine->config.tonic_note < 48 ? 1 : 0,
                               engine->config.tonic_note < 48 ? COLOR_BLUE_BRIGHT : COLOR_BLUE_DIM);
-    grid_state_set_top_button(&engine->grid_state, 3, 0,
+    grid_state_set_top_button(&engine->grid_state, 3, engine->config.tonic_note > 48 ? 1 : 0,
                               engine->config.tonic_note > 48 ? COLOR_BLUE_BRIGHT : COLOR_BLUE_DIM);
-    grid_state_set_top_button(&engine->grid_state, 4, 0,
+    grid_state_set_top_button(&engine->grid_state, 4, engine->config.scale_index ? 1 : 0,
                               COLOR_PURPLE_DIM + (engine->config.scale_index ? 5 : 0));
-    grid_state_set_top_button(&engine->grid_state, 5, 0,
+    grid_state_set_top_button(&engine->grid_state, 5, engine->config.register_mode ? 1 : 0,
                               COLOR_ORANGE_DIM + (engine->config.register_mode ? 2 : 0));
-    grid_state_set_top_button(&engine->grid_state, 6, 0,
+    grid_state_set_top_button(&engine->grid_state, 6,
+                              engine->config.trigger_mode == ACHORD_TRIGGER_DIRECT ? 0 : 1,
                               engine->config.trigger_mode == ACHORD_TRIGGER_REPEAT ? COLOR_GREEN_BRIGHT :
                               engine->config.trigger_mode == ACHORD_TRIGGER_QUANTIZED ? COLOR_GREEN :
                               COLOR_GREEN_DIM);
-    grid_state_set_top_button(&engine->grid_state, 7, 0,
+    grid_state_set_top_button(&engine->grid_state, 7,
+                              engine->config.hold_mode == ACHORD_HOLD_MOMENTARY ? 0 : 1,
                               engine->config.hold_mode == ACHORD_HOLD_STACK ? COLOR_YELLOW_BRIGHT :
                               engine->config.hold_mode == ACHORD_HOLD_LATCH ? COLOR_YELLOW :
                               COLOR_YELLOW_DIM);
-    grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_RED_BRIGHT);
+    grid_state_set_top_button(&engine->grid_state, 8, 0, COLOR_OFF);
 }
 
 void achord_process(AchordEngine *engine, uint32_t n_samples) {

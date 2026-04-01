@@ -24,7 +24,9 @@
 
 #define PORT_CONTROL_IN 0
 #define PORT_LAUNCHPAD_OUT 2
-#define PORT_NOTIFY_OUT 5
+#define PORT_PLAY_STATE 5
+#define PORT_CURRENT_STEP 6
+#define PORT_NOTIFY_OUT 7
 
 #define GRID_DIM 8
 #define PAD_SIZE 38
@@ -189,6 +191,67 @@ static void request_redraw(AchordUI *ui) {
     ui->needs_redraw = 1;
 }
 
+static const char *inversion_name(int inversion) {
+    switch (inversion) {
+        case 1: return "1st";
+        case 2: return "2nd";
+        default: return "Root";
+    }
+}
+
+static int apply_launchpad_led_triplet(AchordUI *ui, uint8_t key, uint8_t color) {
+    uint8_t row = 0;
+    uint8_t col = 0;
+    uint8_t index = 0;
+    if (note_to_grid(key, &row, &col)) {
+        ui->state.grid[row][col] = color;
+        return 1;
+    }
+    if (is_side_button(key, &index)) {
+        ui->state.side[index] = color;
+        return 1;
+    }
+    if (is_top_button(key, &index)) {
+        ui->state.top[index] = color;
+        return 1;
+    }
+    return 0;
+}
+
+static int apply_launchpad_midi_to_ui_state(AchordUI *ui, const uint8_t *midi, uint32_t size) {
+    if (!ui || !midi || size < 1) {
+        return 0;
+    }
+
+    if (midi[0] == 0xF0 && size >= 9) {
+        if (size > 7 &&
+            midi[1] == 0x00 &&
+            midi[2] == 0x20 &&
+            midi[3] == 0x29 &&
+            midi[4] == 0x02 &&
+            midi[5] == 0x0D &&
+            midi[6] == SYSEX_CMD_LED_LIGHTING) {
+            int updated = 0;
+            uint32_t i = 7;
+            while (i + 3 <= size) {
+                if (midi[i] == 0xF7) break;
+                updated |= apply_launchpad_led_triplet(ui, midi[i + 1], midi[i + 2]);
+                i += 3;
+            }
+            return updated;
+        }
+        return 0;
+    }
+
+    if (size >= 3) {
+        const uint8_t status = midi[0] & 0xF0;
+        if (status == 0x90 || status == 0xB0) {
+            return apply_launchpad_led_triplet(ui, midi[1], midi[2]);
+        }
+    }
+    return 0;
+}
+
 static int grid_hit_test(int x, int y, uint8_t *out_row, uint8_t *out_col) {
     const int grid_x = x - (MARGIN + LEFT_LABEL_W);
     const int grid_y = y - (MARGIN + TOP_LABEL_H);
@@ -217,12 +280,6 @@ static int top_hit_test(int x, int y, uint8_t *out_index) {
         *out_index = (uint8_t)col;
         return 1;
     }
-
-    const int panic_x = x - (MARGIN + LEFT_LABEL_W + GRID_DIM * (PAD_SIZE + PAD_GAP) + 4);
-    if (panic_x >= 0 && panic_x < SIDE_BUTTON_W - 6) {
-        *out_index = 8;
-        return 1;
-    }
     return 0;
 }
 
@@ -245,7 +302,7 @@ static void draw_ui(AchordUI *ui) {
     cairo_paint(cr);
 
     const char *top_labels[8] = {"Bank-", "Bank+", "Oct-", "Oct+", "Scale", "Reg", "Trig", "Hold"};
-    const char *side_labels[8] = {"Bass", "Add9", "Sus", "Inv-", "Inv+", "Spread", "Accent", "Lead"};
+    const char *side_labels[8] = {"Bass", "Add9", "Sus", "Inv", "Spread", "Accent", "Lead", "Panic"};
 
     cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     cairo_set_font_size(cr, 12);
@@ -267,14 +324,6 @@ static void draw_ui(AchordUI *ui) {
         cairo_move_to(cr, x + 4, y);
         cairo_show_text(cr, root_name);
     }
-
-    const double panic_x = MARGIN + LEFT_LABEL_W + GRID_DIM * (PAD_SIZE + PAD_GAP) + 4;
-    draw_pad(cr, panic_x, MARGIN, TOP_LABEL_H - 6,
-             palette_color(ui->state.top[8]), palette_brightness(ui->state.top[8]));
-    cairo_set_source_rgba(cr, 0.98, 0.98, 0.98, 0.92);
-    cairo_set_font_size(cr, 8.5);
-    cairo_move_to(cr, panic_x + 4, MARGIN + TOP_LABEL_H - 11);
-    cairo_show_text(cr, "Panic");
 
     for (uint8_t r = 0; r < GRID_DIM; ++r) {
         const double label_y = MARGIN + TOP_LABEL_H + (GRID_DIM - 1 - r) * (PAD_SIZE + PAD_GAP) + PAD_SIZE * 0.62;
@@ -329,11 +378,11 @@ static void draw_ui(AchordUI *ui) {
     cairo_show_text(cr, line);
 
     snprintf(line, sizeof(line),
-             "Bass %s  Add9 %s  Sus %s  Inversion %+d  Spread %s",
+             "Bass %s  Add9 %s  Sus %s  Inversion %s  Spread %s",
              ui->state.bass_enabled ? "On" : "Off",
              ui->state.add9_enabled ? "On" : "Off",
              achord_sus_name(ui->state.sus_mode),
-             (int)ui->state.inversion_offset,
+             inversion_name(ui->state.inversion_offset),
              achord_spread_name(ui->state.spread_mode));
     cairo_move_to(cr, MARGIN, info_y + 66);
     cairo_show_text(cr, line);
@@ -551,11 +600,46 @@ static void port_event(LV2UI_Handle handle,
     AchordUI *ui = (AchordUI *)handle;
     if (!ui || !buffer) return;
 
-    if (port_index != PORT_NOTIFY_OUT || buffer_size < sizeof(LV2_Atom_Sequence)) {
+    if (port_index == PORT_PLAY_STATE && buffer_size >= sizeof(float)) {
+        const float value = *(const float *)buffer;
+        ui->state.host_playing = value > 0.5f ? 1 : 0;
+        request_redraw(ui);
+        return;
+    }
+
+    if (port_index == PORT_CURRENT_STEP && buffer_size >= sizeof(float)) {
+        float value = *(const float *)buffer;
+        if (value < 0.0f) value = 0.0f;
+        if (value > 15.0f) value = 15.0f;
+        ui->state.current_step16 = (uint8_t)value;
+        request_redraw(ui);
+        return;
+    }
+
+    if (buffer_size < sizeof(LV2_Atom_Sequence)) {
         return;
     }
 
     const LV2_Atom_Sequence *seq = (const LV2_Atom_Sequence *)buffer;
+    if (port_index == PORT_LAUNCHPAD_OUT) {
+        int updated = 0;
+        LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
+            if (ev->body.type != ui->midi_event_urid) {
+                continue;
+            }
+            const uint8_t *midi = (const uint8_t *)(ev + 1);
+            updated |= apply_launchpad_midi_to_ui_state(ui, midi, ev->body.size);
+        }
+        if (updated) {
+            request_redraw(ui);
+        }
+        return;
+    }
+
+    if (port_index != PORT_NOTIFY_OUT) {
+        return;
+    }
+
     LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
         if (ev->body.type == ui->atom_chunk_urid && ev->body.size >= sizeof(AchordUiState)) {
             const AchordUiState *state = (const AchordUiState *)(ev + 1);
@@ -567,17 +651,8 @@ static void port_event(LV2UI_Handle handle,
     }
 }
 
-static int idle(LV2UI_Handle handle) {
-    AchordUI *ui = (AchordUI *)handle;
-    if (!ui) return 0;
-    return ui->running ? 0 : 1;
-}
-
 static const void *extension_data(const char *uri) {
-    if (!strcmp(uri, LV2_UI__idleInterface)) {
-        static const LV2UI_Idle_Interface idle_iface = { idle };
-        return &idle_iface;
-    }
+    (void)uri;
     return NULL;
 }
 

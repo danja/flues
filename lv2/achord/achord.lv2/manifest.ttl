@@ -10,4 +10,4 @@
 <https://danja.github.io/flues/plugins/achord#ui>
     a ui:X11UI ;
     ui:binary <achord_ui.so> ;
-    rdfs:seeAlso <achord.ttl> .
+    rdfs:label "Achord Control Panel" .
