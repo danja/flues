@@ -19,7 +19,7 @@
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
     ui:ui <https://danja.github.io/flues/plugins/outsider-client#ui> ;
-    rdfs:comment "Outsider scaffold client: stereo pass-through endpoint with persisted session identity and status outputs." ;
+    rdfs:comment "Outsider prototype client: stereo endpoint with persisted session identity, status outputs, and local loopback demo modes." ;
 
     lv2:port [
         a atom:AtomPort, lv2:InputPort ;
@@ -102,29 +102,51 @@
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
     ] , [
-        a lv2:OutputPort, lv2:ControlPort ;
+        a lv2:InputPort, lv2:ControlPort ;
         lv2:index 11 ;
+        lv2:symbol "demo_mode" ;
+        lv2:name "Demo Mode" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 3 ;
+        lv2:portProperty lv2:integer, lv2:enumeration ;
+        lv2:scalePoint [
+            rdfs:label "Off" ;
+            rdf:value 0
+        ] , [
+            rdfs:label "Pulse" ;
+            rdf:value 1
+        ] , [
+            rdfs:label "P-Mix Demo" ;
+            rdf:value 2
+        ] , [
+            rdfs:label "E-Mix Demo" ;
+            rdf:value 3
+        ] ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 12 ;
         lv2:symbol "connected" ;
         lv2:name "Connected" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
     ] , [
         a lv2:OutputPort, lv2:ControlPort ;
-        lv2:index 12 ;
+        lv2:index 13 ;
         lv2:symbol "server_seen" ;
         lv2:name "Server Seen" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
     ] , [
         a lv2:OutputPort, lv2:ControlPort ;
-        lv2:index 13 ;
+        lv2:index 14 ;
         lv2:symbol "current_gain" ;
         lv2:name "Current Gain" ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
     ] , [
         a lv2:OutputPort, lv2:ControlPort ;
-        lv2:index 14 ;
+        lv2:index 15 ;
         lv2:symbol "current_state" ;
         lv2:name "Current State" ;
         lv2:minimum 0 ;
@@ -148,7 +170,7 @@
         ] ;
     ] , [
         a lv2:OutputPort, lv2:ControlPort ;
-        lv2:index 15 ;
+        lv2:index 16 ;
         lv2:symbol "current_mode" ;
         lv2:name "Current Mode" ;
         lv2:minimum 0 ;
@@ -166,10 +188,9 @@
         ] ;
     ] , [
         a lv2:OutputPort, lv2:ControlPort ;
-        lv2:index 16 ;
+        lv2:index 17 ;
         lv2:symbol "authority_active" ;
         lv2:name "Authority Active" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
     ] .
-

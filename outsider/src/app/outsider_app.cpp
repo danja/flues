@@ -9,14 +9,12 @@
 namespace outsider {
 
 int OutsiderApp::run() {
-    WsServerStub server;
     SessionRegistry registry;
     TransportAuthority authority;
     SemaphoreEngine semaphore;
+    WsServerStub server(registry, authority, semaphore);
 
     server.start();
-    registry.seed_demo_data();
-    authority.recompute(registry);
 
     OutsiderUiX11 ui(registry, authority, server, semaphore);
     if (!ui.open()) {
@@ -30,4 +28,3 @@ int OutsiderApp::run() {
 }
 
 }  // namespace outsider
-

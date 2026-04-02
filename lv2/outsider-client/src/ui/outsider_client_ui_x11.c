@@ -27,12 +27,13 @@ enum {
     PORT_AUTHORITY = 8,
     PORT_RECONNECT = 9,
     PORT_FALLBACK_GAIN = 10,
-    PORT_CONNECTED = 11,
-    PORT_SERVER_SEEN = 12,
-    PORT_CURRENT_GAIN = 13,
-    PORT_CURRENT_STATE = 14,
-    PORT_CURRENT_MODE = 15,
-    PORT_AUTHORITY_ACTIVE = 16
+    PORT_DEMO_MODE = 11,
+    PORT_CONNECTED = 12,
+    PORT_SERVER_SEEN = 13,
+    PORT_CURRENT_GAIN = 14,
+    PORT_CURRENT_STATE = 15,
+    PORT_CURRENT_MODE = 16,
+    PORT_AUTHORITY_ACTIVE = 17
 };
 
 typedef struct {
@@ -59,6 +60,7 @@ typedef struct {
     float authority;
     float reconnect;
     float fallback_gain;
+    float demo_mode;
     float connected;
     float server_seen;
     float current_gain;
@@ -89,6 +91,17 @@ static const char* mode_name(float value) {
         case 2: return "E-Mix";
         case 0:
         default: return "Bypass";
+    }
+}
+
+static const char* demo_mode_name(float value) {
+    const int mode = (int)(value + 0.5f);
+    switch (mode) {
+        case 1: return "Pulse";
+        case 2: return "P-Mix Demo";
+        case 3: return "E-Mix Demo";
+        case 0:
+        default: return "Off";
     }
 }
 
@@ -138,7 +151,7 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_set_font_size(cr, 11.0);
     cairo_set_source_rgb(cr, 0.72, 0.76, 0.84);
     cairo_move_to(cr, 178, 28);
-    cairo_show_text(cr, "Scaffold build: pass-through LV2 endpoint with queue/net stubs");
+    cairo_show_text(cr, "Loopback build: local command harness for transport-driven Outsider testing");
 
     cairo_set_source_rgb(cr, 0.13, 0.14, 0.17);
     cairo_rectangle(cr, 16, 48, ui->width - 32, 92);
@@ -164,8 +177,11 @@ static void draw_ui(OutsiderClientUI* ui) {
     snprintf(line, sizeof(line), "Authority request: %s", ui->authority >= 0.5f ? "on" : "off");
     cairo_move_to(cr, 30, 114);
     cairo_show_text(cr, line);
-    snprintf(line, sizeof(line), "Reconnect: %s    Fallback Gain: %.2f", ui->reconnect >= 0.5f ? "on" : "off", ui->fallback_gain);
-    cairo_move_to(cr, 250, 114);
+    snprintf(line, sizeof(line), "Reconnect: %s    Fallback Gain: %.2f    Demo: %s",
+             ui->reconnect >= 0.5f ? "on" : "off",
+             ui->fallback_gain,
+             demo_mode_name(ui->demo_mode));
+    cairo_move_to(cr, 220, 114);
     cairo_show_text(cr, line);
 
     cairo_set_source_rgb(cr, 0.96, 0.96, 0.98);
@@ -182,6 +198,9 @@ static void draw_ui(OutsiderClientUI* ui) {
     snprintf(line, sizeof(line), "Authority Active: %s", ui->authority_active >= 0.5f ? "yes" : "no");
     cairo_move_to(cr, 30, 264);
     cairo_show_text(cr, line);
+    snprintf(line, sizeof(line), "Loopback Demo: %s", demo_mode_name(ui->demo_mode));
+    cairo_move_to(cr, 30, 290);
+    cairo_show_text(cr, line);
 
     snprintf(line, sizeof(line), "Mode: %s", mode_name(ui->current_mode));
     cairo_move_to(cr, 280, 212);
@@ -192,19 +211,23 @@ static void draw_ui(OutsiderClientUI* ui) {
     snprintf(line, sizeof(line), "Current Gain: %.2f", ui->current_gain);
     cairo_move_to(cr, 280, 264);
     cairo_show_text(cr, line);
+    snprintf(line, sizeof(line), "Transport Required: %s",
+             ui->demo_mode >= 0.5f ? "yes" : "no");
+    cairo_move_to(cr, 280, 290);
+    cairo_show_text(cr, line);
 
     cairo_set_source_rgb(cr, 0.78, 0.82, 0.88);
-    cairo_move_to(cr, 30, 310);
+    cairo_move_to(cr, 30, 330);
     cairo_show_text(cr, "Notes");
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
-    cairo_move_to(cr, 30, 338);
-    cairo_show_text(cr, "- Audio is local pass-through in this scaffold.");
-    cairo_move_to(cr, 30, 362);
-    cairo_show_text(cr, "- No live WebSocket transport exists yet; connected/server seen stay off.");
-    cairo_move_to(cr, 30, 386);
-    cairo_show_text(cr, "- Session and endpoint slots are persisted through LV2 state.");
-    cairo_move_to(cr, 30, 410);
-    cairo_show_text(cr, "- Next step is wiring loopback commands, then the real protocol.");
+    cairo_move_to(cr, 30, 358);
+    cairo_show_text(cr, "- Demo modes synthesize local command packets; no live server is needed.");
+    cairo_move_to(cr, 30, 382);
+    cairo_show_text(cr, "- Pulse and P-Mix advance on bar boundaries; E-Mix advances on 8th-note slots.");
+    cairo_move_to(cr, 30, 406);
+    cairo_show_text(cr, "- Host transport/time must be running for loopback demo activity.");
+    cairo_move_to(cr, 30, 430);
+    cairo_show_text(cr, "- Session and endpoint slots still persist through LV2 state.");
 
     cairo_set_source_surface(ui->cr, ui->back_buffer, 0, 0);
     cairo_paint(ui->cr);
@@ -276,6 +299,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor*,
     ui->endpoint_slot = 1.0f;
     ui->reconnect = 1.0f;
     ui->fallback_gain = 1.0f;
+    ui->demo_mode = 0.0f;
     ui->current_gain = 1.0f;
     pthread_mutex_init(&ui->mutex, NULL);
 
@@ -377,6 +401,7 @@ static void port_event(LV2UI_Handle handle,
         case PORT_AUTHORITY: ui->authority = value; break;
         case PORT_RECONNECT: ui->reconnect = value; break;
         case PORT_FALLBACK_GAIN: ui->fallback_gain = value; break;
+        case PORT_DEMO_MODE: ui->demo_mode = value; break;
         case PORT_CONNECTED: ui->connected = value; break;
         case PORT_SERVER_SEEN: ui->server_seen = value; break;
         case PORT_CURRENT_GAIN: ui->current_gain = value; break;
@@ -406,4 +431,3 @@ LV2_SYMBOL_EXPORT
 const LV2UI_Descriptor* lv2ui_descriptor(uint32_t index) {
     return index == 0 ? &descriptor : NULL;
 }
-

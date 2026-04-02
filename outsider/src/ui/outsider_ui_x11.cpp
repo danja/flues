@@ -46,7 +46,7 @@ void draw_panel(cairo_t* cr, double x, double y, double w, double h, const char*
     cairo_set_line_width(cr, 1.0);
     cairo_stroke(cr);
 
-    draw_text(cr, x + 12, y + 22, title, 13.0, 0.95, 0.95, 0.98, true);
+    draw_text(cr, x + 12, y + 18, title, 13.0, 0.95, 0.95, 0.98, true);
 }
 
 void draw_badge(cairo_t* cr, double x, double y, double w, double h, const char* label, double r, double g, double b) {
@@ -149,50 +149,50 @@ public:
 
         char line[256];
         std::snprintf(line, sizeof(line), "Protocol v%u", kProtocolVersion);
-        draw_badge(cr, 30, 68, 92, 22, line, 0.94, 0.74, 0.30);
+        draw_badge(cr, 30, 76, 92, 22, line, 0.94, 0.74, 0.30);
 
         std::snprintf(line, sizeof(line), "Session %u", registry.selected_session());
-        draw_badge(cr, 132, 68, 96, 22, line, 0.42, 0.78, 0.94);
+        draw_badge(cr, 132, 76, 96, 22, line, 0.42, 0.78, 0.94);
 
         std::snprintf(line, sizeof(line), "%zu endpoints", registry.endpoints().size());
-        draw_badge(cr, 238, 68, 118, 22, line, 0.44, 0.86, 0.56);
+        draw_badge(cr, 238, 76, 118, 22, line, 0.44, 0.86, 0.56);
 
-        draw_text(cr, 30, 104, server.running() ? "Server: running (stub)" : "Server: stopped",
+        draw_text(cr, 30, 112, server.running() ? "Server: running (stub)" : "Server: stopped",
                   12.0, 0.94, 0.94, 0.98, false);
-        draw_text(cr, 250, 104, server.listen_uri().c_str(), 12.0, 0.74, 0.78, 0.84, false);
+        draw_text(cr, 250, 112, server.listen_uri().c_str(), 12.0, 0.74, 0.78, 0.84, false);
 
         const TransportSnapshot& transport = registry.transport();
         std::snprintf(line, sizeof(line), "Authority: %s",
                       authority.current().valid ? "selected" : "none");
-        draw_text(cr, 34, 160, line, 12.0, 0.92, 0.92, 0.95, true);
+        draw_text(cr, 34, 168, line, 12.0, 0.92, 0.92, 0.95, true);
         if (authority.current().valid) {
             std::snprintf(line, sizeof(line), "Endpoint %u.%u",
                           authority.current().session_slot,
                           authority.current().endpoint_slot);
-            draw_text(cr, 160, 160, line, 12.0, 0.70, 0.82, 0.94, false);
+            draw_text(cr, 160, 168, line, 12.0, 0.70, 0.82, 0.94, false);
         }
 
         std::snprintf(line, sizeof(line), "Playing: %s", transport.playing ? "yes" : "no");
-        draw_text(cr, 34, 188, line, 12.0, 0.90, 0.90, 0.94, false);
+        draw_text(cr, 34, 194, line, 12.0, 0.90, 0.90, 0.94, false);
         std::snprintf(line, sizeof(line), "Bar %.2f  Beat %.2f", transport.bar, transport.beat);
-        draw_text(cr, 34, 214, line, 12.0, 0.90, 0.90, 0.94, false);
+        draw_text(cr, 34, 220, line, 12.0, 0.90, 0.90, 0.94, false);
         std::snprintf(line, sizeof(line), "Tempo %.1f BPM  %0.1f/%0.1f", transport.bpm, transport.beat, transport.beats_per_bar);
-        draw_text(cr, 34, 240, line, 12.0, 0.90, 0.90, 0.94, false);
+        draw_text(cr, 34, 246, line, 12.0, 0.90, 0.90, 0.94, false);
         std::snprintf(line, sizeof(line), "Sample Rate %.0f  Block %u  Counter %llu",
                       transport.sample_rate,
                       transport.block_size,
                       static_cast<unsigned long long>(transport.block_counter));
-        draw_text(cr, 34, 266, line, 12.0, 0.90, 0.90, 0.94, false);
+        draw_text(cr, 34, 272, line, 12.0, 0.90, 0.90, 0.94, false);
 
-        draw_text(cr, 406, 160, "Slot", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(cr, 472, 160, "Conn", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(cr, 530, 160, "Auth", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(cr, 590, 160, "Mode", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(cr, 710, 160, "State", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(cr, 805, 160, "Gain", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(cr, 870, 160, "Last Cmd", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 406, 172, "Slot", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 472, 172, "Conn", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 530, 172, "Auth", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 590, 172, "Mode", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 710, 172, "State", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 805, 172, "Gain", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(cr, 870, 172, "Last Cmd", 11.0, 0.80, 0.84, 0.90, true);
 
-        double row_y = 188.0;
+        double row_y = 202.0;
         for (const EndpointRecord& endpoint : registry.endpoints()) {
             cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.05);
             cairo_rectangle(cr, 404, row_y - 16, 660, 28);
@@ -218,7 +218,7 @@ public:
             row_y += 34.0;
         }
 
-        double log_y = 322.0;
+        double log_y = 334.0;
         if (server.recent_events().empty()) {
             draw_text(cr, 34, log_y, "No events yet.", 12.0, 0.90, 0.90, 0.94, false);
         } else {
@@ -232,19 +232,19 @@ public:
             const EndpointRecord& selected = registry.endpoints().front();
             CommandPacket preview = semaphore.preview_for(selected, registry, authority);
             std::snprintf(line, sizeof(line), "Selected endpoint: %u.%u", selected.session_slot, selected.endpoint_slot);
-            draw_text(cr, 34, 548, line, 13.0, 0.95, 0.95, 0.98, true);
+            draw_text(cr, 34, 556, line, 13.0, 0.95, 0.95, 0.98, true);
 
             std::snprintf(line, sizeof(line), "Mode %s  ->  %s  gain %.2f  duration %.2f beats",
                           mode_name(preview.mode),
                           target_state_name(preview.target_state),
                           preview.target_gain,
                           preview.duration_beats);
-            draw_text(cr, 34, 578, line, 12.0, 0.90, 0.90, 0.94, false);
+            draw_text(cr, 34, 586, line, 12.0, 0.90, 0.90, 0.94, false);
 
             std::snprintf(line, sizeof(line), "Apply at bar %u step16 %u",
                           preview.apply_at_bar,
                           preview.apply_at_step16);
-            draw_text(cr, 34, 604, line, 12.0, 0.90, 0.90, 0.94, false);
+            draw_text(cr, 34, 612, line, 12.0, 0.90, 0.90, 0.94, false);
 
             if (selected.mode == OutsiderMode::PMix) {
                 std::snprintf(line, sizeof(line),
@@ -265,8 +265,8 @@ public:
             } else {
                 std::snprintf(line, sizeof(line), "Bypass mode: server would keep the endpoint fully audible.");
             }
-            draw_text(cr, 34, 632, line, 12.0, 0.82, 0.86, 0.92, false);
-            draw_text(cr, 34, 664,
+            draw_text(cr, 34, 640, line, 12.0, 0.82, 0.86, 0.92, false);
+            draw_text(cr, 34, 672,
                       "This is a scaffold build. The next real step is replacing the stub transport with the MVP WebSocket server.",
                       12.0, 0.70, 0.76, 0.84, false);
         }
@@ -308,4 +308,3 @@ int OutsiderUiX11::run() {
 }
 
 }  // namespace outsider
-

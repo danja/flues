@@ -30,12 +30,13 @@ enum PortIndex {
     PORT_AUTHORITY = 8,
     PORT_RECONNECT = 9,
     PORT_FALLBACK_GAIN = 10,
-    PORT_CONNECTED = 11,
-    PORT_SERVER_SEEN = 12,
-    PORT_CURRENT_GAIN = 13,
-    PORT_CURRENT_STATE = 14,
-    PORT_CURRENT_MODE = 15,
-    PORT_AUTHORITY_ACTIVE = 16
+    PORT_DEMO_MODE = 11,
+    PORT_CONNECTED = 12,
+    PORT_SERVER_SEEN = 13,
+    PORT_CURRENT_GAIN = 14,
+    PORT_CURRENT_STATE = 15,
+    PORT_CURRENT_MODE = 16,
+    PORT_AUTHORITY_ACTIVE = 17
 };
 
 struct OutsiderClientURIDs {
@@ -77,6 +78,7 @@ struct OutsiderClient {
     const float* authority_port = nullptr;
     const float* reconnect_port = nullptr;
     const float* fallback_gain_port = nullptr;
+    const float* demo_mode_port = nullptr;
 
     float* connected_out = nullptr;
     float* server_seen_out = nullptr;
@@ -98,6 +100,11 @@ struct OutsiderClient {
     float fade_step = 0.0f;
     std::uint32_t fade_remaining = 0;
     std::uint64_t last_command_id = 0;
+    std::uint64_t generated_command_id = 1;
+    outsider_client::DemoMode last_demo_mode = outsider_client::DemoMode::Off;
+    std::int64_t last_demo_primary = -1;
+    std::int32_t last_demo_secondary = -1;
+    bool demo_transport_active = false;
 
     outsider_client::SpscQueue<outsider::TransportSnapshot, 128> outbound_transport;
     outsider_client::SpscQueue<outsider::CommandPacket, 32> inbound_commands;
@@ -115,6 +122,33 @@ static inline std::uint16_t clamp_slot(float value) {
     if (rounded < 1) rounded = 1;
     if (rounded > 65535) rounded = 65535;
     return static_cast<std::uint16_t>(rounded);
+}
+
+static inline std::uint32_t clamp_u32_nonnegative(double value) {
+    if (value <= 0.0) return 0;
+    if (value >= 4294967295.0) return 4294967295u;
+    return static_cast<std::uint32_t>(value);
+}
+
+static std::uint32_t hash_u32(std::uint32_t v) {
+    v ^= v >> 16;
+    v *= 0x7feb352du;
+    v ^= v >> 15;
+    v *= 0x846ca68bu;
+    v ^= v >> 16;
+    return v;
+}
+
+static bool euclid_hit(int step_index, int pulses, int slots) {
+    if (slots <= 0 || pulses <= 0) {
+        return false;
+    }
+    if (pulses >= slots) {
+        return true;
+    }
+    const int current = static_cast<int>(std::floor((step_index * pulses) / static_cast<double>(slots)));
+    const int next = static_cast<int>(std::floor(((step_index + 1) * pulses) / static_cast<double>(slots)));
+    return current != next;
 }
 
 static bool atom_to_double(const LV2_Atom* atom, const OutsiderClientURIDs& urids, double* out) {
@@ -217,6 +251,23 @@ static void update_cached_config(OutsiderClient* self) {
     if (self->authority_port) self->config.authority = *self->authority_port;
     if (self->reconnect_port) self->config.reconnect = *self->reconnect_port;
     if (self->fallback_gain_port) self->config.fallback_gain = *self->fallback_gain_port;
+    if (self->demo_mode_port) self->config.demo_mode = *self->demo_mode_port;
+}
+
+static void set_pass_through_state(OutsiderClient* self) {
+    self->current_mode = outsider::OutsiderMode::Bypass;
+    self->current_state = outsider_client::RuntimeState::Bypass;
+    self->current_gain = clampf(self->config.fallback_gain, 0.0f, 1.0f);
+    self->target_gain = self->current_gain;
+    self->fade_step = 0.0f;
+    self->fade_remaining = 0;
+}
+
+static void reset_demo_tracking(OutsiderClient* self, outsider_client::DemoMode mode) {
+    self->last_demo_mode = mode;
+    self->last_demo_primary = -1;
+    self->last_demo_secondary = -1;
+    self->demo_transport_active = false;
 }
 
 static void reset_runtime(OutsiderClient* self) {
@@ -228,8 +279,10 @@ static void reset_runtime(OutsiderClient* self) {
     self->fade_step = 0.0f;
     self->fade_remaining = 0;
     self->last_command_id = 0;
+    self->generated_command_id = 1;
     self->outbound_transport.clear();
     self->inbound_commands.clear();
+    reset_demo_tracking(self, outsider_client::DemoMode::Off);
     self->net.stop();
 }
 
@@ -256,6 +309,127 @@ static void apply_command(OutsiderClient* self,
 
     self->fade_remaining = total_samples;
     self->fade_step = (self->target_gain - self->current_gain) / static_cast<float>(total_samples);
+}
+
+static outsider::CommandPacket make_demo_command(OutsiderClient* self,
+                                                 outsider::OutsiderMode mode,
+                                                 outsider::TargetState state,
+                                                 float gain,
+                                                 float duration_beats,
+                                                 std::uint32_t bar,
+                                                 std::uint8_t step16) {
+    outsider::CommandPacket command{};
+    command.command_id = self->generated_command_id++;
+    command.mode = mode;
+    command.target_state = state;
+    command.target_gain = clampf(gain, 0.0f, 1.0f);
+    command.duration_beats = std::max(0.0f, duration_beats);
+    command.apply_at_bar = bar;
+    command.apply_at_step16 = step16;
+    return command;
+}
+
+static void maybe_generate_loopback_demo(OutsiderClient* self,
+                                         const TimeInfo* time_info,
+                                         std::uint16_t endpoint_slot) {
+    const outsider_client::DemoMode demo_mode =
+        outsider_client::demo_mode_from_port(self->config.demo_mode);
+
+    if (demo_mode != self->last_demo_mode) {
+        reset_demo_tracking(self, demo_mode);
+        if (demo_mode == outsider_client::DemoMode::Off) {
+            set_pass_through_state(self);
+        }
+    }
+
+    if (demo_mode == outsider_client::DemoMode::Off) {
+        return;
+    }
+
+    if (!time_info || !time_info->valid || !time_info->playing) {
+        if (self->demo_transport_active) {
+            set_pass_through_state(self);
+            self->demo_transport_active = false;
+        }
+        return;
+    }
+
+    self->demo_transport_active = true;
+
+    const double safe_beats_per_bar = time_info->beatsPerBar > 0.0 ? time_info->beatsPerBar : 4.0;
+    const std::uint32_t bar_index = clamp_u32_nonnegative(std::floor(time_info->bar + 1e-9));
+    const double beat_fraction = std::clamp(time_info->barBeat / safe_beats_per_bar, 0.0, 0.999999);
+    const std::uint8_t step8 = static_cast<std::uint8_t>(std::clamp(static_cast<int>(std::floor(beat_fraction * 8.0)), 0, 7));
+
+    if (demo_mode == outsider_client::DemoMode::Pulse) {
+        if (self->last_demo_primary == static_cast<std::int64_t>(bar_index)) {
+            return;
+        }
+        self->last_demo_primary = static_cast<std::int64_t>(bar_index);
+        const bool on = (bar_index & 1u) == 0u;
+        self->inbound_commands.push(make_demo_command(
+            self,
+            outsider::OutsiderMode::PMix,
+            on ? outsider::TargetState::FadeIn : outsider::TargetState::FadeOut,
+            on ? 1.0f : 0.0f,
+            1.0f,
+            bar_index,
+            0));
+        return;
+    }
+
+    if (demo_mode == outsider_client::DemoMode::PMix) {
+        const std::uint32_t boundary = bar_index / 2u;
+        if (self->last_demo_primary == static_cast<std::int64_t>(boundary)) {
+            return;
+        }
+        self->last_demo_primary = static_cast<std::int64_t>(boundary);
+
+        const std::uint32_t h = hash_u32(boundary * 131u + endpoint_slot * 17u + 7u);
+        const bool currently_audible = self->target_gain > 0.5f;
+        const bool prefer_on = (h % 100u) < 58u;
+        const std::uint32_t transition_kind = (h >> 8) % 3u;
+
+        outsider::TargetState state = prefer_on ? outsider::TargetState::Play : outsider::TargetState::Mute;
+        float gain = prefer_on ? 1.0f : 0.0f;
+        float duration = 0.0f;
+
+        if (transition_kind == 0u) {
+            state = currently_audible ? outsider::TargetState::Play : outsider::TargetState::Mute;
+            gain = currently_audible ? 1.0f : 0.0f;
+        } else if (transition_kind == 1u) {
+            state = prefer_on ? outsider::TargetState::FadeIn : outsider::TargetState::FadeOut;
+            duration = 1.0f;
+        }
+
+        self->inbound_commands.push(make_demo_command(
+            self,
+            outsider::OutsiderMode::PMix,
+            state,
+            gain,
+            duration,
+            boundary * 2u,
+            0));
+        return;
+    }
+
+    if (self->last_demo_primary == static_cast<std::int64_t>(bar_index) &&
+        self->last_demo_secondary == static_cast<std::int32_t>(step8)) {
+        return;
+    }
+    self->last_demo_primary = static_cast<std::int64_t>(bar_index);
+    self->last_demo_secondary = static_cast<std::int32_t>(step8);
+
+    const int rotated_step = (static_cast<int>(step8) + static_cast<int>(endpoint_slot)) % 8;
+    const bool active = euclid_hit(rotated_step, 5, 8);
+    self->inbound_commands.push(make_demo_command(
+        self,
+        outsider::OutsiderMode::EMix,
+        active ? outsider::TargetState::FadeIn : outsider::TargetState::FadeOut,
+        active ? 1.0f : 0.0f,
+        0.25f,
+        bar_index,
+        static_cast<std::uint8_t>(step8 * 2u)));
 }
 
 static LV2_State_Status outsider_client_state_save(LV2_Handle instance,
@@ -350,6 +524,7 @@ static void connect_port(LV2_Handle instance, std::uint32_t port, void* data) {
         case PORT_AUTHORITY: self->authority_port = reinterpret_cast<const float*>(data); break;
         case PORT_RECONNECT: self->reconnect_port = reinterpret_cast<const float*>(data); break;
         case PORT_FALLBACK_GAIN: self->fallback_gain_port = reinterpret_cast<const float*>(data); break;
+        case PORT_DEMO_MODE: self->demo_mode_port = reinterpret_cast<const float*>(data); break;
         case PORT_CONNECTED: self->connected_out = reinterpret_cast<float*>(data); break;
         case PORT_SERVER_SEEN: self->server_seen_out = reinterpret_cast<float*>(data); break;
         case PORT_CURRENT_GAIN: self->current_gain_out = reinterpret_cast<float*>(data); break;
@@ -380,6 +555,8 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
         self->net.start();
     } else {
         self->net.stop();
+        set_pass_through_state(self);
+        reset_demo_tracking(self, outsider_client::DemoMode::Off);
     }
 
     TimeInfo time_info{};
@@ -398,6 +575,10 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
     snapshot.sample_rate = self->sample_rate;
     snapshot.block_size = n_samples;
     self->outbound_transport.push(snapshot);
+
+    if (enabled) {
+        maybe_generate_loopback_demo(self, &time_info, endpoint_slot);
+    }
 
     outsider::CommandPacket command{};
     while (self->inbound_commands.pop(&command)) {

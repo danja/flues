@@ -1,93 +1,116 @@
 #include "session_registry.hpp"
 
+#include <algorithm>
+
 namespace outsider {
 
 SessionRegistry::SessionRegistry() = default;
 
+EndpointRecord& SessionRegistry::upsert_endpoint_locked(std::uint16_t session_slot,
+                                                        std::uint16_t endpoint_slot) {
+    for (EndpointRecord& endpoint : endpoints_) {
+        if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
+            return endpoint;
+        }
+    }
+
+    EndpointRecord endpoint{};
+    endpoint.session_slot = session_slot;
+    endpoint.endpoint_slot = endpoint_slot;
+    endpoints_.push_back(endpoint);
+    return endpoints_.back();
+}
+
 void SessionRegistry::clear() {
+    std::lock_guard<std::mutex> lock(mutex_);
     endpoints_.clear();
     transport_ = {};
     selected_session_ = 1;
 }
 
-void SessionRegistry::seed_demo_data() {
-    clear();
-
-    selected_session_ = 1;
-    transport_.session_slot = 1;
-    transport_.endpoint_slot = 1;
-    transport_.authority = true;
-    transport_.playing = true;
-    transport_.bar = 12.0;
-    transport_.beat = 2.5;
-    transport_.beats_per_bar = 4.0;
-    transport_.bpm = 126.0;
-    transport_.sample_rate = 48000.0;
-    transport_.block_size = 256;
-    transport_.block_counter = 182044;
-
-    EndpointRecord drums;
-    drums.session_slot = 1;
-    drums.endpoint_slot = 1;
-    drums.connected = true;
-    drums.authority_claimed = true;
-    drums.authority_active = true;
-    drums.mode = OutsiderMode::PMix;
-    drums.current_state = TargetState::FadeIn;
-    drums.current_gain = 0.82f;
-    drums.last_command_id = 41;
-    drums.last_heartbeat_ms = 120;
-    drums.p_mix_params.granularity_bars = 4;
-    drums.p_mix_params.maintain_weight = 60.0f;
-    drums.p_mix_params.fade_weight = 30.0f;
-    drums.p_mix_params.cut_weight = 10.0f;
-    drums.p_mix_params.bias_percent = 58.0f;
-
-    EndpointRecord pads;
-    pads.session_slot = 1;
-    pads.endpoint_slot = 2;
-    pads.connected = true;
-    pads.authority_claimed = false;
-    pads.authority_active = false;
-    pads.mode = OutsiderMode::EMix;
-    pads.current_state = TargetState::Mute;
-    pads.current_gain = 0.00f;
-    pads.last_command_id = 22;
-    pads.last_heartbeat_ms = 145;
-    pads.e_mix_params.total_bars = 64;
-    pads.e_mix_params.division = 16;
-    pads.e_mix_params.steps = 5;
-    pads.e_mix_params.offset = 2;
-    pads.e_mix_params.fade_bars = 0.5f;
-
-    EndpointRecord bass;
-    bass.session_slot = 1;
-    bass.endpoint_slot = 3;
-    bass.connected = false;
-    bass.authority_claimed = false;
-    bass.authority_active = false;
-    bass.mode = OutsiderMode::Bypass;
-    bass.current_state = TargetState::Play;
-    bass.current_gain = 1.0f;
-    bass.last_command_id = 0;
-    bass.last_heartbeat_ms = 0;
-
-    endpoints_.push_back(drums);
-    endpoints_.push_back(pads);
-    endpoints_.push_back(bass);
+void SessionRegistry::mark_hello(std::uint16_t session_slot,
+                                 std::uint16_t endpoint_slot,
+                                 bool authority_claimed) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    EndpointRecord& endpoint = upsert_endpoint_locked(session_slot, endpoint_slot);
+    endpoint.connected = true;
+    endpoint.authority_claimed = authority_claimed;
+    endpoint.last_heartbeat_ms = 1;
+    if (selected_session_ == 0 || selected_session_ == 1) {
+        selected_session_ = session_slot;
+    }
 }
 
-const std::vector<EndpointRecord>& SessionRegistry::endpoints() const {
+void SessionRegistry::mark_goodbye(std::uint16_t session_slot,
+                                   std::uint16_t endpoint_slot) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (EndpointRecord& endpoint : endpoints_) {
+        if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
+            endpoint.connected = false;
+            endpoint.authority_active = false;
+            endpoint.last_heartbeat_ms = 0;
+            return;
+        }
+    }
+}
+
+void SessionRegistry::update_transport(const TransportSnapshot& transport) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    transport_ = transport;
+    EndpointRecord& endpoint = upsert_endpoint_locked(transport.session_slot, transport.endpoint_slot);
+    endpoint.connected = true;
+    endpoint.authority_claimed = transport.authority;
+    endpoint.last_transport_block_counter = transport.block_counter;
+    if (selected_session_ == 0 || selected_session_ == 1) {
+        selected_session_ = transport.session_slot;
+    }
+}
+
+void SessionRegistry::update_status(std::uint16_t session_slot,
+                                    std::uint16_t endpoint_slot,
+                                    RuntimeState current_state,
+                                    float current_gain,
+                                    std::uint64_t last_command_id,
+                                    float peak_l,
+                                    float peak_r) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    EndpointRecord& endpoint = upsert_endpoint_locked(session_slot, endpoint_slot);
+    endpoint.connected = true;
+    endpoint.current_state = current_state;
+    endpoint.current_gain = std::clamp(current_gain, 0.0f, 1.0f);
+    endpoint.last_command_id = last_command_id;
+    endpoint.peak_l = std::max(0.0f, peak_l);
+    endpoint.peak_r = std::max(0.0f, peak_r);
+    endpoint.last_heartbeat_ms = 1;
+    if (selected_session_ == 0 || selected_session_ == 1) {
+        selected_session_ = session_slot;
+    }
+}
+
+void SessionRegistry::set_authority_active(std::uint16_t session_slot,
+                                           std::uint16_t endpoint_slot) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (EndpointRecord& endpoint : endpoints_) {
+        endpoint.authority_active =
+            endpoint.connected &&
+            endpoint.session_slot == session_slot &&
+            endpoint.endpoint_slot == endpoint_slot;
+    }
+}
+
+std::vector<EndpointRecord> SessionRegistry::endpoints_snapshot() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return endpoints_;
 }
 
-const TransportSnapshot& SessionRegistry::transport() const {
+TransportSnapshot SessionRegistry::transport_snapshot() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return transport_;
 }
 
 std::uint16_t SessionRegistry::selected_session() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return selected_session_;
 }
 
 }  // namespace outsider
-

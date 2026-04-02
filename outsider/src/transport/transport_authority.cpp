@@ -6,7 +6,7 @@ namespace outsider {
 
 void TransportAuthority::recompute(const SessionRegistry& registry) {
     current_ = {};
-    for (const EndpointRecord& endpoint : registry.endpoints()) {
+    for (const EndpointRecord& endpoint : registry.endpoints_snapshot()) {
         if (!endpoint.connected || !endpoint.authority_claimed) {
             continue;
         }
@@ -22,4 +22,3 @@ const AuthoritySelection& TransportAuthority::current() const {
 }
 
 }  // namespace outsider
-
