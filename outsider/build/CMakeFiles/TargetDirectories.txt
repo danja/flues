@@ -1,0 +1,3 @@
+/home/danny/github/flues/outsider/build/CMakeFiles/outsider.dir
+/home/danny/github/flues/outsider/build/CMakeFiles/edit_cache.dir
+/home/danny/github/flues/outsider/build/CMakeFiles/rebuild_cache.dir

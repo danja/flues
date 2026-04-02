@@ -1,0 +1,175 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/outsider-client>
+    a lv2:AudioPlugin , lv2:EffectPlugin ;
+    doap:name "Outsider Client" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    ui:ui <https://danja.github.io/flues/plugins/outsider-client#ui> ;
+    rdfs:comment "Outsider scaffold client: stereo pass-through endpoint with persisted session identity and status outputs." ;
+
+    lv2:port [
+        a atom:AtomPort, lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "control" ;
+        lv2:name "Control" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports <http://lv2plug.in/ns/ext/time#Position> ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ;
+        lv2:index 1 ;
+        lv2:symbol "in_l" ;
+        lv2:name "Input L" ;
+    ] , [
+        a lv2:AudioPort, lv2:InputPort ;
+        lv2:index 2 ;
+        lv2:symbol "in_r" ;
+        lv2:name "Input R" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ;
+        lv2:index 3 ;
+        lv2:symbol "out_l" ;
+        lv2:name "Output L" ;
+    ] , [
+        a lv2:AudioPort, lv2:OutputPort ;
+        lv2:index 4 ;
+        lv2:symbol "out_r" ;
+        lv2:name "Output R" ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "enable" ;
+        lv2:name "Enable" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "session_slot" ;
+        lv2:name "Session Slot" ;
+        lv2:default 1 ;
+        lv2:minimum 1 ;
+        lv2:maximum 64 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "endpoint_slot" ;
+        lv2:name "Endpoint Slot" ;
+        lv2:default 1 ;
+        lv2:minimum 1 ;
+        lv2:maximum 64 ;
+        lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "authority" ;
+        lv2:name "Authority" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "reconnect" ;
+        lv2:name "Reconnect" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "fallback_gain" ;
+        lv2:name "Fallback Gain" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "connected" ;
+        lv2:name "Connected" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "server_seen" ;
+        lv2:name "Server Seen" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "current_gain" ;
+        lv2:name "Current Gain" ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "current_state" ;
+        lv2:name "Current State" ;
+        lv2:minimum 0 ;
+        lv2:maximum 4 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [
+            rdfs:label "Bypass" ;
+            rdf:value 0
+        ] , [
+            rdfs:label "Play" ;
+            rdf:value 1
+        ] , [
+            rdfs:label "Mute" ;
+            rdf:value 2
+        ] , [
+            rdfs:label "Fade In" ;
+            rdf:value 3
+        ] , [
+            rdfs:label "Fade Out" ;
+            rdf:value 4
+        ] ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "current_mode" ;
+        lv2:name "Current Mode" ;
+        lv2:minimum 0 ;
+        lv2:maximum 2 ;
+        lv2:portProperty lv2:integer ;
+        lv2:scalePoint [
+            rdfs:label "Bypass" ;
+            rdf:value 0
+        ] , [
+            rdfs:label "P-Mix" ;
+            rdf:value 1
+        ] , [
+            rdfs:label "E-Mix" ;
+            rdf:value 2
+        ] ;
+    ] , [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "authority_active" ;
+        lv2:name "Authority Active" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] .
+
