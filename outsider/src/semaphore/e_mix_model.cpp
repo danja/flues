@@ -34,13 +34,15 @@ SemaphoreDecision EMixModel::preview(const TransportSnapshot& transport,
     const int rotated_step = (step_index + params.offset % division + division) % division;
     const bool active = euclid_hit(rotated_step, steps, division);
 
-    decision.command.target_state = active ? TargetState::Play : TargetState::Mute;
+    const float duration_beats = std::max(0.0f, params.fade_bars) * static_cast<float>(transport.beats_per_bar);
+    decision.command.target_state = duration_beats > 0.0f
+                                        ? (active ? TargetState::FadeIn : TargetState::FadeOut)
+                                        : (active ? TargetState::Play : TargetState::Mute);
     decision.command.target_gain = active ? 1.0f : 0.0f;
-    decision.command.duration_beats = std::max(0.0f, params.fade_bars) * static_cast<float>(transport.beats_per_bar);
+    decision.command.duration_beats = duration_beats;
     decision.command.apply_at_bar = static_cast<std::uint32_t>(transport.bar);
     decision.command.apply_at_step16 = static_cast<std::uint8_t>(std::clamp(static_cast<int>(std::floor((transport.beat / std::max(1.0, transport.beats_per_bar)) * 16.0)), 0, 15));
     return decision;
 }
 
 }  // namespace outsider
-

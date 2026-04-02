@@ -23,6 +23,7 @@ target_compile_definitions(outsider_client PRIVATE LV2_EXPORT_SHARED)
 target_link_libraries(outsider_client PRIVATE
     ${LV2_LIBRARIES}
     m
+    pthread
 )
 set_target_properties(outsider_client PROPERTIES
     PREFIX ""
@@ -58,4 +59,3 @@ install(FILES
     outsider-client.lv2/outsider-client.ttl
     DESTINATION outsider-client.lv2
 )
-

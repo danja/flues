@@ -5,6 +5,7 @@
 namespace outsider {
 
 void TransportAuthority::recompute(const SessionRegistry& registry) {
+    std::lock_guard<std::mutex> lock(mutex_);
     current_ = {};
     for (const EndpointRecord& endpoint : registry.endpoints_snapshot()) {
         if (!endpoint.connected || !endpoint.authority_claimed) {
@@ -17,7 +18,8 @@ void TransportAuthority::recompute(const SessionRegistry& registry) {
     }
 }
 
-const AuthoritySelection& TransportAuthority::current() const {
+AuthoritySelection TransportAuthority::current() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return current_;
 }
 

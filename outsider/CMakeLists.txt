@@ -32,5 +32,5 @@ target_link_libraries(outsider PRIVATE
     ${X11_LIBRARIES}
     ${CAIRO_LIBRARIES}
     m
+    pthread
 )
-

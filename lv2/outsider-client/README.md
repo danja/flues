@@ -4,8 +4,8 @@
 
 - persisted `session_slot` and `endpoint_slot` identity
 - a minimal X11/Cairo status UI
-- a stub network layer
-- a local loopback harness for exercising command timing without a real server
+- a localhost control client that exchanges JSON-line messages with the Outsider server
+- a local loopback harness for exercising command timing when no server is available
 
 ## Build
 
@@ -36,10 +36,10 @@ The demo engine requires valid host transport/time. If the host is stopped, the 
 5. Start host transport.
 6. Watch `Current Mode`, `Current State`, and `Current Gain` change while audio is gated locally.
 
-`Connected` and `Server Seen` remain off in this scaffold because there is no live WebSocket transport yet.
+With the server running, `Connected` and `Server Seen` should turn on. Without the server, Demo Mode still works as an offline harness.
 
 ## Notes
 
-- `Authority` and `Reconnect` are persisted but currently only feed the stub network layer.
+- `Authority` and `Reconnect` now affect the live localhost control connection.
 - `session_slot` and `endpoint_slot` are intended to match the control-plane IDs described in `docs/outsider-protocol.md`.
-- The next major step is replacing the loopback harness with real protocol I/O while keeping the same runtime command application path.
+- The current implementation uses raw localhost TCP plus JSON lines. The next major protocol step is WebSocket framing plus `params` sync.

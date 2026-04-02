@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
 
 namespace outsider {
 
@@ -15,11 +16,11 @@ struct AuthoritySelection {
 class TransportAuthority {
 public:
     void recompute(const SessionRegistry& registry);
-    const AuthoritySelection& current() const;
+    AuthoritySelection current() const;
 
 private:
+    mutable std::mutex mutex_;
     AuthoritySelection current_{};
 };
 
 }  // namespace outsider
-

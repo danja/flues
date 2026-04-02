@@ -75,6 +75,8 @@ typedef struct {
 static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static bool g_xlib_threads_ready = false;
 
+static void request_redraw(OutsiderClientUI* ui);
+
 static void ensure_xlib_threads(void) {
     pthread_mutex_lock(&g_xlib_init_lock);
     if (!g_xlib_threads_ready) {
@@ -137,6 +139,93 @@ static void draw_badge(cairo_t* cr,
     cairo_show_text(cr, label);
 }
 
+static void draw_control_button(cairo_t* cr,
+                                double x,
+                                double y,
+                                double w,
+                                double h,
+                                const char* label,
+                                bool active) {
+    cairo_set_source_rgb(cr,
+                         active ? 0.42 : 0.20,
+                         active ? 0.78 : 0.22,
+                         active ? 0.94 : 0.26);
+    cairo_rectangle(cr, x, y, w, h);
+    cairo_fill(cr);
+
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.14);
+    cairo_rectangle(cr, x, y, w, h);
+    cairo_stroke(cr);
+
+    cairo_select_font_face(cr, "sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 10.0);
+    cairo_set_source_rgb(cr, active ? 0.06 : 0.86, active ? 0.08 : 0.90, active ? 0.10 : 0.94);
+    cairo_move_to(cr, x + 8, y + h - 5);
+    cairo_show_text(cr, label);
+}
+
+static bool point_in_rect(int px, int py, double x, double y, double w, double h) {
+    return px >= (int)x && px <= (int)(x + w) && py >= (int)y && py <= (int)(y + h);
+}
+
+static void apply_port_value(OutsiderClientUI* ui, uint32_t port_index, float value) {
+    switch (port_index) {
+        case PORT_ENABLE: ui->enable = value; break;
+        case PORT_SESSION_SLOT: ui->session_slot = value; break;
+        case PORT_ENDPOINT_SLOT: ui->endpoint_slot = value; break;
+        case PORT_AUTHORITY: ui->authority = value; break;
+        case PORT_RECONNECT: ui->reconnect = value; break;
+        case PORT_FALLBACK_GAIN: ui->fallback_gain = value; break;
+        case PORT_DEMO_MODE: ui->demo_mode = value; break;
+        case PORT_CONNECTED: ui->connected = value; break;
+        case PORT_SERVER_SEEN: ui->server_seen = value; break;
+        case PORT_CURRENT_GAIN: ui->current_gain = value; break;
+        case PORT_CURRENT_STATE: ui->current_state = value; break;
+        case PORT_CURRENT_MODE: ui->current_mode = value; break;
+        case PORT_AUTHORITY_ACTIVE: ui->authority_active = value; break;
+        default: break;
+    }
+}
+
+static void send_control_value(OutsiderClientUI* ui, uint32_t port_index, float value) {
+    apply_port_value(ui, port_index, value);
+    if (ui->write) {
+        ui->write(ui->controller, port_index, sizeof(float), 0, &value);
+    }
+    request_redraw(ui);
+}
+
+static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
+    if (point_in_rect(x, y, 28, 118, 78, 16)) {
+        send_control_value(ui, PORT_ENABLE, ui->enable >= 0.5f ? 0.0f : 1.0f);
+        return;
+    }
+    if (point_in_rect(x, y, 116, 118, 88, 16)) {
+        send_control_value(ui, PORT_AUTHORITY, ui->authority >= 0.5f ? 0.0f : 1.0f);
+        return;
+    }
+    if (point_in_rect(x, y, 214, 118, 88, 16)) {
+        send_control_value(ui, PORT_RECONNECT, ui->reconnect >= 0.5f ? 0.0f : 1.0f);
+        return;
+    }
+    if (point_in_rect(x, y, 336, 118, 44, 16)) {
+        send_control_value(ui, PORT_DEMO_MODE, 0.0f);
+        return;
+    }
+    if (point_in_rect(x, y, 390, 118, 54, 16)) {
+        send_control_value(ui, PORT_DEMO_MODE, 1.0f);
+        return;
+    }
+    if (point_in_rect(x, y, 454, 118, 70, 16)) {
+        send_control_value(ui, PORT_DEMO_MODE, 2.0f);
+        return;
+    }
+    if (point_in_rect(x, y, 534, 118, 70, 16)) {
+        send_control_value(ui, PORT_DEMO_MODE, 3.0f);
+        return;
+    }
+}
+
 static void draw_ui(OutsiderClientUI* ui) {
     cairo_t* cr = ui->back_cr;
     cairo_set_source_rgb(cr, 0.08, 0.09, 0.11);
@@ -151,7 +240,7 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_set_font_size(cr, 11.0);
     cairo_set_source_rgb(cr, 0.72, 0.76, 0.84);
     cairo_move_to(cr, 178, 28);
-    cairo_show_text(cr, "Loopback build: local command harness for transport-driven Outsider testing");
+    cairo_show_text(cr, "Live client build: localhost control link plus offline demo modes");
 
     cairo_set_source_rgb(cr, 0.13, 0.14, 0.17);
     cairo_rectangle(cr, 16, 48, ui->width - 32, 92);
@@ -175,14 +264,22 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
     cairo_set_font_size(cr, 12.0);
     snprintf(line, sizeof(line), "Authority request: %s", ui->authority >= 0.5f ? "on" : "off");
-    cairo_move_to(cr, 30, 114);
+    cairo_move_to(cr, 30, 108);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Reconnect: %s    Fallback Gain: %.2f    Demo: %s",
              ui->reconnect >= 0.5f ? "on" : "off",
              ui->fallback_gain,
              demo_mode_name(ui->demo_mode));
-    cairo_move_to(cr, 220, 114);
+    cairo_move_to(cr, 220, 108);
     cairo_show_text(cr, line);
+
+    draw_control_button(cr, 28, 118, 78, 16, "Enable", ui->enable >= 0.5f);
+    draw_control_button(cr, 116, 118, 88, 16, "Authority", ui->authority >= 0.5f);
+    draw_control_button(cr, 214, 118, 88, 16, "Reconnect", ui->reconnect >= 0.5f);
+    draw_control_button(cr, 336, 118, 44, 16, "Off", (int)(ui->demo_mode + 0.5f) == 0);
+    draw_control_button(cr, 390, 118, 54, 16, "Pulse", (int)(ui->demo_mode + 0.5f) == 1);
+    draw_control_button(cr, 454, 118, 70, 16, "P-Mix", (int)(ui->demo_mode + 0.5f) == 2);
+    draw_control_button(cr, 534, 118, 70, 16, "E-Mix", (int)(ui->demo_mode + 0.5f) == 3);
 
     cairo_set_source_rgb(cr, 0.96, 0.96, 0.98);
     cairo_set_font_size(cr, 13.0);
@@ -221,13 +318,13 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_show_text(cr, "Notes");
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
     cairo_move_to(cr, 30, 358);
-    cairo_show_text(cr, "- Demo modes synthesize local command packets; no live server is needed.");
+    cairo_show_text(cr, "- Click Off above to disable local demo mode and listen only to the server.");
     cairo_move_to(cr, 30, 382);
-    cairo_show_text(cr, "- Pulse and P-Mix advance on bar boundaries; E-Mix advances on 8th-note slots.");
+    cairo_show_text(cr, "- With the server running, connected/server seen should turn on and commands come from the control plane.");
     cairo_move_to(cr, 30, 406);
-    cairo_show_text(cr, "- Host transport/time must be running for loopback demo activity.");
+    cairo_show_text(cr, "- Pulse and P-Mix advance on bar boundaries; E-Mix advances on 8th-note slots.");
     cairo_move_to(cr, 30, 430);
-    cairo_show_text(cr, "- Session and endpoint slots still persist through LV2 state.");
+    cairo_show_text(cr, "- Current live transport is localhost TCP with JSON lines; host transport is still required for Demo Mode.");
 
     cairo_set_source_surface(ui->cr, ui->back_buffer, 0, 0);
     cairo_paint(ui->cr);
@@ -248,6 +345,10 @@ static void* event_thread_main(void* arg) {
             XNextEvent(ui->display, &event);
             if (event.type == Expose) {
                 request_redraw(ui);
+            } else if (event.type == ButtonPress) {
+                pthread_mutex_lock(&ui->mutex);
+                handle_button_press(ui, event.xbutton.x, event.xbutton.y);
+                pthread_mutex_unlock(&ui->mutex);
             } else if (event.type == ConfigureNotify) {
                 ui->width = event.xconfigure.width;
                 ui->height = event.xconfigure.height;
@@ -284,9 +385,6 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor*,
                                 LV2UI_Controller controller,
                                 LV2UI_Widget* widget,
                                 const LV2_Feature* const* features) {
-    (void)write_function;
-    (void)controller;
-
     OutsiderClientUI* ui = (OutsiderClientUI*)calloc(1, sizeof(OutsiderClientUI));
     if (!ui) {
         return NULL;
@@ -294,9 +392,12 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor*,
 
     ui->width = 640;
     ui->height = 450;
+    ui->write = write_function;
+    ui->controller = controller;
     ui->enable = 1.0f;
     ui->session_slot = 1.0f;
     ui->endpoint_slot = 1.0f;
+    ui->authority = 1.0f;
     ui->reconnect = 1.0f;
     ui->fallback_gain = 1.0f;
     ui->demo_mode = 0.0f;
@@ -321,7 +422,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor*,
     }
 
     XSetWindowAttributes attrs;
-    attrs.event_mask = ExposureMask | StructureNotifyMask;
+    attrs.event_mask = ExposureMask | StructureNotifyMask | ButtonPressMask;
     attrs.background_pixel = BlackPixel(ui->display, ui->screen);
 
     ui->window = XCreateWindow(ui->display,
@@ -394,22 +495,7 @@ static void port_event(LV2UI_Handle handle,
 
     const float value = *(const float*)buffer;
     pthread_mutex_lock(&ui->mutex);
-    switch (port_index) {
-        case PORT_ENABLE: ui->enable = value; break;
-        case PORT_SESSION_SLOT: ui->session_slot = value; break;
-        case PORT_ENDPOINT_SLOT: ui->endpoint_slot = value; break;
-        case PORT_AUTHORITY: ui->authority = value; break;
-        case PORT_RECONNECT: ui->reconnect = value; break;
-        case PORT_FALLBACK_GAIN: ui->fallback_gain = value; break;
-        case PORT_DEMO_MODE: ui->demo_mode = value; break;
-        case PORT_CONNECTED: ui->connected = value; break;
-        case PORT_SERVER_SEEN: ui->server_seen = value; break;
-        case PORT_CURRENT_GAIN: ui->current_gain = value; break;
-        case PORT_CURRENT_STATE: ui->current_state = value; break;
-        case PORT_CURRENT_MODE: ui->current_mode = value; break;
-        case PORT_AUTHORITY_ACTIVE: ui->authority_active = value; break;
-        default: break;
-    }
+    apply_port_value(ui, port_index, value);
     request_redraw(ui);
     pthread_mutex_unlock(&ui->mutex);
 }

@@ -19,7 +19,7 @@
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
     ui:ui <https://danja.github.io/flues/plugins/outsider-client#ui> ;
-    rdfs:comment "Outsider prototype client: stereo endpoint with persisted session identity, status outputs, and local loopback demo modes." ;
+    rdfs:comment "Outsider prototype client: stereo endpoint with persisted session identity, live localhost control transport, status outputs, and offline demo modes." ;
 
     lv2:port [
         a atom:AtomPort, lv2:InputPort ;
@@ -80,7 +80,7 @@
         lv2:index 8 ;
         lv2:symbol "authority" ;
         lv2:name "Authority" ;
-        lv2:default 0 ;
+        lv2:default 1 ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
         lv2:portProperty lv2:toggled ;

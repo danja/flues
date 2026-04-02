@@ -41,9 +41,7 @@ void WsServerStub::start() {
 }
 
 void WsServerStub::stop() {
-    if (!running_.exchange(false)) {
-        return;
-    }
+    running_.store(false);
     if (thread_.joinable()) {
         thread_.join();
     }

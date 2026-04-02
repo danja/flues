@@ -48,6 +48,21 @@ public:
                        float peak_r);
     void set_authority_active(std::uint16_t session_slot,
                               std::uint16_t endpoint_slot);
+    bool set_endpoint_mode(std::uint16_t session_slot,
+                           std::uint16_t endpoint_slot,
+                           OutsiderMode mode);
+    bool adjust_p_mix_granularity(std::uint16_t session_slot,
+                                  std::uint16_t endpoint_slot,
+                                  int delta);
+    bool adjust_p_mix_bias(std::uint16_t session_slot,
+                           std::uint16_t endpoint_slot,
+                           float delta_percent);
+    bool adjust_e_mix_steps(std::uint16_t session_slot,
+                            std::uint16_t endpoint_slot,
+                            int delta);
+    bool adjust_e_mix_offset(std::uint16_t session_slot,
+                             std::uint16_t endpoint_slot,
+                             int delta);
 
     std::vector<EndpointRecord> endpoints_snapshot() const;
     TransportSnapshot transport_snapshot() const;
@@ -56,6 +71,7 @@ public:
 private:
     EndpointRecord& upsert_endpoint_locked(std::uint16_t session_slot,
                                            std::uint16_t endpoint_slot);
+    static void apply_default_mode_locked(EndpointRecord* endpoint);
 
     mutable std::mutex mutex_;
     std::vector<EndpointRecord> endpoints_;

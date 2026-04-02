@@ -94,7 +94,7 @@ struct OutsiderClient {
 
     outsider_client::PersistedConfig config{};
     outsider::OutsiderMode current_mode = outsider::OutsiderMode::Bypass;
-    outsider_client::RuntimeState current_state = outsider_client::RuntimeState::Bypass;
+    outsider::RuntimeState current_state = outsider::RuntimeState::Bypass;
     float current_gain = 1.0f;
     float target_gain = 1.0f;
     float fade_step = 0.0f;
@@ -107,6 +107,7 @@ struct OutsiderClient {
     bool demo_transport_active = false;
 
     outsider_client::SpscQueue<outsider::TransportSnapshot, 128> outbound_transport;
+    outsider_client::SpscQueue<outsider_client::StatusSnapshot, 128> outbound_status;
     outsider_client::SpscQueue<outsider::CommandPacket, 32> inbound_commands;
     outsider_client::OutsiderClientNet net;
 };
@@ -256,7 +257,7 @@ static void update_cached_config(OutsiderClient* self) {
 
 static void set_pass_through_state(OutsiderClient* self) {
     self->current_mode = outsider::OutsiderMode::Bypass;
-    self->current_state = outsider_client::RuntimeState::Bypass;
+    self->current_state = outsider::RuntimeState::Bypass;
     self->current_gain = clampf(self->config.fallback_gain, 0.0f, 1.0f);
     self->target_gain = self->current_gain;
     self->fade_step = 0.0f;
@@ -273,7 +274,7 @@ static void reset_demo_tracking(OutsiderClient* self, outsider_client::DemoMode 
 static void reset_runtime(OutsiderClient* self) {
     self->block_counter = 0;
     self->current_mode = outsider::OutsiderMode::Bypass;
-    self->current_state = outsider_client::RuntimeState::Bypass;
+    self->current_state = outsider::RuntimeState::Bypass;
     self->current_gain = 1.0f;
     self->target_gain = 1.0f;
     self->fade_step = 0.0f;
@@ -281,6 +282,7 @@ static void reset_runtime(OutsiderClient* self) {
     self->last_command_id = 0;
     self->generated_command_id = 1;
     self->outbound_transport.clear();
+    self->outbound_status.clear();
     self->inbound_commands.clear();
     reset_demo_tracking(self, outsider_client::DemoMode::Off);
     self->net.stop();
@@ -506,6 +508,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*,
     self->urids.time_beatsPerMinute = self->map->map(self->map->handle, LV2_TIME__beatsPerMinute);
     self->urids.state_config = self->map->map(self->map->handle, OUTSIDER_CLIENT_URI "#config");
 
+    self->net.attach_queues(&self->outbound_transport, &self->outbound_status, &self->inbound_commands);
     reset_runtime(self);
     return self;
 }
@@ -576,7 +579,7 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
     snapshot.block_size = n_samples;
     self->outbound_transport.push(snapshot);
 
-    if (enabled) {
+    if (enabled && !self->net.server_seen()) {
         maybe_generate_loopback_demo(self, &time_info, endpoint_slot);
     }
 
@@ -587,6 +590,8 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
 
     const float input_l_fallback = 0.0f;
     const float input_r_fallback = 0.0f;
+    float peak_l = 0.0f;
+    float peak_r = 0.0f;
     for (std::uint32_t i = 0; i < n_samples; ++i) {
         if (self->fade_remaining > 0) {
             self->current_gain += self->fade_step;
@@ -598,12 +603,26 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
             self->current_gain = self->target_gain;
         }
 
-        const float gain = self->current_state == outsider_client::RuntimeState::Mute ? 0.0f : self->current_gain;
+        const float gain = self->current_state == outsider::RuntimeState::Mute ? 0.0f : self->current_gain;
         const float in_l = self->audio_in_l ? self->audio_in_l[i] : input_l_fallback;
         const float in_r = self->audio_in_r ? self->audio_in_r[i] : input_r_fallback;
-        if (self->audio_out_l) self->audio_out_l[i] = in_l * gain;
-        if (self->audio_out_r) self->audio_out_r[i] = in_r * gain;
+        const float out_l = in_l * gain;
+        const float out_r = in_r * gain;
+        peak_l = std::max(peak_l, std::fabs(out_l));
+        peak_r = std::max(peak_r, std::fabs(out_r));
+        if (self->audio_out_l) self->audio_out_l[i] = out_l;
+        if (self->audio_out_r) self->audio_out_r[i] = out_r;
     }
+
+    outsider_client::StatusSnapshot status{};
+    status.session_slot = session_slot;
+    status.endpoint_slot = endpoint_slot;
+    status.current_state = self->current_state;
+    status.current_gain = self->current_gain;
+    status.last_command_id = self->last_command_id;
+    status.peak_l = peak_l;
+    status.peak_r = peak_r;
+    self->outbound_status.push(status);
 
     if (self->connected_out) *self->connected_out = self->net.connected() ? 1.0f : 0.0f;
     if (self->server_seen_out) *self->server_seen_out = self->net.server_seen() ? 1.0f : 0.0f;
