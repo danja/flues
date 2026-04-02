@@ -11,6 +11,7 @@ void SessionRegistry::apply_default_mode_locked(EndpointRecord* endpoint) {
         return;
     }
 
+    endpoint->params_revision = 1;
     endpoint->mode = (endpoint->endpoint_slot % 2u == 0u) ? OutsiderMode::EMix : OutsiderMode::PMix;
     endpoint->current_state = RuntimeState::Bypass;
     endpoint->current_gain = 1.0f;
@@ -130,6 +131,7 @@ bool SessionRegistry::set_endpoint_mode(std::uint16_t session_slot,
     for (EndpointRecord& endpoint : endpoints_) {
         if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
             endpoint.mode = mode;
+            endpoint.params_revision++;
             return true;
         }
     }
@@ -144,6 +146,7 @@ bool SessionRegistry::adjust_p_mix_granularity(std::uint16_t session_slot,
         if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
             endpoint.p_mix_params.granularity_bars =
                 std::clamp(endpoint.p_mix_params.granularity_bars + delta, 1, 16);
+            endpoint.params_revision++;
             return true;
         }
     }
@@ -158,6 +161,7 @@ bool SessionRegistry::adjust_p_mix_bias(std::uint16_t session_slot,
         if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
             endpoint.p_mix_params.bias_percent =
                 std::clamp(endpoint.p_mix_params.bias_percent + delta_percent, 0.0f, 100.0f);
+            endpoint.params_revision++;
             return true;
         }
     }
@@ -172,6 +176,7 @@ bool SessionRegistry::adjust_e_mix_steps(std::uint16_t session_slot,
         if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
             endpoint.e_mix_params.steps =
                 std::clamp(endpoint.e_mix_params.steps + delta, 0, endpoint.e_mix_params.division);
+            endpoint.params_revision++;
             return true;
         }
     }
@@ -190,6 +195,24 @@ bool SessionRegistry::adjust_e_mix_offset(std::uint16_t session_slot,
                 offset += division;
             }
             endpoint.e_mix_params.offset = offset % division;
+            endpoint.params_revision++;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SessionRegistry::endpoint_snapshot(std::uint16_t session_slot,
+                                        std::uint16_t endpoint_slot,
+                                        EndpointRecord* out) const {
+    if (!out) {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (const EndpointRecord& endpoint : endpoints_) {
+        if (endpoint.session_slot == session_slot && endpoint.endpoint_slot == endpoint_slot) {
+            *out = endpoint;
             return true;
         }
     }

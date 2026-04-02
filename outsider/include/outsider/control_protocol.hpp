@@ -2,6 +2,7 @@
 
 #include "command_packet.hpp"
 #include "protocol.hpp"
+#include "semaphore_models.hpp"
 #include "transport_snapshot.hpp"
 
 #include <cctype>
@@ -24,6 +25,7 @@ enum class ControlMessageType : std::uint8_t {
     Goodbye,
     Welcome,
     Command,
+    Params,
     Error
 };
 
@@ -53,6 +55,8 @@ struct ControlMessage {
     OutsiderMode mode = OutsiderMode::Bypass;
     TargetState target_state = TargetState::Play;
     CommandPacket command{};
+    PMixParams p_mix_params{};
+    EMixParams e_mix_params{};
     std::string server_name;
     std::string code;
     std::string message;
@@ -305,6 +309,52 @@ inline bool parse_control_message(std::string_view line, ControlMessage* out) {
         if (json_get_uint32(line, "apply_at_step16", &step16)) {
             msg.command.apply_at_step16 = static_cast<std::uint8_t>(step16);
         }
+    } else if (type == "params") {
+        msg.type = ControlMessageType::Params;
+        json_get_uint16(line, "session_slot", &msg.session_slot);
+        json_get_uint16(line, "endpoint_slot", &msg.endpoint_slot);
+        std::string mode_text;
+        if (json_get_string(line, "mode", &mode_text)) {
+            parse_mode_wire(mode_text, &msg.mode);
+        }
+        double value = 0.0;
+        std::uint32_t int_value = 0;
+        if (msg.mode == OutsiderMode::PMix) {
+            if (json_get_uint32(line, "granularity_bars", &int_value)) {
+                msg.p_mix_params.granularity_bars = static_cast<int>(int_value);
+            }
+            if (json_get_double(line, "maintain_weight", &value)) {
+                msg.p_mix_params.maintain_weight = static_cast<float>(value);
+            }
+            if (json_get_double(line, "fade_weight", &value)) {
+                msg.p_mix_params.fade_weight = static_cast<float>(value);
+            }
+            if (json_get_double(line, "cut_weight", &value)) {
+                msg.p_mix_params.cut_weight = static_cast<float>(value);
+            }
+            if (json_get_double(line, "fade_dur_max_fraction", &value)) {
+                msg.p_mix_params.fade_dur_max_fraction = static_cast<float>(value);
+            }
+            if (json_get_double(line, "bias_percent", &value)) {
+                msg.p_mix_params.bias_percent = static_cast<float>(value);
+            }
+        } else if (msg.mode == OutsiderMode::EMix) {
+            if (json_get_uint32(line, "total_bars", &int_value)) {
+                msg.e_mix_params.total_bars = static_cast<int>(int_value);
+            }
+            if (json_get_uint32(line, "division", &int_value)) {
+                msg.e_mix_params.division = static_cast<int>(int_value);
+            }
+            if (json_get_uint32(line, "steps", &int_value)) {
+                msg.e_mix_params.steps = static_cast<int>(int_value);
+            }
+            if (json_get_double(line, "offset", &value)) {
+                msg.e_mix_params.offset = static_cast<int>(value);
+            }
+            if (json_get_double(line, "fade_bars", &value)) {
+                msg.e_mix_params.fade_bars = static_cast<float>(value);
+            }
+        }
     } else if (type == "error") {
         msg.type = ControlMessageType::Error;
         json_get_string(line, "code", &msg.code);
@@ -425,6 +475,42 @@ inline std::string encode_command_message(std::uint16_t session_slot,
         << ",\"apply_at_bar\":" << command.apply_at_bar
         << ",\"apply_at_step16\":" << static_cast<unsigned>(command.apply_at_step16)
         << "}";
+    return oss.str();
+}
+
+inline std::string encode_params_message(std::uint16_t session_slot,
+                                         std::uint16_t endpoint_slot,
+                                         OutsiderMode mode,
+                                         const PMixParams& p_mix_params,
+                                         const EMixParams& e_mix_params) {
+    std::ostringstream oss;
+    oss << "{\"type\":\"params\""
+        << ",\"session_slot\":" << session_slot
+        << ",\"endpoint_slot\":" << endpoint_slot
+        << ",\"mode\":\"" << mode_wire_name(mode) << "\"";
+
+    if (mode == OutsiderMode::PMix) {
+        oss << ",\"params\":{"
+            << "\"granularity_bars\":" << p_mix_params.granularity_bars
+            << ",\"maintain_weight\":" << p_mix_params.maintain_weight
+            << ",\"fade_weight\":" << p_mix_params.fade_weight
+            << ",\"cut_weight\":" << p_mix_params.cut_weight
+            << ",\"fade_dur_max_fraction\":" << p_mix_params.fade_dur_max_fraction
+            << ",\"bias_percent\":" << p_mix_params.bias_percent
+            << "}";
+    } else if (mode == OutsiderMode::EMix) {
+        oss << ",\"params\":{"
+            << "\"total_bars\":" << e_mix_params.total_bars
+            << ",\"division\":" << e_mix_params.division
+            << ",\"steps\":" << e_mix_params.steps
+            << ",\"offset\":" << e_mix_params.offset
+            << ",\"fade_bars\":" << e_mix_params.fade_bars
+            << "}";
+    } else {
+        oss << ",\"params\":{}";
+    }
+
+    oss << "}";
     return oss.str();
 }
 

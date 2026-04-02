@@ -1,5 +1,24 @@
 # Outsider MVP Plan
 
+## Implementation Status
+
+Status snapshot: 2026-04-02.
+
+The project has moved past pure planning and into a working localhost prototype:
+
+- standalone X11/Cairo server application under `outsider/`
+- LV2 stereo client under `lv2/outsider-client/`
+- live authority selection, endpoint/session tracking, and `Semaphore` editing
+- server-side `P-Mix` / `E-Mix` models with client-side gain and fade application
+- server-to-client command timing aligned to local bar/step boundaries in the client
+- minimal X11 UIs on both server and client
+
+Important current limitation:
+
+- the live transport is currently raw localhost TCP with JSON lines, not WebSocket framing yet
+
+For the current build state and next recommended implementation steps, see `docs/outsider-next-steps.md`.
+
 ## Goal
 
 Build the first useful version of Outsider as a localhost control-plane system:

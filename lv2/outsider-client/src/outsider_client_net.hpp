@@ -3,6 +3,7 @@
 #include "outsider/command_packet.hpp"
 #include "outsider/protocol.hpp"
 #include "outsider/transport_snapshot.hpp"
+#include "outsider_client_state.hpp"
 #include "spsc_queue.hpp"
 
 #include <atomic>
@@ -27,7 +28,8 @@ class OutsiderClientNet {
 public:
     void attach_queues(SpscQueue<outsider::TransportSnapshot, 128>* outbound_transport,
                        SpscQueue<StatusSnapshot, 128>* outbound_status,
-                       SpscQueue<outsider::CommandPacket, 32>* inbound_commands);
+                       SpscQueue<outsider::CommandPacket, 32>* inbound_commands,
+                       SpscQueue<ServerParamsSnapshot, 16>* inbound_params);
     void configure(std::uint16_t session_slot,
                    std::uint16_t endpoint_slot,
                    bool authority,
@@ -50,6 +52,7 @@ private:
     SpscQueue<outsider::TransportSnapshot, 128>* outbound_transport_ = nullptr;
     SpscQueue<StatusSnapshot, 128>* outbound_status_ = nullptr;
     SpscQueue<outsider::CommandPacket, 32>* inbound_commands_ = nullptr;
+    SpscQueue<ServerParamsSnapshot, 16>* inbound_params_ = nullptr;
 
     std::uint16_t session_slot_ = 1;
     std::uint16_t endpoint_slot_ = 1;

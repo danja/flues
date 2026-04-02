@@ -42,6 +42,7 @@ private:
         std::uint64_t last_rx_ms = 0;
         std::uint64_t last_tx_ms = 0;
         std::uint64_t last_command_key = 0;
+        std::uint64_t last_params_revision_sent = 0;
     };
 
     void thread_main();
@@ -53,6 +54,8 @@ private:
     void disconnect_connection(std::size_t index, const std::string& reason);
     void refresh_authority();
     void maybe_dispatch_commands(std::uint16_t session_slot);
+    void maybe_send_params(Connection& connection);
+    void maybe_send_preview_command(Connection& connection);
     void send_line(Connection& connection, const std::string& line);
     static std::uint64_t monotonic_time_ms();
     static std::uint64_t command_key(const CommandPacket& command);

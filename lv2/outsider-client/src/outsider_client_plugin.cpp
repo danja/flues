@@ -36,7 +36,13 @@ enum PortIndex {
     PORT_CURRENT_GAIN = 14,
     PORT_CURRENT_STATE = 15,
     PORT_CURRENT_MODE = 16,
-    PORT_AUTHORITY_ACTIVE = 17
+    PORT_AUTHORITY_ACTIVE = 17,
+    PORT_SERVER_MODE = 18,
+    PORT_SERVER_P_MIX_BARS = 19,
+    PORT_SERVER_P_MIX_BIAS = 20,
+    PORT_SERVER_E_MIX_STEPS = 21,
+    PORT_SERVER_E_MIX_DIVISION = 22,
+    PORT_SERVER_E_MIX_OFFSET = 23
 };
 
 struct OutsiderClientURIDs {
@@ -86,6 +92,12 @@ struct OutsiderClient {
     float* current_state_out = nullptr;
     float* current_mode_out = nullptr;
     float* authority_active_out = nullptr;
+    float* server_mode_out = nullptr;
+    float* server_p_mix_bars_out = nullptr;
+    float* server_p_mix_bias_out = nullptr;
+    float* server_e_mix_steps_out = nullptr;
+    float* server_e_mix_division_out = nullptr;
+    float* server_e_mix_offset_out = nullptr;
 
     LV2_URID_Map* map = nullptr;
     OutsiderClientURIDs urids{};
@@ -100,15 +112,19 @@ struct OutsiderClient {
     float fade_step = 0.0f;
     std::uint32_t fade_remaining = 0;
     std::uint64_t last_command_id = 0;
+    outsider::CommandPacket pending_command{};
+    bool have_pending_command = false;
     std::uint64_t generated_command_id = 1;
     outsider_client::DemoMode last_demo_mode = outsider_client::DemoMode::Off;
     std::int64_t last_demo_primary = -1;
     std::int32_t last_demo_secondary = -1;
     bool demo_transport_active = false;
+    outsider_client::ServerParamsSnapshot server_params{};
 
     outsider_client::SpscQueue<outsider::TransportSnapshot, 128> outbound_transport;
     outsider_client::SpscQueue<outsider_client::StatusSnapshot, 128> outbound_status;
     outsider_client::SpscQueue<outsider::CommandPacket, 32> inbound_commands;
+    outsider_client::SpscQueue<outsider_client::ServerParamsSnapshot, 16> inbound_params;
     outsider_client::OutsiderClientNet net;
 };
 
@@ -129,6 +145,24 @@ static inline std::uint32_t clamp_u32_nonnegative(double value) {
     if (value <= 0.0) return 0;
     if (value >= 4294967295.0) return 4294967295u;
     return static_cast<std::uint32_t>(value);
+}
+
+static inline double time_info_absolute_bar(const TimeInfo& time_info) {
+    const double beats_per_bar = time_info.beatsPerBar > 0.0 ? time_info.beatsPerBar : 4.0;
+    const double beat_fraction = std::clamp(time_info.barBeat / beats_per_bar, 0.0, 0.999999);
+    return std::max(0.0, time_info.bar) + beat_fraction;
+}
+
+static inline double block_advance_bars(const TimeInfo& time_info,
+                                        std::uint32_t n_samples,
+                                        double sample_rate) {
+    if (!time_info.valid || !time_info.playing || sample_rate <= 1.0) {
+        return 0.0;
+    }
+    const double beats_per_bar = time_info.beatsPerBar > 0.0 ? time_info.beatsPerBar : 4.0;
+    const double seconds = static_cast<double>(n_samples) / sample_rate;
+    const double beats = seconds * ((time_info.bpm > 1.0 ? time_info.bpm : 120.0) / 60.0);
+    return beats / beats_per_bar;
 }
 
 static std::uint32_t hash_u32(std::uint32_t v) {
@@ -255,6 +289,14 @@ static void update_cached_config(OutsiderClient* self) {
     if (self->demo_mode_port) self->config.demo_mode = *self->demo_mode_port;
 }
 
+static void clear_pending_command(OutsiderClient* self) {
+    if (!self) {
+        return;
+    }
+    self->pending_command = outsider::CommandPacket{};
+    self->have_pending_command = false;
+}
+
 static void set_pass_through_state(OutsiderClient* self) {
     self->current_mode = outsider::OutsiderMode::Bypass;
     self->current_state = outsider::RuntimeState::Bypass;
@@ -262,6 +304,42 @@ static void set_pass_through_state(OutsiderClient* self) {
     self->target_gain = self->current_gain;
     self->fade_step = 0.0f;
     self->fade_remaining = 0;
+}
+
+static void queue_command(OutsiderClient* self,
+                          const outsider::CommandPacket& command) {
+    if (!self) {
+        return;
+    }
+    if (command.command_id <= self->last_command_id) {
+        return;
+    }
+    if (self->have_pending_command &&
+        command.command_id < self->pending_command.command_id) {
+        return;
+    }
+    self->pending_command = command;
+    self->have_pending_command = true;
+}
+
+static bool command_due_this_block(const outsider::CommandPacket& command,
+                                   const TimeInfo* time_info,
+                                   std::uint32_t n_samples,
+                                   double sample_rate) {
+    if (!time_info || !time_info->valid || time_info->beatsPerBar <= 0.0) {
+        return false;
+    }
+
+    const double start_bar = time_info_absolute_bar(*time_info);
+    const double target_bar =
+        static_cast<double>(command.apply_at_bar) +
+        (static_cast<double>(std::min<std::uint8_t>(command.apply_at_step16, 15)) / 16.0);
+    if (target_bar <= start_bar + 1e-6) {
+        return true;
+    }
+
+    const double end_bar = start_bar + block_advance_bars(*time_info, n_samples, sample_rate);
+    return target_bar <= end_bar + 1e-6;
 }
 
 static void reset_demo_tracking(OutsiderClient* self, outsider_client::DemoMode mode) {
@@ -280,10 +358,13 @@ static void reset_runtime(OutsiderClient* self) {
     self->fade_step = 0.0f;
     self->fade_remaining = 0;
     self->last_command_id = 0;
+    clear_pending_command(self);
     self->generated_command_id = 1;
+    self->server_params = {};
     self->outbound_transport.clear();
     self->outbound_status.clear();
     self->inbound_commands.clear();
+    self->inbound_params.clear();
     reset_demo_tracking(self, outsider_client::DemoMode::Off);
     self->net.stop();
 }
@@ -508,7 +589,10 @@ static LV2_Handle instantiate(const LV2_Descriptor*,
     self->urids.time_beatsPerMinute = self->map->map(self->map->handle, LV2_TIME__beatsPerMinute);
     self->urids.state_config = self->map->map(self->map->handle, OUTSIDER_CLIENT_URI "#config");
 
-    self->net.attach_queues(&self->outbound_transport, &self->outbound_status, &self->inbound_commands);
+    self->net.attach_queues(&self->outbound_transport,
+                            &self->outbound_status,
+                            &self->inbound_commands,
+                            &self->inbound_params);
     reset_runtime(self);
     return self;
 }
@@ -534,6 +618,12 @@ static void connect_port(LV2_Handle instance, std::uint32_t port, void* data) {
         case PORT_CURRENT_STATE: self->current_state_out = reinterpret_cast<float*>(data); break;
         case PORT_CURRENT_MODE: self->current_mode_out = reinterpret_cast<float*>(data); break;
         case PORT_AUTHORITY_ACTIVE: self->authority_active_out = reinterpret_cast<float*>(data); break;
+        case PORT_SERVER_MODE: self->server_mode_out = reinterpret_cast<float*>(data); break;
+        case PORT_SERVER_P_MIX_BARS: self->server_p_mix_bars_out = reinterpret_cast<float*>(data); break;
+        case PORT_SERVER_P_MIX_BIAS: self->server_p_mix_bias_out = reinterpret_cast<float*>(data); break;
+        case PORT_SERVER_E_MIX_STEPS: self->server_e_mix_steps_out = reinterpret_cast<float*>(data); break;
+        case PORT_SERVER_E_MIX_DIVISION: self->server_e_mix_division_out = reinterpret_cast<float*>(data); break;
+        case PORT_SERVER_E_MIX_OFFSET: self->server_e_mix_offset_out = reinterpret_cast<float*>(data); break;
         default: break;
     }
 }
@@ -558,6 +648,7 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
         self->net.start();
     } else {
         self->net.stop();
+        clear_pending_command(self);
         set_pass_through_state(self);
         reset_demo_tracking(self, outsider_client::DemoMode::Off);
     }
@@ -579,13 +670,30 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
     snapshot.block_size = n_samples;
     self->outbound_transport.push(snapshot);
 
+    outsider_client::ServerParamsSnapshot params_snapshot{};
+    while (self->inbound_params.pop(&params_snapshot)) {
+        self->server_params = params_snapshot;
+    }
+
     if (enabled && !self->net.server_seen()) {
         maybe_generate_loopback_demo(self, &time_info, endpoint_slot);
     }
 
     outsider::CommandPacket command{};
     while (self->inbound_commands.pop(&command)) {
-        apply_command(self, command, time_info.bpm);
+        queue_command(self, command);
+    }
+
+    const outsider_client::DemoMode demo_mode =
+        outsider_client::demo_mode_from_port(self->config.demo_mode);
+    if (enabled && demo_mode == outsider_client::DemoMode::Off && !self->net.connected()) {
+        self->inbound_commands.clear();
+        clear_pending_command(self);
+        set_pass_through_state(self);
+    } else if (self->have_pending_command &&
+               command_due_this_block(self->pending_command, &time_info, n_samples, self->sample_rate)) {
+        apply_command(self, self->pending_command, time_info.bpm);
+        clear_pending_command(self);
     }
 
     const float input_l_fallback = 0.0f;
@@ -630,6 +738,12 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
     if (self->current_state_out) *self->current_state_out = outsider_client::runtime_state_to_port(self->current_state);
     if (self->current_mode_out) *self->current_mode_out = outsider_client::mode_to_port(self->current_mode);
     if (self->authority_active_out) *self->authority_active_out = self->net.authority_active() ? 1.0f : 0.0f;
+    if (self->server_mode_out) *self->server_mode_out = outsider_client::mode_to_port(self->server_params.mode);
+    if (self->server_p_mix_bars_out) *self->server_p_mix_bars_out = static_cast<float>(self->server_params.p_mix_granularity_bars);
+    if (self->server_p_mix_bias_out) *self->server_p_mix_bias_out = self->server_params.p_mix_bias_percent;
+    if (self->server_e_mix_steps_out) *self->server_e_mix_steps_out = static_cast<float>(self->server_params.e_mix_steps);
+    if (self->server_e_mix_division_out) *self->server_e_mix_division_out = static_cast<float>(self->server_params.e_mix_division);
+    if (self->server_e_mix_offset_out) *self->server_e_mix_offset_out = static_cast<float>(self->server_params.e_mix_offset);
 }
 
 static void deactivate(LV2_Handle instance) {

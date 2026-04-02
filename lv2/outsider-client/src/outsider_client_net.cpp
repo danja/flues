@@ -18,11 +18,13 @@ namespace outsider_client {
 
 void OutsiderClientNet::attach_queues(SpscQueue<outsider::TransportSnapshot, 128>* outbound_transport,
                                       SpscQueue<StatusSnapshot, 128>* outbound_status,
-                                      SpscQueue<outsider::CommandPacket, 32>* inbound_commands) {
+                                      SpscQueue<outsider::CommandPacket, 32>* inbound_commands,
+                                      SpscQueue<ServerParamsSnapshot, 16>* inbound_params) {
     std::lock_guard<std::mutex> lock(mutex_);
     outbound_transport_ = outbound_transport;
     outbound_status_ = outbound_status;
     inbound_commands_ = inbound_commands;
+    inbound_params_ = inbound_params;
 }
 
 void OutsiderClientNet::configure(std::uint16_t session_slot,
@@ -197,6 +199,19 @@ void OutsiderClientNet::poll_read() {
             case outsider::ControlMessageType::Command:
                 if (inbound_commands_) {
                     inbound_commands_->push(message.command);
+                }
+                break;
+
+            case outsider::ControlMessageType::Params:
+                if (inbound_params_) {
+                    ServerParamsSnapshot snapshot{};
+                    snapshot.mode = message.mode;
+                    snapshot.p_mix_granularity_bars = message.p_mix_params.granularity_bars;
+                    snapshot.p_mix_bias_percent = message.p_mix_params.bias_percent;
+                    snapshot.e_mix_steps = message.e_mix_params.steps;
+                    snapshot.e_mix_division = message.e_mix_params.division;
+                    snapshot.e_mix_offset = message.e_mix_params.offset;
+                    inbound_params_->push(snapshot);
                 }
                 break;
 

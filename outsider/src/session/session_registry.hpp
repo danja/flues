@@ -24,6 +24,7 @@ struct EndpointRecord {
     std::uint64_t last_transport_block_counter = 0;
     float peak_l = 0.0f;
     float peak_r = 0.0f;
+    std::uint64_t params_revision = 1;
     PMixParams p_mix_params{};
     EMixParams e_mix_params{};
 };
@@ -63,6 +64,9 @@ public:
     bool adjust_e_mix_offset(std::uint16_t session_slot,
                              std::uint16_t endpoint_slot,
                              int delta);
+    bool endpoint_snapshot(std::uint16_t session_slot,
+                           std::uint16_t endpoint_slot,
+                           EndpointRecord* out) const;
 
     std::vector<EndpointRecord> endpoints_snapshot() const;
     TransportSnapshot transport_snapshot() const;

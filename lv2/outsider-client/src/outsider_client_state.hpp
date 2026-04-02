@@ -31,6 +31,15 @@ enum class DemoMode : std::uint8_t {
     EMix = 3
 };
 
+struct ServerParamsSnapshot {
+    outsider::OutsiderMode mode = outsider::OutsiderMode::Bypass;
+    int p_mix_granularity_bars = 0;
+    float p_mix_bias_percent = 0.0f;
+    int e_mix_steps = 0;
+    int e_mix_division = 0;
+    int e_mix_offset = 0;
+};
+
 inline DemoMode demo_mode_from_port(float value) {
     int rounded = static_cast<int>(value + 0.5f);
     if (rounded < 0) rounded = 0;

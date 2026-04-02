@@ -33,7 +33,13 @@ enum {
     PORT_CURRENT_GAIN = 14,
     PORT_CURRENT_STATE = 15,
     PORT_CURRENT_MODE = 16,
-    PORT_AUTHORITY_ACTIVE = 17
+    PORT_AUTHORITY_ACTIVE = 17,
+    PORT_SERVER_MODE = 18,
+    PORT_SERVER_P_MIX_BARS = 19,
+    PORT_SERVER_P_MIX_BIAS = 20,
+    PORT_SERVER_E_MIX_STEPS = 21,
+    PORT_SERVER_E_MIX_DIVISION = 22,
+    PORT_SERVER_E_MIX_OFFSET = 23
 };
 
 typedef struct {
@@ -67,6 +73,12 @@ typedef struct {
     float current_state;
     float current_mode;
     float authority_active;
+    float server_mode;
+    float server_p_mix_bars;
+    float server_p_mix_bias;
+    float server_e_mix_steps;
+    float server_e_mix_division;
+    float server_e_mix_offset;
 
     int width;
     int height;
@@ -183,6 +195,12 @@ static void apply_port_value(OutsiderClientUI* ui, uint32_t port_index, float va
         case PORT_CURRENT_STATE: ui->current_state = value; break;
         case PORT_CURRENT_MODE: ui->current_mode = value; break;
         case PORT_AUTHORITY_ACTIVE: ui->authority_active = value; break;
+        case PORT_SERVER_MODE: ui->server_mode = value; break;
+        case PORT_SERVER_P_MIX_BARS: ui->server_p_mix_bars = value; break;
+        case PORT_SERVER_P_MIX_BIAS: ui->server_p_mix_bias = value; break;
+        case PORT_SERVER_E_MIX_STEPS: ui->server_e_mix_steps = value; break;
+        case PORT_SERVER_E_MIX_DIVISION: ui->server_e_mix_division = value; break;
+        case PORT_SERVER_E_MIX_OFFSET: ui->server_e_mix_offset = value; break;
         default: break;
     }
 }
@@ -313,18 +331,31 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_move_to(cr, 280, 290);
     cairo_show_text(cr, line);
 
+    if ((int)(ui->server_mode + 0.5f) == 1) {
+        snprintf(line, sizeof(line), "Server Config: P-Mix bars %.0f  bias %.0f%%",
+                 ui->server_p_mix_bars,
+                 ui->server_p_mix_bias);
+    } else if ((int)(ui->server_mode + 0.5f) == 2) {
+        snprintf(line, sizeof(line), "Server Config: E-Mix steps %.0f/%.0f  offset %.0f",
+                 ui->server_e_mix_steps,
+                 ui->server_e_mix_division,
+                 ui->server_e_mix_offset);
+    } else {
+        snprintf(line, sizeof(line), "Server Config: Bypass");
+    }
+    cairo_move_to(cr, 30, 316);
+    cairo_show_text(cr, line);
+
     cairo_set_source_rgb(cr, 0.78, 0.82, 0.88);
-    cairo_move_to(cr, 30, 330);
+    cairo_move_to(cr, 30, 352);
     cairo_show_text(cr, "Notes");
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
-    cairo_move_to(cr, 30, 358);
+    cairo_move_to(cr, 30, 380);
     cairo_show_text(cr, "- Click Off above to disable local demo mode and listen only to the server.");
-    cairo_move_to(cr, 30, 382);
-    cairo_show_text(cr, "- With the server running, connected/server seen should turn on and commands come from the control plane.");
-    cairo_move_to(cr, 30, 406);
-    cairo_show_text(cr, "- Pulse and P-Mix advance on bar boundaries; E-Mix advances on 8th-note slots.");
-    cairo_move_to(cr, 30, 430);
-    cairo_show_text(cr, "- Current live transport is localhost TCP with JSON lines; host transport is still required for Demo Mode.");
+    cairo_move_to(cr, 30, 404);
+    cairo_show_text(cr, "- Live commands are now queued to the requested local bar/step boundary instead of applied on receipt.");
+    cairo_move_to(cr, 30, 428);
+    cairo_show_text(cr, "- With the server running, connected/server seen should turn on and current mode/config should match the server.");
 
     cairo_set_source_surface(ui->cr, ui->back_buffer, 0, 0);
     cairo_paint(ui->cr);

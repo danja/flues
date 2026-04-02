@@ -6,6 +6,12 @@
 
 ---
 
+## Project Status
+
+Flues is an active work-in-progress repository collecting browser instruments, LV2 plugins, native synth builds, and related controller experiments. Some parts are stable enough to try in a host or browser, while others are mid-build and changing quickly, especially newer work such as `Achord` and the `Outsider` server/client control-plane prototype.
+
+If you are browsing the repo as a user rather than a contributor, treat the documentation and install scripts as the current source of truth and expect some features, UIs, and protocols to evolve between sessions.
+
 ## Experiments Index
 
 ### Web
@@ -47,6 +53,7 @@
 
 ## Contents
 
+- [Project Status](#project-status)
 - [Experiments Index](#experiments-index)
 - [What is this?](#what-is-this)
 - [Try It Now - Live Web Experiments](#-try-it-now---live-web-experiments)
