@@ -10,6 +10,19 @@
 
 namespace outsider {
 
+struct PersistedEndpointState {
+    std::uint16_t session_slot = 1;
+    std::uint16_t endpoint_slot = 1;
+    OutsiderMode mode = OutsiderMode::Bypass;
+    PMixParams p_mix_params{};
+    EMixParams e_mix_params{};
+};
+
+struct PersistedSessionState {
+    std::uint16_t selected_session = 1;
+    std::vector<PersistedEndpointState> endpoints;
+};
+
 struct EndpointRecord {
     std::uint16_t session_slot = 1;
     std::uint16_t endpoint_slot = 1;
@@ -67,6 +80,9 @@ public:
     bool endpoint_snapshot(std::uint16_t session_slot,
                            std::uint16_t endpoint_slot,
                            EndpointRecord* out) const;
+    PersistedSessionState persistent_snapshot() const;
+    void restore_persisted_state(const PersistedSessionState& state);
+    std::uint64_t persistent_revision() const;
 
     std::vector<EndpointRecord> endpoints_snapshot() const;
     TransportSnapshot transport_snapshot() const;
@@ -74,13 +90,18 @@ public:
 
 private:
     EndpointRecord& upsert_endpoint_locked(std::uint16_t session_slot,
-                                           std::uint16_t endpoint_slot);
+                                           std::uint16_t endpoint_slot,
+                                           bool* created = nullptr);
     static void apply_default_mode_locked(EndpointRecord* endpoint);
+    static void apply_persisted_state_locked(EndpointRecord* endpoint,
+                                             const PersistedEndpointState& persisted);
+    void bump_persistent_revision_locked();
 
     mutable std::mutex mutex_;
     std::vector<EndpointRecord> endpoints_;
     TransportSnapshot transport_;
     std::uint16_t selected_session_ = 1;
+    std::uint64_t persistent_revision_ = 1;
 };
 
 }  // namespace outsider

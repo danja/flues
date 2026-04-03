@@ -2,6 +2,7 @@
 
 #include "outsider/control_protocol.hpp"
 #include "outsider/protocol.hpp"
+#include "outsider/websocket_protocol.hpp"
 
 #include <algorithm>
 #include <cerrno>
@@ -101,12 +102,37 @@ bool OutsiderClientNet::open_connection() {
         return false;
     }
 
+    const std::uint64_t now_ms = monotonic_time_ms();
+    mask_seed_ = static_cast<std::uint32_t>(now_ms ^ (static_cast<std::uint64_t>(session_slot_) << 16) ^
+                                            static_cast<std::uint64_t>(endpoint_slot_));
+    const std::string client_key = outsider::websocket_make_client_key(mask_seed_);
+    const std::string request = outsider::websocket_build_client_request(
+        outsider::kDefaultListenHost,
+        outsider::kDefaultListenPort,
+        outsider::kDefaultListenPath,
+        client_key);
+    if (!send_raw(request)) {
+        ::close(sock_fd_);
+        sock_fd_ = -1;
+        return false;
+    }
+
+    std::string response;
+    if (!receive_handshake_response(&response) ||
+        !outsider::websocket_validate_server_response(response,
+                                                      outsider::websocket_accept_value(client_key))) {
+        ::close(sock_fd_);
+        sock_fd_ = -1;
+        return false;
+    }
+
     ::fcntl(sock_fd_, F_SETFL, ::fcntl(sock_fd_, F_GETFL, 0) | O_NONBLOCK);
-    recv_buffer_.clear();
+    const std::size_t header_end = response.find("\r\n\r\n");
+    recv_buffer_.assign(header_end == std::string::npos ? "" : response.substr(header_end + 4u));
     hello_sent_ = false;
     heartbeat_interval_ms_ = 750;
     connected_.store(true);
-    last_rx_ms_ = monotonic_time_ms();
+    last_rx_ms_ = now_ms;
     last_tx_ms_ = 0;
     return true;
 }
@@ -122,15 +148,13 @@ void OutsiderClientNet::close_connection() {
     authority_active_.store(false);
 }
 
-void OutsiderClientNet::send_line(const std::string& line) {
+bool OutsiderClientNet::send_raw(const std::string& bytes) {
     if (sock_fd_ < 0) {
-        return;
+        return false;
     }
 
-    std::string payload = line;
-    payload.push_back('\n');
-    const char* data = payload.c_str();
-    std::size_t remaining = payload.size();
+    const char* data = bytes.c_str();
+    std::size_t remaining = bytes.size();
     while (remaining > 0) {
         const ssize_t sent = ::send(sock_fd_, data, remaining, MSG_NOSIGNAL);
         if (sent > 0) {
@@ -141,10 +165,62 @@ void OutsiderClientNet::send_line(const std::string& line) {
         if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
         }
-        close_connection();
-        return;
+        return false;
     }
     last_tx_ms_ = monotonic_time_ms();
+    return true;
+}
+
+bool OutsiderClientNet::receive_handshake_response(std::string* response) {
+    if (!response || sock_fd_ < 0) {
+        return false;
+    }
+
+    timeval timeout{};
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
+    ::setsockopt(sock_fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    ::setsockopt(sock_fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+
+    response->clear();
+    char buffer[2048];
+    while (response->find("\r\n\r\n") == std::string::npos) {
+        const ssize_t n = ::recv(sock_fd_, buffer, sizeof(buffer), 0);
+        if (n > 0) {
+            response->append(buffer, static_cast<std::size_t>(n));
+            continue;
+        }
+        if (n == 0) {
+            return false;
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        return false;
+    }
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+    ::setsockopt(sock_fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    ::setsockopt(sock_fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+    return true;
+}
+
+void OutsiderClientNet::send_frame(outsider::WebSocketOpcode opcode,
+                                   const std::string& payload) {
+    if (sock_fd_ < 0) {
+        return;
+    }
+
+    mask_seed_ = outsider::websocket_xorshift32(mask_seed_ + 0x9e3779b9u);
+    const std::string frame = outsider::websocket_encode_frame(opcode, payload, true, mask_seed_);
+    if (!send_raw(frame)) {
+        close_connection();
+    }
+}
+
+void OutsiderClientNet::send_line(const std::string& line) {
+    send_frame(outsider::WebSocketOpcode::Text, line);
 }
 
 void OutsiderClientNet::poll_read() {
@@ -173,19 +249,33 @@ void OutsiderClientNet::poll_read() {
     }
 
     while (true) {
-        const std::size_t newline = recv_buffer_.find('\n');
-        if (newline == std::string::npos) {
+        outsider::WebSocketFrame frame{};
+        std::size_t consumed = 0;
+        const outsider::WebSocketParseResult result =
+            outsider::websocket_decode_frame(recv_buffer_, false, &consumed, &frame);
+        if (result == outsider::WebSocketParseResult::Incomplete) {
             break;
         }
+        if (result == outsider::WebSocketParseResult::ProtocolError) {
+            close_connection();
+            return;
+        }
 
-        std::string line = recv_buffer_.substr(0, newline);
-        recv_buffer_.erase(0, newline + 1);
-        if (line.empty()) {
+        recv_buffer_.erase(0, consumed);
+        if (frame.opcode == outsider::WebSocketOpcode::Ping) {
+            send_frame(outsider::WebSocketOpcode::Pong, frame.payload);
+            continue;
+        }
+        if (frame.opcode == outsider::WebSocketOpcode::Close) {
+            close_connection();
+            return;
+        }
+        if (frame.opcode != outsider::WebSocketOpcode::Text || frame.payload.empty()) {
             continue;
         }
 
         outsider::ControlMessage message{};
-        if (!outsider::parse_control_message(line, &message)) {
+        if (!outsider::parse_control_message(frame.payload, &message)) {
             continue;
         }
 
@@ -321,6 +411,7 @@ void OutsiderClientNet::thread_main() {
     }
     if (connected_.load()) {
         send_line(outsider::encode_goodbye_message(session_slot, endpoint_slot));
+        send_frame(outsider::WebSocketOpcode::Close, "");
     }
 }
 

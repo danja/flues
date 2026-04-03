@@ -222,7 +222,7 @@ public:
         cairo_paint(draw_cr);
 
         draw_text(draw_cr, 22, 30, "Outsider", 20.0, 0.96, 0.96, 0.98, true);
-        draw_text(draw_cr, 140, 30, "Live control build: localhost JSON-line server with transport-driven command dispatch", 12.0, 0.73, 0.78, 0.84, false);
+        draw_text(draw_cr, 140, 30, "Live control build: localhost WebSocket server with transport-driven command dispatch", 12.0, 0.73, 0.78, 0.84, false);
 
         draw_panel(draw_cr, 18, 48, width - 36, 68, "Header");
         draw_panel(draw_cr, 18, 128, 360, 150, "Transport");
@@ -240,7 +240,7 @@ public:
         std::snprintf(line, sizeof(line), "%zu endpoints", endpoints.size());
         draw_badge(draw_cr, 238, 76, 118, 22, line, 0.44, 0.86, 0.56);
 
-        draw_text(draw_cr, 30, 112, server.running() ? "Server: running (localhost TCP)" : "Server: stopped",
+        draw_text(draw_cr, 30, 112, server.running() ? "Server: running (localhost WebSocket)" : "Server: stopped",
                   12.0, 0.94, 0.94, 0.98, false);
         draw_text(draw_cr, 250, 112, server.listen_uri().c_str(), 12.0, 0.74, 0.78, 0.84, false);
 

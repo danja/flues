@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-Status snapshot: 2026-04-02.
+Status snapshot: 2026-04-03.
 
 The project has moved past pure planning and into a working localhost prototype:
 
@@ -11,11 +11,14 @@ The project has moved past pure planning and into a working localhost prototype:
 - live authority selection, endpoint/session tracking, and `Semaphore` editing
 - server-side `P-Mix` / `E-Mix` models with client-side gain and fade application
 - server-to-client command timing aligned to local bar/step boundaries in the client
+- localhost WebSocket transport with HTTP upgrade and text-frame control messages
+- server-side session persistence for saved endpoint mode and algorithm parameters
 - minimal X11 UIs on both server and client
 
-Important current limitation:
+Persistence note:
 
-- the live transport is currently raw localhost TCP with JSON lines, not WebSocket framing yet
+- the server now saves session state to `OUTSIDER_SESSION_FILE` when that environment variable is set
+- otherwise it uses an XDG-style config path under `~/.config/flues/outsider-session.state`
 
 For the current build state and next recommended implementation steps, see `docs/outsider-next-steps.md`.
 

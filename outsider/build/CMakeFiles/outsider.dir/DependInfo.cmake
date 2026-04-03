@@ -14,6 +14,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/danny/github/flues/outsider/src/semaphore/e_mix_model.cpp" "CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o.d"
   "/home/danny/github/flues/outsider/src/semaphore/p_mix_model.cpp" "CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o.d"
   "/home/danny/github/flues/outsider/src/semaphore/semaphore_engine.cpp" "CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o.d"
+  "/home/danny/github/flues/outsider/src/session/session_persistence.cpp" "CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o.d"
   "/home/danny/github/flues/outsider/src/session/session_registry.cpp" "CMakeFiles/outsider.dir/src/session/session_registry.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/session/session_registry.cpp.o.d"
   "/home/danny/github/flues/outsider/src/transport/transport_authority.cpp" "CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o.d"
   "/home/danny/github/flues/outsider/src/ui/outsider_ui_x11.cpp" "CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o" "gcc" "CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o.d"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "outsider/command_packet.hpp"
+#include "outsider/websocket_protocol.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -36,6 +37,7 @@ private:
         std::string recv_buffer;
         std::uint16_t session_slot = 0;
         std::uint16_t endpoint_slot = 0;
+        bool websocket_ready = false;
         bool hello_received = false;
         bool authority_requested = false;
         bool authority_accepted = false;
@@ -50,12 +52,14 @@ private:
     void close_listener();
     void poll_accept();
     void poll_connections(std::uint64_t now_ms);
+    bool maybe_complete_handshake(Connection& connection, std::string* error);
     void handle_message(Connection& connection, const std::string& line, std::size_t connection_index);
     void disconnect_connection(std::size_t index, const std::string& reason);
     void refresh_authority();
     void maybe_dispatch_commands(std::uint16_t session_slot);
     void maybe_send_params(Connection& connection);
     void maybe_send_preview_command(Connection& connection);
+    void send_frame(Connection& connection, WebSocketOpcode opcode, const std::string& payload);
     void send_line(Connection& connection, const std::string& line);
     static std::uint64_t monotonic_time_ms();
     static std::uint64_t command_key(const CommandPacket& command);

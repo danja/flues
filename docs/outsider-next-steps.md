@@ -2,7 +2,7 @@
 
 ## Progress Snapshot
 
-Status snapshot: 2026-04-02.
+Status snapshot: 2026-04-03.
 
 ### Completed so far
 
@@ -15,31 +15,32 @@ Status snapshot: 2026-04-02.
 - client applies server commands locally with fail-open pass-through on disconnect
 - command timing now respects local bar / step boundaries instead of applying immediately on packet receipt
 - server `params` updates are sent to the client so the client UI can show current server config
+- localhost WebSocket upgrade and framed text-message transport now replace the earlier raw TCP line transport
+- server-side session persistence now saves and restores endpoint mode/params across restart
 - installer script exists at repo root: `install-outsider.sh`
 
 ### Current reality check
 
-- the transport is currently raw localhost TCP with JSON lines, not WebSocket framing yet
 - the prototype is good enough to try musically, but it is still a work in progress rather than a settled protocol or product
 - UI polish is still incremental; the server and client views are functional status panels, not finished interfaces
 
 ### Recommended next implementation steps
 
-1. Decide whether to keep the current localhost TCP JSON-line transport for the MVP or replace it with actual WebSocket framing before adding more features.
-2. Add server-side session persistence so `Semaphore` assignments and per-endpoint params survive restart.
-3. Add endpoint grouping and group editing in the server UI so the shared-control idea becomes useful beyond one-track-at-a-time editing.
-4. Harden connection handling with explicit stale/offline timeouts and clearer UI status for reconnect and authority conflicts.
-5. Add a small local smoke test harness or integration test path outside the audio host so command scheduling and reconnect logic can be regression-tested.
+1. Add endpoint grouping and group editing in the server UI so the shared-control idea becomes useful beyond one-track-at-a-time editing.
+2. Harden connection handling with explicit stale/offline timeouts and clearer UI status for reconnect and authority conflicts.
+3. Add a small local smoke test harness or integration test path outside the audio host so command scheduling and reconnect logic can be regression-tested.
+4. Add more `Semaphore` parameter editing breadth in the server UI beyond the current granularity/bias and steps/offset controls.
+5. Decide how far browser-facing compatibility should go in the MVP: plain browser observer/editor clients only, or browser peers that can also act as transport-aware endpoints.
 
 ## Immediate Sequence
 
 With the idea, MVP plan, and protocol now written down, the sensible implementation order is:
 
 1. Keep the current live server/client path stable while host testing continues.
-2. Resolve the transport choice for the MVP: keep localhost TCP JSON lines or switch to actual WebSocket framing.
-3. Add persistence for server-side `Semaphore` state.
-4. Add grouping and more useful multi-endpoint editing in the server UI.
-5. Add a repeatable smoke-test path outside the DAW.
+2. Add grouping and more useful multi-endpoint editing in the server UI.
+3. Harden timeout/reconnect/conflict reporting.
+4. Add a repeatable smoke-test path outside the DAW.
+5. Broaden the `Semaphore` editor controls.
 
 ## Why This Order
 

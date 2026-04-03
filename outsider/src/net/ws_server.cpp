@@ -6,6 +6,7 @@
 #include "outsider/control_protocol.hpp"
 #include "outsider/protocol.hpp"
 #include "outsider/transport_snapshot.hpp"
+#include "outsider/websocket_protocol.hpp"
 
 #include <algorithm>
 #include <cerrno>
@@ -20,6 +21,41 @@
 #include <unistd.h>
 
 namespace outsider {
+
+namespace {
+
+bool header_contains_token(std::string_view value, std::string_view token) {
+    std::string lowered_token(token);
+    for (char& ch : lowered_token) {
+        if (ch >= 'A' && ch <= 'Z') {
+            ch = static_cast<char>(ch - 'A' + 'a');
+        }
+    }
+
+    std::size_t start = 0;
+    while (start < value.size()) {
+        while (start < value.size() && (value[start] == ' ' || value[start] == '\t' || value[start] == ',')) {
+            ++start;
+        }
+        std::size_t end = start;
+        while (end < value.size() && value[end] != ',') {
+            ++end;
+        }
+        std::string candidate(value.substr(start, end - start));
+        for (char& ch : candidate) {
+            if (ch >= 'A' && ch <= 'Z') {
+                ch = static_cast<char>(ch - 'A' + 'a');
+            }
+        }
+        if (candidate == lowered_token) {
+            return true;
+        }
+        start = end + 1;
+    }
+    return false;
+}
+
+}  // namespace
 
 WsServerStub::WsServerStub(SessionRegistry& registry,
                            TransportAuthority& authority,
@@ -122,7 +158,7 @@ void WsServerStub::open_listener() {
         return;
     }
 
-    log_event(std::string("Control server listening on ") + kDefaultListenHost + ":" + std::to_string(kDefaultListenPort));
+    log_event(std::string("WebSocket control server listening on ") + kDefaultListenHost + ":" + std::to_string(kDefaultListenPort));
 }
 
 void WsServerStub::close_listener() {
@@ -132,15 +168,16 @@ void WsServerStub::close_listener() {
     }
 }
 
-void WsServerStub::send_line(Connection& connection, const std::string& line) {
-    if (connection.fd < 0) {
+void WsServerStub::send_frame(Connection& connection,
+                              WebSocketOpcode opcode,
+                              const std::string& payload) {
+    if (connection.fd < 0 || !connection.websocket_ready) {
         return;
     }
 
-    std::string payload = line;
-    payload.push_back('\n');
-    const char* data = payload.c_str();
-    std::size_t remaining = payload.size();
+    const std::string frame = websocket_encode_frame(opcode, payload, false);
+    const char* data = frame.c_str();
+    std::size_t remaining = frame.size();
     while (remaining > 0) {
         const ssize_t sent = ::send(connection.fd, data, remaining, MSG_NOSIGNAL);
         if (sent > 0) {
@@ -154,6 +191,61 @@ void WsServerStub::send_line(Connection& connection, const std::string& line) {
         break;
     }
     connection.last_tx_ms = monotonic_time_ms();
+}
+
+void WsServerStub::send_line(Connection& connection, const std::string& line) {
+    send_frame(connection, WebSocketOpcode::Text, line);
+}
+
+bool WsServerStub::maybe_complete_handshake(Connection& connection, std::string* error) {
+    const std::size_t header_end = connection.recv_buffer.find("\r\n\r\n");
+    if (header_end == std::string::npos) {
+        return false;
+    }
+
+    const std::string_view headers(connection.recv_buffer.data(), header_end);
+    const std::size_t request_line_end = headers.find("\r\n");
+    const std::string_view request_line = headers.substr(0, request_line_end);
+    if (request_line.find("GET ") != 0 || request_line.find(" HTTP/1.1") == std::string_view::npos) {
+        if (error) *error = "bad_websocket_request";
+        return false;
+    }
+
+    const std::string upgrade = websocket_header_value(headers, "Upgrade");
+    const std::string connection_value = websocket_header_value(headers, "Connection");
+    const std::string version = websocket_header_value(headers, "Sec-WebSocket-Version");
+    const std::string client_key = websocket_header_value(headers, "Sec-WebSocket-Key");
+    if (client_key.empty() ||
+        !header_contains_token(upgrade, "websocket") ||
+        !header_contains_token(connection_value, "upgrade") ||
+        version != "13") {
+        if (error) *error = "bad_websocket_headers";
+        return false;
+    }
+
+    const std::string response =
+        websocket_build_server_response(websocket_accept_value(client_key));
+    const char* data = response.c_str();
+    std::size_t remaining = response.size();
+    while (remaining > 0) {
+        const ssize_t sent = ::send(connection.fd, data, remaining, MSG_NOSIGNAL);
+        if (sent > 0) {
+            data += sent;
+            remaining -= static_cast<std::size_t>(sent);
+            continue;
+        }
+        if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            continue;
+        }
+        if (error) *error = "websocket_handshake_send_failed";
+        return false;
+    }
+
+    connection.websocket_ready = true;
+    connection.last_tx_ms = monotonic_time_ms();
+    connection.recv_buffer.erase(0, header_end + 4u);
+    log_event("WebSocket upgrade completed.");
+    return true;
 }
 
 void WsServerStub::refresh_authority() {
@@ -435,7 +527,7 @@ void WsServerStub::poll_accept() {
         connection.fd = fd;
         connection.last_rx_ms = monotonic_time_ms();
         connections_.push_back(connection);
-        log_event("Client connected to control server.");
+        log_event("TCP client connected to control server.");
     }
 }
 
@@ -465,25 +557,57 @@ void WsServerStub::poll_connections(std::uint64_t now_ms) {
             disconnect_reason = std::string("recv failed: ") + std::strerror(errno);
         }
 
-        while (!disconnected) {
-            const std::size_t newline = connection.recv_buffer.find('\n');
-            if (newline == std::string::npos) {
-                break;
-            }
-            std::string line = connection.recv_buffer.substr(0, newline);
-            connection.recv_buffer.erase(0, newline + 1);
-            if (line.empty()) {
-                continue;
-            }
-            try {
-                handle_message(connection, line, index);
-            } catch (const std::runtime_error& error) {
+        if (!disconnected && !connection.websocket_ready) {
+            std::string handshake_error;
+            if (maybe_complete_handshake(connection, &handshake_error)) {
+                connection.last_rx_ms = now_ms;
+            } else if (!handshake_error.empty()) {
                 disconnected = true;
-                disconnect_reason = error.what();
+                disconnect_reason = handshake_error;
             }
         }
 
-        if (!disconnected && connection.hello_received && now_ms > connection.last_tx_ms + 750) {
+        while (!disconnected && connection.websocket_ready) {
+            WebSocketFrame frame{};
+            std::size_t consumed = 0;
+            const WebSocketParseResult result =
+                websocket_decode_frame(connection.recv_buffer, true, &consumed, &frame);
+            if (result == WebSocketParseResult::Incomplete) {
+                break;
+            }
+            if (result == WebSocketParseResult::ProtocolError) {
+                disconnected = true;
+                disconnect_reason = "websocket_protocol_error";
+                break;
+            }
+
+            connection.recv_buffer.erase(0, consumed);
+            connection.last_rx_ms = now_ms;
+            if (frame.opcode == WebSocketOpcode::Text) {
+                if (frame.payload.empty()) {
+                    continue;
+                }
+                try {
+                    handle_message(connection, frame.payload, index);
+                } catch (const std::runtime_error& error) {
+                    disconnected = true;
+                    disconnect_reason = error.what();
+                }
+                continue;
+            }
+            if (frame.opcode == WebSocketOpcode::Ping) {
+                send_frame(connection, WebSocketOpcode::Pong, frame.payload);
+                continue;
+            }
+            if (frame.opcode == WebSocketOpcode::Close) {
+                disconnected = true;
+                disconnect_reason = "websocket_close";
+                break;
+            }
+        }
+
+        if (!disconnected && connection.websocket_ready && connection.hello_received &&
+            now_ms > connection.last_tx_ms + 750) {
             send_line(connection,
                       encode_heartbeat_message(connection.session_slot,
                                                connection.endpoint_slot,

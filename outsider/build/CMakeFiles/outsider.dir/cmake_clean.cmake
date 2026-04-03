@@ -12,6 +12,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o.d"
   "CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o"
   "CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o.d"
+  "CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o"
+  "CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o.d"
   "CMakeFiles/outsider.dir/src/session/session_registry.cpp.o"
   "CMakeFiles/outsider.dir/src/session/session_registry.cpp.o.d"
   "CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o"

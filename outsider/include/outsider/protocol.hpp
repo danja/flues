@@ -9,6 +9,7 @@ inline constexpr std::uint32_t kProtocolVersion = 1;
 inline constexpr const char* kDefaultListenUri = "ws://127.0.0.1:7342/outsider/v1";
 inline constexpr const char* kDefaultListenHost = "127.0.0.1";
 inline constexpr std::uint16_t kDefaultListenPort = 7342;
+inline constexpr const char* kDefaultListenPath = "/outsider/v1";
 
 enum class OutsiderMode : std::uint8_t {
     Bypass = 0,

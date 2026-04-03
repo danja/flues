@@ -13,6 +13,7 @@ add_executable(outsider
     src/app/main.cpp
     src/app/outsider_app.cpp
     src/net/ws_server.cpp
+    src/session/session_persistence.cpp
     src/session/session_registry.cpp
     src/transport/transport_authority.cpp
     src/semaphore/semaphore_engine.cpp

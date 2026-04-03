@@ -114,10 +114,24 @@ CMakeFiles/outsider.dir/src/net/ws_server.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/outsider.dir/src/net/ws_server.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/danny/github/flues/outsider/src/net/ws_server.cpp -o CMakeFiles/outsider.dir/src/net/ws_server.cpp.s
 
+CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o: CMakeFiles/outsider.dir/flags.make
+CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o: /home/danny/github/flues/outsider/src/session/session_persistence.cpp
+CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o -MF CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o.d -o CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o -c /home/danny/github/flues/outsider/src/session/session_persistence.cpp
+
+CMakeFiles/outsider.dir/src/session/session_persistence.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/outsider.dir/src/session/session_persistence.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/danny/github/flues/outsider/src/session/session_persistence.cpp > CMakeFiles/outsider.dir/src/session/session_persistence.cpp.i
+
+CMakeFiles/outsider.dir/src/session/session_persistence.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/outsider.dir/src/session/session_persistence.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/danny/github/flues/outsider/src/session/session_persistence.cpp -o CMakeFiles/outsider.dir/src/session/session_persistence.cpp.s
+
 CMakeFiles/outsider.dir/src/session/session_registry.cpp.o: CMakeFiles/outsider.dir/flags.make
 CMakeFiles/outsider.dir/src/session/session_registry.cpp.o: /home/danny/github/flues/outsider/src/session/session_registry.cpp
 CMakeFiles/outsider.dir/src/session/session_registry.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/outsider.dir/src/session/session_registry.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/outsider.dir/src/session/session_registry.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/session/session_registry.cpp.o -MF CMakeFiles/outsider.dir/src/session/session_registry.cpp.o.d -o CMakeFiles/outsider.dir/src/session/session_registry.cpp.o -c /home/danny/github/flues/outsider/src/session/session_registry.cpp
 
 CMakeFiles/outsider.dir/src/session/session_registry.cpp.i: cmake_force
@@ -131,7 +145,7 @@ CMakeFiles/outsider.dir/src/session/session_registry.cpp.s: cmake_force
 CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o: CMakeFiles/outsider.dir/flags.make
 CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o: /home/danny/github/flues/outsider/src/transport/transport_authority.cpp
 CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o -MF CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o.d -o CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o -c /home/danny/github/flues/outsider/src/transport/transport_authority.cpp
 
 CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.i: cmake_force
@@ -145,7 +159,7 @@ CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.s: cmake_force
 CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o: CMakeFiles/outsider.dir/flags.make
 CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o: /home/danny/github/flues/outsider/src/semaphore/semaphore_engine.cpp
 CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o -MF CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o.d -o CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o -c /home/danny/github/flues/outsider/src/semaphore/semaphore_engine.cpp
 
 CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.i: cmake_force
@@ -159,7 +173,7 @@ CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.s: cmake_force
 CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o: CMakeFiles/outsider.dir/flags.make
 CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o: /home/danny/github/flues/outsider/src/semaphore/p_mix_model.cpp
 CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o -MF CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o.d -o CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.o -c /home/danny/github/flues/outsider/src/semaphore/p_mix_model.cpp
 
 CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.i: cmake_force
@@ -173,7 +187,7 @@ CMakeFiles/outsider.dir/src/semaphore/p_mix_model.cpp.s: cmake_force
 CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o: CMakeFiles/outsider.dir/flags.make
 CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o: /home/danny/github/flues/outsider/src/semaphore/e_mix_model.cpp
 CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o -MF CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o.d -o CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.o -c /home/danny/github/flues/outsider/src/semaphore/e_mix_model.cpp
 
 CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.i: cmake_force
@@ -187,7 +201,7 @@ CMakeFiles/outsider.dir/src/semaphore/e_mix_model.cpp.s: cmake_force
 CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o: CMakeFiles/outsider.dir/flags.make
 CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o: /home/danny/github/flues/outsider/src/ui/outsider_ui_x11.cpp
 CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o: CMakeFiles/outsider.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o -MF CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o.d -o CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o -c /home/danny/github/flues/outsider/src/ui/outsider_ui_x11.cpp
 
 CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.i: cmake_force
@@ -203,6 +217,7 @@ outsider_OBJECTS = \
 "CMakeFiles/outsider.dir/src/app/main.cpp.o" \
 "CMakeFiles/outsider.dir/src/app/outsider_app.cpp.o" \
 "CMakeFiles/outsider.dir/src/net/ws_server.cpp.o" \
+"CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o" \
 "CMakeFiles/outsider.dir/src/session/session_registry.cpp.o" \
 "CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o" \
 "CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o" \
@@ -216,6 +231,7 @@ outsider_EXTERNAL_OBJECTS =
 outsider: CMakeFiles/outsider.dir/src/app/main.cpp.o
 outsider: CMakeFiles/outsider.dir/src/app/outsider_app.cpp.o
 outsider: CMakeFiles/outsider.dir/src/net/ws_server.cpp.o
+outsider: CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o
 outsider: CMakeFiles/outsider.dir/src/session/session_registry.cpp.o
 outsider: CMakeFiles/outsider.dir/src/transport/transport_authority.cpp.o
 outsider: CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.o
@@ -225,7 +241,7 @@ outsider: CMakeFiles/outsider.dir/src/ui/outsider_ui_x11.cpp.o
 outsider: CMakeFiles/outsider.dir/build.make
 outsider: CMakeFiles/outsider.dir/compiler_depend.ts
 outsider: CMakeFiles/outsider.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Linking CXX executable outsider"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/danny/github/flues/outsider/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Linking CXX executable outsider"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/outsider.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

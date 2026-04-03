@@ -3,6 +3,7 @@
 #include "outsider/command_packet.hpp"
 #include "outsider/protocol.hpp"
 #include "outsider/transport_snapshot.hpp"
+#include "outsider/websocket_protocol.hpp"
 #include "outsider_client_state.hpp"
 #include "spsc_queue.hpp"
 
@@ -45,6 +46,9 @@ private:
     void thread_main();
     bool open_connection();
     void close_connection();
+    bool send_raw(const std::string& bytes);
+    bool receive_handshake_response(std::string* response);
+    void send_frame(outsider::WebSocketOpcode opcode, const std::string& payload);
     void send_line(const std::string& line);
     void poll_read();
     static std::uint64_t monotonic_time_ms();
@@ -67,6 +71,7 @@ private:
     int sock_fd_ = -1;
     bool hello_sent_ = false;
     std::uint32_t heartbeat_interval_ms_ = 750;
+    std::uint32_t mask_seed_ = 0x12345678u;
     std::uint64_t last_connect_attempt_ms_ = 0;
     std::uint64_t last_tx_ms_ = 0;
     std::uint64_t last_rx_ms_ = 0;

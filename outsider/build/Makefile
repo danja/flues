@@ -273,6 +273,30 @@ src/semaphore/semaphore_engine.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/outsider.dir/build.make CMakeFiles/outsider.dir/src/semaphore/semaphore_engine.cpp.s
 .PHONY : src/semaphore/semaphore_engine.cpp.s
 
+src/session/session_persistence.o: src/session/session_persistence.cpp.o
+.PHONY : src/session/session_persistence.o
+
+# target to build an object file
+src/session/session_persistence.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/outsider.dir/build.make CMakeFiles/outsider.dir/src/session/session_persistence.cpp.o
+.PHONY : src/session/session_persistence.cpp.o
+
+src/session/session_persistence.i: src/session/session_persistence.cpp.i
+.PHONY : src/session/session_persistence.i
+
+# target to preprocess a source file
+src/session/session_persistence.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/outsider.dir/build.make CMakeFiles/outsider.dir/src/session/session_persistence.cpp.i
+.PHONY : src/session/session_persistence.cpp.i
+
+src/session/session_persistence.s: src/session/session_persistence.cpp.s
+.PHONY : src/session/session_persistence.s
+
+# target to generate assembly for a file
+src/session/session_persistence.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/outsider.dir/build.make CMakeFiles/outsider.dir/src/session/session_persistence.cpp.s
+.PHONY : src/session/session_persistence.cpp.s
+
 src/session/session_registry.o: src/session/session_registry.cpp.o
 .PHONY : src/session/session_registry.o
 
@@ -372,6 +396,9 @@ help:
 	@echo "... src/semaphore/semaphore_engine.o"
 	@echo "... src/semaphore/semaphore_engine.i"
 	@echo "... src/semaphore/semaphore_engine.s"
+	@echo "... src/session/session_persistence.o"
+	@echo "... src/session/session_persistence.i"
+	@echo "... src/session/session_persistence.s"
 	@echo "... src/session/session_registry.o"
 	@echo "... src/session/session_registry.i"
 	@echo "... src/session/session_registry.s"

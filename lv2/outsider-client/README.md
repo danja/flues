@@ -42,4 +42,4 @@ With the server running, `Connected` and `Server Seen` should turn on. Without t
 
 - `Authority` and `Reconnect` now affect the live localhost control connection.
 - `session_slot` and `endpoint_slot` are intended to match the control-plane IDs described in `docs/outsider-protocol.md`.
-- The current implementation uses raw localhost TCP plus JSON lines. The next major protocol step is WebSocket framing plus `params` sync.
+- The current implementation uses localhost WebSocket transport with JSON control messages in text frames.

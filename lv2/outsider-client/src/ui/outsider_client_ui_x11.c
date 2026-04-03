@@ -258,7 +258,7 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_set_font_size(cr, 11.0);
     cairo_set_source_rgb(cr, 0.72, 0.76, 0.84);
     cairo_move_to(cr, 178, 28);
-    cairo_show_text(cr, "Live client build: localhost control link plus offline demo modes");
+    cairo_show_text(cr, "Live client build: localhost WebSocket control link plus offline demo modes");
 
     cairo_set_source_rgb(cr, 0.13, 0.14, 0.17);
     cairo_rectangle(cr, 16, 48, ui->width - 32, 92);
