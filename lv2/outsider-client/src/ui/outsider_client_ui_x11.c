@@ -180,6 +180,27 @@ static bool point_in_rect(int px, int py, double x, double y, double w, double h
     return px >= (int)x && px <= (int)(x + w) && py >= (int)y && py <= (int)(y + h);
 }
 
+static const int kHeaderY = 48;
+static const int kHeaderHeight = 126;
+static const int kBodyY = 186;
+static const int kIdentityControlsY = 94;
+static const int kHeaderTextRow1Y = 120;
+static const int kHeaderTextRow2Y = 142;
+static const int kMainControlsY = 154;
+static const int kRuntimeTitleY = 214;
+static const int kStatusRow1Y = 246;
+static const int kStatusRow2Y = 272;
+static const int kStatusRow3Y = 298;
+static const int kStatusRow4Y = 324;
+static const int kServerConfigY = 350;
+static const int kNotesTitleY = 382;
+static const int kNote1Y = 406;
+static const int kNote2Y = 426;
+static const int kNote3Y = 446;
+static const int kNote4Y = 466;
+static const int kNote5Y = 486;
+static const int kDefaultUiHeight = 510;
+
 static int clamp_session_slot_value(int value) {
     if (value < 1) return 1;
     if (value > 64) return 64;
@@ -226,17 +247,17 @@ static void send_control_value(OutsiderClientUI* ui, uint32_t port_index, float 
 }
 
 static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
-    if (point_in_rect(x, y, 28, 92, 24, 14)) {
+    if (point_in_rect(x, y, 28, kIdentityControlsY, 24, 14)) {
         const int session = clamp_session_slot_value((int)(ui->session_slot + 0.5f) - 1);
         send_control_value(ui, PORT_SESSION_SLOT, (float)session);
         return;
     }
-    if (point_in_rect(x, y, 58, 92, 24, 14)) {
+    if (point_in_rect(x, y, 58, kIdentityControlsY, 24, 14)) {
         const int session = clamp_session_slot_value((int)(ui->session_slot + 0.5f) + 1);
         send_control_value(ui, PORT_SESSION_SLOT, (float)session);
         return;
     }
-    if (point_in_rect(x, y, 128, 92, 24, 14)) {
+    if (point_in_rect(x, y, 128, kIdentityControlsY, 24, 14)) {
         int endpoint = (int)(ui->endpoint_slot + 0.5f);
         if (endpoint <= 0) endpoint = 1;
         endpoint = clamp_endpoint_slot_value(endpoint - 1);
@@ -244,7 +265,7 @@ static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
         send_control_value(ui, PORT_ENDPOINT_SLOT, (float)endpoint);
         return;
     }
-    if (point_in_rect(x, y, 158, 92, 24, 14)) {
+    if (point_in_rect(x, y, 158, kIdentityControlsY, 24, 14)) {
         int endpoint = (int)(ui->endpoint_slot + 0.5f);
         if (endpoint <= 0) endpoint = 0;
         endpoint = clamp_endpoint_slot_value(endpoint + 1);
@@ -252,41 +273,43 @@ static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
         send_control_value(ui, PORT_ENDPOINT_SLOT, (float)endpoint);
         return;
     }
-    if (point_in_rect(x, y, 188, 92, 54, 14)) {
+    if (point_in_rect(x, y, 188, kIdentityControlsY, 54, 14)) {
         send_control_value(ui, PORT_ENDPOINT_SLOT, 0.0f);
         return;
     }
-    if (point_in_rect(x, y, 28, 118, 78, 16)) {
+    if (point_in_rect(x, y, 28, kMainControlsY, 78, 16)) {
         send_control_value(ui, PORT_ENABLE, ui->enable >= 0.5f ? 0.0f : 1.0f);
         return;
     }
-    if (point_in_rect(x, y, 116, 118, 88, 16)) {
+    if (point_in_rect(x, y, 116, kMainControlsY, 88, 16)) {
         send_control_value(ui, PORT_AUTHORITY, ui->authority >= 0.5f ? 0.0f : 1.0f);
         return;
     }
-    if (point_in_rect(x, y, 214, 118, 88, 16)) {
+    if (point_in_rect(x, y, 214, kMainControlsY, 88, 16)) {
         send_control_value(ui, PORT_RECONNECT, ui->reconnect >= 0.5f ? 0.0f : 1.0f);
         return;
     }
-    if (point_in_rect(x, y, 336, 118, 44, 16)) {
+    if (point_in_rect(x, y, 336, kMainControlsY, 44, 16)) {
         send_control_value(ui, PORT_DEMO_MODE, 0.0f);
         return;
     }
-    if (point_in_rect(x, y, 390, 118, 54, 16)) {
+    if (point_in_rect(x, y, 390, kMainControlsY, 54, 16)) {
         send_control_value(ui, PORT_DEMO_MODE, 1.0f);
         return;
     }
-    if (point_in_rect(x, y, 454, 118, 70, 16)) {
+    if (point_in_rect(x, y, 454, kMainControlsY, 70, 16)) {
         send_control_value(ui, PORT_DEMO_MODE, 2.0f);
         return;
     }
-    if (point_in_rect(x, y, 534, 118, 70, 16)) {
+    if (point_in_rect(x, y, 534, kMainControlsY, 70, 16)) {
         send_control_value(ui, PORT_DEMO_MODE, 3.0f);
         return;
     }
 }
 
 static void draw_ui(OutsiderClientUI* ui) {
+    const double body_h = ui->height - (kBodyY + 16);
+
     cairo_t* cr = ui->back_cr;
     cairo_set_source_rgb(cr, 0.08, 0.09, 0.11);
     cairo_paint(cr);
@@ -303,15 +326,15 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_show_text(cr, "Live client build: localhost WebSocket control link plus offline demo modes");
 
     cairo_set_source_rgb(cr, 0.13, 0.14, 0.17);
-    cairo_rectangle(cr, 16, 48, ui->width - 32, 92);
+    cairo_rectangle(cr, 16, kHeaderY, ui->width - 32, kHeaderHeight);
     cairo_fill(cr);
-    cairo_rectangle(cr, 16, 152, ui->width - 32, ui->height - 168);
+    cairo_rectangle(cr, 16, kBodyY, ui->width - 32, body_h);
     cairo_fill(cr);
 
     cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
-    cairo_rectangle(cr, 16, 48, ui->width - 32, 92);
+    cairo_rectangle(cr, 16, kHeaderY, ui->width - 32, kHeaderHeight);
     cairo_stroke(cr);
-    cairo_rectangle(cr, 16, 152, ui->width - 32, ui->height - 168);
+    cairo_rectangle(cr, 16, kBodyY, ui->width - 32, body_h);
     cairo_stroke(cr);
 
     char line[256];
@@ -325,63 +348,63 @@ static void draw_ui(OutsiderClientUI* ui) {
     draw_badge(cr, 128, 66, 120, 22, line, 0.46, 0.86, 0.58);
     draw_badge(cr, 258, 66, 90, 22, ui->enable >= 0.5f ? "Enabled" : "Disabled", 0.94, 0.74, 0.32);
 
-    draw_control_button(cr, 28, 92, 24, 14, "-", false);
-    draw_control_button(cr, 58, 92, 24, 14, "+", false);
-    draw_control_button(cr, 128, 92, 24, 14, "-", false);
-    draw_control_button(cr, 158, 92, 24, 14, "+", false);
-    draw_control_button(cr, 188, 92, 54, 14, "Auto", ui->endpoint_slot < 0.5f);
+    draw_control_button(cr, 28, kIdentityControlsY, 24, 14, "-", false);
+    draw_control_button(cr, 58, kIdentityControlsY, 24, 14, "+", false);
+    draw_control_button(cr, 128, kIdentityControlsY, 24, 14, "-", false);
+    draw_control_button(cr, 158, kIdentityControlsY, 24, 14, "+", false);
+    draw_control_button(cr, 188, kIdentityControlsY, 54, 14, "Auto", ui->endpoint_slot < 0.5f);
 
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
     cairo_set_font_size(cr, 12.0);
     snprintf(line, sizeof(line), "Authority request: %s", ui->authority >= 0.5f ? "on" : "off");
-    cairo_move_to(cr, 30, 108);
+    cairo_move_to(cr, 30, kHeaderTextRow1Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Reconnect: %s    Fallback Gain: %.2f    Demo: %s    Identity: %s",
              ui->reconnect >= 0.5f ? "on" : "off",
              ui->fallback_gain,
              demo_mode_name(ui->demo_mode),
              ui->endpoint_slot < 0.5f ? "auto" : "manual");
-    cairo_move_to(cr, 220, 108);
+    cairo_move_to(cr, 30, kHeaderTextRow2Y);
     cairo_show_text(cr, line);
 
-    draw_control_button(cr, 28, 118, 78, 16, "Enable", ui->enable >= 0.5f);
-    draw_control_button(cr, 116, 118, 88, 16, "Authority", ui->authority >= 0.5f);
-    draw_control_button(cr, 214, 118, 88, 16, "Reconnect", ui->reconnect >= 0.5f);
-    draw_control_button(cr, 336, 118, 44, 16, "Off", (int)(ui->demo_mode + 0.5f) == 0);
-    draw_control_button(cr, 390, 118, 54, 16, "Pulse", (int)(ui->demo_mode + 0.5f) == 1);
-    draw_control_button(cr, 454, 118, 70, 16, "P-Mix", (int)(ui->demo_mode + 0.5f) == 2);
-    draw_control_button(cr, 534, 118, 70, 16, "E-Mix", (int)(ui->demo_mode + 0.5f) == 3);
+    draw_control_button(cr, 28, kMainControlsY, 78, 16, "Enable", ui->enable >= 0.5f);
+    draw_control_button(cr, 116, kMainControlsY, 88, 16, "Authority", ui->authority >= 0.5f);
+    draw_control_button(cr, 214, kMainControlsY, 88, 16, "Reconnect", ui->reconnect >= 0.5f);
+    draw_control_button(cr, 336, kMainControlsY, 44, 16, "Off", (int)(ui->demo_mode + 0.5f) == 0);
+    draw_control_button(cr, 390, kMainControlsY, 54, 16, "Pulse", (int)(ui->demo_mode + 0.5f) == 1);
+    draw_control_button(cr, 454, kMainControlsY, 70, 16, "P-Mix", (int)(ui->demo_mode + 0.5f) == 2);
+    draw_control_button(cr, 534, kMainControlsY, 70, 16, "E-Mix", (int)(ui->demo_mode + 0.5f) == 3);
 
     cairo_set_source_rgb(cr, 0.96, 0.96, 0.98);
     cairo_set_font_size(cr, 13.0);
-    cairo_move_to(cr, 30, 180);
+    cairo_move_to(cr, 30, kRuntimeTitleY);
     cairo_show_text(cr, "Runtime Status");
 
     snprintf(line, sizeof(line), "Connected: %s", ui->connected >= 0.5f ? "yes" : "no");
-    cairo_move_to(cr, 30, 212);
+    cairo_move_to(cr, 30, kStatusRow1Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Server Seen: %s", ui->server_seen >= 0.5f ? "yes" : "no");
-    cairo_move_to(cr, 30, 238);
+    cairo_move_to(cr, 30, kStatusRow2Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Authority Active: %s", ui->authority_active >= 0.5f ? "yes" : "no");
-    cairo_move_to(cr, 30, 264);
+    cairo_move_to(cr, 30, kStatusRow3Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Loopback Demo: %s", demo_mode_name(ui->demo_mode));
-    cairo_move_to(cr, 30, 290);
+    cairo_move_to(cr, 30, kStatusRow4Y);
     cairo_show_text(cr, line);
 
     snprintf(line, sizeof(line), "Mode: %s", mode_name(ui->current_mode));
-    cairo_move_to(cr, 280, 212);
+    cairo_move_to(cr, 280, kStatusRow1Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "State: %s", state_name(ui->current_state));
-    cairo_move_to(cr, 280, 238);
+    cairo_move_to(cr, 280, kStatusRow2Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Current Gain: %.2f", ui->current_gain);
-    cairo_move_to(cr, 280, 264);
+    cairo_move_to(cr, 280, kStatusRow3Y);
     cairo_show_text(cr, line);
     snprintf(line, sizeof(line), "Transport Required: %s",
              ui->demo_mode >= 0.5f ? "yes" : "no");
-    cairo_move_to(cr, 280, 290);
+    cairo_move_to(cr, 280, kStatusRow4Y);
     cairo_show_text(cr, line);
 
     if ((int)(ui->server_mode + 0.5f) == 1) {
@@ -396,21 +419,23 @@ static void draw_ui(OutsiderClientUI* ui) {
     } else {
         snprintf(line, sizeof(line), "Server Config: Bypass");
     }
-    cairo_move_to(cr, 30, 316);
+    cairo_move_to(cr, 30, kServerConfigY);
     cairo_show_text(cr, line);
 
     cairo_set_source_rgb(cr, 0.78, 0.82, 0.88);
-    cairo_move_to(cr, 30, 352);
+    cairo_move_to(cr, 30, kNotesTitleY);
     cairo_show_text(cr, "Notes");
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
-    cairo_move_to(cr, 30, 380);
-    cairo_show_text(cr, "- Endpoint Slot Auto gives each plugin instance a unique runtime ID; use +/- to set a manual slot.");
-    cairo_move_to(cr, 30, 404);
+    cairo_move_to(cr, 30, kNote1Y);
+    cairo_show_text(cr, "- Auto endpoint slots give each plugin instance a unique runtime ID.");
+    cairo_move_to(cr, 30, kNote2Y);
+    cairo_show_text(cr, "- Use +/- to choose a manual endpoint slot when you want one.");
+    cairo_move_to(cr, 30, kNote3Y);
     cairo_show_text(cr, "- Click Off above to disable local demo mode and listen only to the server.");
-    cairo_move_to(cr, 30, 428);
-    cairo_show_text(cr, "- Live commands are queued to the requested local bar/step boundary instead of applied on receipt.");
-    cairo_move_to(cr, 30, 452);
-    cairo_show_text(cr, "- With the server running, connected/server seen should turn on and current mode/config should match the server.");
+    cairo_move_to(cr, 30, kNote4Y);
+    cairo_show_text(cr, "- Live commands queue to the requested local bar/step boundary.");
+    cairo_move_to(cr, 30, kNote5Y);
+    cairo_show_text(cr, "- With the server running, Connected/Server Seen and config should match.");
 
     cairo_set_source_surface(ui->cr, ui->back_buffer, 0, 0);
     cairo_paint(ui->cr);
@@ -477,7 +502,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor*,
     }
 
     ui->width = 640;
-    ui->height = 474;
+    ui->height = kDefaultUiHeight;
     ui->write = write_function;
     ui->controller = controller;
     ui->enable = 1.0f;
