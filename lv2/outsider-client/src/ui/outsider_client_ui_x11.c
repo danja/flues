@@ -181,25 +181,25 @@ static bool point_in_rect(int px, int py, double x, double y, double w, double h
 }
 
 static const int kHeaderY = 48;
-static const int kHeaderHeight = 126;
-static const int kBodyY = 186;
-static const int kIdentityControlsY = 94;
-static const int kHeaderTextRow1Y = 120;
-static const int kHeaderTextRow2Y = 142;
-static const int kMainControlsY = 154;
-static const int kRuntimeTitleY = 214;
-static const int kStatusRow1Y = 246;
-static const int kStatusRow2Y = 272;
-static const int kStatusRow3Y = 298;
-static const int kStatusRow4Y = 324;
-static const int kServerConfigY = 350;
-static const int kNotesTitleY = 382;
-static const int kNote1Y = 406;
-static const int kNote2Y = 426;
-static const int kNote3Y = 446;
-static const int kNote4Y = 466;
-static const int kNote5Y = 486;
-static const int kDefaultUiHeight = 510;
+static const int kHeaderHeight = 146;
+static const int kBodyY = 206;
+static const int kIdentityControlsY = 102;
+static const int kHeaderTextRow1Y = 132;
+static const int kHeaderTextRow2Y = 154;
+static const int kMainControlsY = 170;
+static const int kRuntimeTitleY = 234;
+static const int kStatusRow1Y = 266;
+static const int kStatusRow2Y = 292;
+static const int kStatusRow3Y = 318;
+static const int kStatusRow4Y = 344;
+static const int kServerConfigY = 372;
+static const int kNotesTitleY = 408;
+static const int kNote1Y = 432;
+static const int kNote2Y = 452;
+static const int kNote3Y = 472;
+static const int kNote4Y = 492;
+static const int kNote5Y = 512;
+static const int kDefaultUiHeight = 540;
 
 static int clamp_session_slot_value(int value) {
     if (value < 1) return 1;
@@ -247,17 +247,17 @@ static void send_control_value(OutsiderClientUI* ui, uint32_t port_index, float 
 }
 
 static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
-    if (point_in_rect(x, y, 28, kIdentityControlsY, 24, 14)) {
+    if (point_in_rect(x, y, 28, kIdentityControlsY, 28, 16)) {
         const int session = clamp_session_slot_value((int)(ui->session_slot + 0.5f) - 1);
         send_control_value(ui, PORT_SESSION_SLOT, (float)session);
         return;
     }
-    if (point_in_rect(x, y, 58, kIdentityControlsY, 24, 14)) {
+    if (point_in_rect(x, y, 64, kIdentityControlsY, 28, 16)) {
         const int session = clamp_session_slot_value((int)(ui->session_slot + 0.5f) + 1);
         send_control_value(ui, PORT_SESSION_SLOT, (float)session);
         return;
     }
-    if (point_in_rect(x, y, 128, kIdentityControlsY, 24, 14)) {
+    if (point_in_rect(x, y, 136, kIdentityControlsY, 28, 16)) {
         int endpoint = (int)(ui->endpoint_slot + 0.5f);
         if (endpoint <= 0) endpoint = 1;
         endpoint = clamp_endpoint_slot_value(endpoint - 1);
@@ -265,7 +265,7 @@ static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
         send_control_value(ui, PORT_ENDPOINT_SLOT, (float)endpoint);
         return;
     }
-    if (point_in_rect(x, y, 158, kIdentityControlsY, 24, 14)) {
+    if (point_in_rect(x, y, 172, kIdentityControlsY, 28, 16)) {
         int endpoint = (int)(ui->endpoint_slot + 0.5f);
         if (endpoint <= 0) endpoint = 0;
         endpoint = clamp_endpoint_slot_value(endpoint + 1);
@@ -273,7 +273,7 @@ static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
         send_control_value(ui, PORT_ENDPOINT_SLOT, (float)endpoint);
         return;
     }
-    if (point_in_rect(x, y, 188, kIdentityControlsY, 54, 14)) {
+    if (point_in_rect(x, y, 208, kIdentityControlsY, 62, 16)) {
         send_control_value(ui, PORT_ENDPOINT_SLOT, 0.0f);
         return;
     }
@@ -348,11 +348,11 @@ static void draw_ui(OutsiderClientUI* ui) {
     draw_badge(cr, 128, 66, 120, 22, line, 0.46, 0.86, 0.58);
     draw_badge(cr, 258, 66, 90, 22, ui->enable >= 0.5f ? "Enabled" : "Disabled", 0.94, 0.74, 0.32);
 
-    draw_control_button(cr, 28, kIdentityControlsY, 24, 14, "-", false);
-    draw_control_button(cr, 58, kIdentityControlsY, 24, 14, "+", false);
-    draw_control_button(cr, 128, kIdentityControlsY, 24, 14, "-", false);
-    draw_control_button(cr, 158, kIdentityControlsY, 24, 14, "+", false);
-    draw_control_button(cr, 188, kIdentityControlsY, 54, 14, "Auto", ui->endpoint_slot < 0.5f);
+    draw_control_button(cr, 28, kIdentityControlsY, 28, 16, "-", false);
+    draw_control_button(cr, 64, kIdentityControlsY, 28, 16, "+", false);
+    draw_control_button(cr, 136, kIdentityControlsY, 28, 16, "-", false);
+    draw_control_button(cr, 172, kIdentityControlsY, 28, 16, "+", false);
+    draw_control_button(cr, 208, kIdentityControlsY, 62, 16, "Auto", ui->endpoint_slot < 0.5f);
 
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
     cairo_set_font_size(cr, 12.0);
