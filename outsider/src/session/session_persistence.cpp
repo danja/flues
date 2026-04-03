@@ -102,6 +102,23 @@ bool SessionPersistence::write_state_file(const PersistedSessionState& state) {
     out << kPersistenceHeader << "\n";
     out << "selected_session " << state.selected_session << "\n";
     out << std::fixed << std::setprecision(6);
+    for (const PersistedGroupState& group : state.groups) {
+        out << "group "
+            << group.session_slot << ' '
+            << static_cast<int>(group.group_slot) << ' '
+            << mode_wire_name(group.mode) << ' '
+            << group.p_mix_params.granularity_bars << ' '
+            << group.p_mix_params.maintain_weight << ' '
+            << group.p_mix_params.fade_weight << ' '
+            << group.p_mix_params.cut_weight << ' '
+            << group.p_mix_params.fade_dur_max_fraction << ' '
+            << group.p_mix_params.bias_percent << ' '
+            << group.e_mix_params.total_bars << ' '
+            << group.e_mix_params.division << ' '
+            << group.e_mix_params.steps << ' '
+            << group.e_mix_params.offset << ' '
+            << group.e_mix_params.fade_bars << '\n';
+    }
     for (const PersistedEndpointState& endpoint : state.endpoints) {
         out << "endpoint "
             << endpoint.session_slot << ' '
@@ -117,7 +134,9 @@ bool SessionPersistence::write_state_file(const PersistedSessionState& state) {
             << endpoint.e_mix_params.division << ' '
             << endpoint.e_mix_params.steps << ' '
             << endpoint.e_mix_params.offset << ' '
-            << endpoint.e_mix_params.fade_bars << '\n';
+            << endpoint.e_mix_params.fade_bars << ' '
+            << static_cast<int>(endpoint.group_slot) << ' '
+            << (endpoint.follows_group ? 1 : 0) << '\n';
     }
     out.close();
 
@@ -192,6 +211,41 @@ bool SessionPersistence::read_state_file(const std::filesystem::path& path,
             continue;
         }
 
+        if (tag == "group") {
+            PersistedGroupState group{};
+            std::string mode_text;
+            int session_slot = 0;
+            int group_slot = 0;
+            if (!(iss >> session_slot >> group_slot >> mode_text)) {
+                continue;
+            }
+            if (session_slot < 1 || session_slot > 65535 || group_slot < 1 || group_slot > 4) {
+                continue;
+            }
+            if (!parse_mode_wire(mode_text, &group.mode)) {
+                continue;
+            }
+
+            if (!(iss >> group.p_mix_params.granularity_bars
+                      >> group.p_mix_params.maintain_weight
+                      >> group.p_mix_params.fade_weight
+                      >> group.p_mix_params.cut_weight
+                      >> group.p_mix_params.fade_dur_max_fraction
+                      >> group.p_mix_params.bias_percent
+                      >> group.e_mix_params.total_bars
+                      >> group.e_mix_params.division
+                      >> group.e_mix_params.steps
+                      >> group.e_mix_params.offset
+                      >> group.e_mix_params.fade_bars)) {
+                continue;
+            }
+
+            group.session_slot = static_cast<std::uint16_t>(session_slot);
+            group.group_slot = static_cast<std::uint8_t>(group_slot);
+            state.groups.push_back(group);
+            continue;
+        }
+
         if (tag != "endpoint") {
             continue;
         }
@@ -226,6 +280,14 @@ bool SessionPersistence::read_state_file(const std::filesystem::path& path,
 
         endpoint.session_slot = static_cast<std::uint16_t>(session_slot);
         endpoint.endpoint_slot = static_cast<std::uint16_t>(endpoint_slot);
+        int group_slot = 0;
+        int follows_group = 0;
+        if (iss >> group_slot >> follows_group) {
+            if (group_slot >= 0 && group_slot <= 4) {
+                endpoint.group_slot = static_cast<std::uint8_t>(group_slot);
+                endpoint.follows_group = follows_group != 0;
+            }
+        }
         state.endpoints.push_back(endpoint);
     }
 

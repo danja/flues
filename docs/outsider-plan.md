@@ -13,6 +13,7 @@ The project has moved past pure planning and into a working localhost prototype:
 - server-to-client command timing aligned to local bar/step boundaries in the client
 - localhost WebSocket transport with HTTP upgrade and text-frame control messages
 - server-side session persistence for saved endpoint mode and algorithm parameters
+- session-scoped endpoint grouping with group-level `Semaphore` mode/params and endpoint follow-group behavior
 - minimal X11 UIs on both server and client
 
 Persistence note:
@@ -59,12 +60,18 @@ The original idea is broader than the first version should be. For the MVP, the 
 - Commands should target a musical boundary.
 - The client applies them on the next matching local block boundary.
 
+6. Keep grouping deliberately small in the MVP
+- Each session has up to four server-side groups: `G1`-`G4`.
+- Each endpoint can either use its own settings, or follow one assigned group.
+- Group membership is about shared control only, not routing or bus topology.
+
 ## Concrete MVP
 
 ### What the server does
 
 - Accept client connections over WebSockets.
 - Track sessions and endpoints.
+- Track session-scoped groups and resolve endpoint-vs-group control state.
 - Select one transport authority endpoint per session.
 - Run `Semaphore` logic using `p-mix` and `e-mix` style models.
 - Send state-change commands to each client.
@@ -267,6 +274,7 @@ The first server UI should have four visible regions:
 4. `Semaphore` editor
 - selected endpoint or selected group
 - mode selector: `Bypass`, `P-Mix`, `E-Mix`
+- group assignment and follow-group toggles for the selected endpoint
 - parameter editor for the active mode
 - next transition preview
 
@@ -285,6 +293,19 @@ Each endpoint row on the server should maintain:
 - `current_gain`
 - `last_command_id`
 - `algorithm_params`
+
+Each session should also maintain a small group table:
+
+- `group_slot`
+- `mode`
+- `algorithm_params`
+- effective followers/member count
+
+Endpoint control resolution rule:
+
+- if `follows_group` is false, the endpoint uses its own mode and params
+- if `follows_group` is true and `group_slot` is set, the endpoint uses the group's mode and params
+- command scheduling and params broadcasts should always use that effective resolved state
 
 ## Protocol
 

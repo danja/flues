@@ -17,6 +17,7 @@ Status snapshot: 2026-04-03.
 - server `params` updates are sent to the client so the client UI can show current server config
 - localhost WebSocket upgrade and framed text-message transport now replace the earlier raw TCP line transport
 - server-side session persistence now saves and restores endpoint mode/params across restart
+- session-scoped grouping is now in place with group assignment, follow-group behavior, group-level mode/params, and persistence
 - installer script exists at repo root: `install-outsider.sh`
 
 ### Current reality check
@@ -26,21 +27,21 @@ Status snapshot: 2026-04-03.
 
 ### Recommended next implementation steps
 
-1. Add endpoint grouping and group editing in the server UI so the shared-control idea becomes useful beyond one-track-at-a-time editing.
-2. Harden connection handling with explicit stale/offline timeouts and clearer UI status for reconnect and authority conflicts.
-3. Add a small local smoke test harness or integration test path outside the audio host so command scheduling and reconnect logic can be regression-tested.
-4. Add more `Semaphore` parameter editing breadth in the server UI beyond the current granularity/bias and steps/offset controls.
-5. Decide how far browser-facing compatibility should go in the MVP: plain browser observer/editor clients only, or browser peers that can also act as transport-aware endpoints.
+1. Harden connection handling with explicit stale/offline timeouts and clearer UI status for reconnect and authority conflicts.
+2. Add a small local smoke test harness or integration test path outside the audio host so command scheduling and reconnect logic can be regression-tested.
+3. Add more `Semaphore` parameter editing breadth in the server UI beyond the current granularity/bias and steps/offset controls.
+4. Decide how far browser-facing compatibility should go in the MVP: plain browser observer/editor clients only, or browser peers that can also act as transport-aware endpoints.
+5. Decide whether the group model should stop at flat `G1`-`G4` assignment or grow into named scenes/groups later.
 
 ## Immediate Sequence
 
 With the idea, MVP plan, and protocol now written down, the sensible implementation order is:
 
 1. Keep the current live server/client path stable while host testing continues.
-2. Add grouping and more useful multi-endpoint editing in the server UI.
-3. Harden timeout/reconnect/conflict reporting.
-4. Add a repeatable smoke-test path outside the DAW.
-5. Broaden the `Semaphore` editor controls.
+2. Harden timeout/reconnect/conflict reporting.
+3. Add a repeatable smoke-test path outside the DAW.
+4. Broaden the `Semaphore` editor controls.
+5. Revisit browser-facing editor/client scope after the control path feels stable.
 
 ## Why This Order
 

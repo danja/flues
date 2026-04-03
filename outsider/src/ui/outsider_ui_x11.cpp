@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -94,6 +95,25 @@ bool point_in_rect(int px, int py, double x, double y, double w, double h) {
            px <= static_cast<int>(x + w) &&
            py >= static_cast<int>(y) &&
            py <= static_cast<int>(y + h);
+}
+
+GroupRecord default_group_record(std::uint16_t session_slot, std::uint8_t group_slot) {
+    GroupRecord group{};
+    group.session_slot = session_slot;
+    group.group_slot = group_slot;
+    group.mode = OutsiderMode::Bypass;
+    group.p_mix_params.granularity_bars = 2;
+    group.p_mix_params.maintain_weight = 25.0f;
+    group.p_mix_params.fade_weight = 45.0f;
+    group.p_mix_params.cut_weight = 30.0f;
+    group.p_mix_params.fade_dur_max_fraction = 0.5f;
+    group.p_mix_params.bias_percent = 58.0f;
+    group.e_mix_params.total_bars = 8;
+    group.e_mix_params.division = 8;
+    group.e_mix_params.steps = 5;
+    group.e_mix_params.offset = 0;
+    group.e_mix_params.fade_bars = 0.25f;
+    return group;
 }
 
 }  // namespace
@@ -216,6 +236,9 @@ public:
             selected_endpoint_index = 0;
         }
 
+        const std::uint16_t active_session =
+            endpoints.empty() ? registry.selected_session() : endpoints[selected_endpoint_index].session_slot;
+
         cairo_t* const draw_cr = back_cr;
 
         cairo_set_source_rgb(draw_cr, 0.08, 0.09, 0.11);
@@ -268,15 +291,19 @@ public:
 
         draw_text(draw_cr, 406, 172, "Slot", 11.0, 0.80, 0.84, 0.90, true);
         draw_text(draw_cr, 472, 172, "Conn", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(draw_cr, 530, 172, "Auth", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(draw_cr, 590, 172, "Mode", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(draw_cr, 710, 172, "State", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(draw_cr, 805, 172, "Gain", 11.0, 0.80, 0.84, 0.90, true);
-        draw_text(draw_cr, 870, 172, "Last Cmd", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(draw_cr, 528, 172, "Auth", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(draw_cr, 584, 172, "Ctl", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(draw_cr, 652, 172, "Mode", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(draw_cr, 776, 172, "State", 11.0, 0.80, 0.84, 0.90, true);
+        draw_text(draw_cr, 902, 172, "Gain", 11.0, 0.80, 0.84, 0.90, true);
 
         double row_y = 202.0;
         for (std::size_t i = 0; i < endpoints.size(); ++i) {
             const EndpointRecord& endpoint = endpoints[i];
+            EffectiveSemaphoreState effective{};
+            registry.effective_semaphore_state(endpoint.session_slot,
+                                               endpoint.endpoint_slot,
+                                               &effective);
             const bool selected = i == selected_endpoint_index;
             cairo_set_source_rgba(draw_cr,
                                   selected ? 0.22 : 1.0,
@@ -297,83 +324,175 @@ public:
                       endpoint.connected ? 0.45 : 0.76,
                       endpoint.connected ? 0.90 : 0.42,
                       endpoint.connected ? 0.52 : 0.42, false);
-            draw_text(draw_cr, 530, row_y,
+            draw_text(draw_cr, 528, row_y,
                       endpoint.authority_active ? "active" :
                       endpoint.authority_claimed ? "claim" : "-",
                       12.0, 0.82, 0.82, 0.88, false);
-            draw_text(draw_cr, 590, row_y, mode_name(endpoint.mode), 12.0, 0.92, 0.92, 0.96, false);
-            draw_text(draw_cr, 710, row_y, runtime_state_name(endpoint.current_state), 12.0, 0.92, 0.92, 0.96, false);
+            if (endpoint.follows_group && endpoint.group_slot > 0) {
+                std::snprintf(line, sizeof(line), "G%u", endpoint.group_slot);
+            } else if (endpoint.group_slot > 0) {
+                std::snprintf(line, sizeof(line), "Own:G%u", endpoint.group_slot);
+            } else {
+                std::snprintf(line, sizeof(line), "Own");
+            }
+            draw_text(draw_cr, 584, row_y, line, 11.0, 0.90, 0.90, 0.94, false);
+            draw_text(draw_cr, 652, row_y, mode_name(effective.mode), 12.0, 0.92, 0.92, 0.96, false);
+            draw_text(draw_cr, 776, row_y, runtime_state_name(endpoint.current_state), 12.0, 0.92, 0.92, 0.96, false);
             std::snprintf(line, sizeof(line), "%.2f", endpoint.current_gain);
-            draw_text(draw_cr, 805, row_y, line, 12.0, 0.92, 0.92, 0.96, false);
-            std::snprintf(line, sizeof(line), "%llu",
-                          static_cast<unsigned long long>(endpoint.last_command_id));
-            draw_text(draw_cr, 870, row_y, line, 12.0, 0.92, 0.92, 0.96, false);
+            draw_text(draw_cr, 902, row_y, line, 12.0, 0.92, 0.92, 0.96, false);
             row_y += 34.0;
         }
 
-        double log_y = 334.0;
+        constexpr double log_x = 34.0;
+        constexpr double log_y_start = 334.0;
+        constexpr double log_line_height = 24.0;
+        constexpr double log_clip_x = 28.0;
+        constexpr double log_clip_y = 320.0;
+        constexpr double log_clip_w = 340.0;
+        constexpr double log_clip_h = 160.0;
+        const std::size_t max_log_lines =
+            static_cast<std::size_t>(std::max(1.0, std::floor(log_clip_h / log_line_height)));
+
+        cairo_save(draw_cr);
+        cairo_rectangle(draw_cr, log_clip_x, log_clip_y, log_clip_w, log_clip_h);
+        cairo_clip(draw_cr);
+
+        double log_y = log_y_start;
         if (recent_events.empty()) {
-            draw_text(draw_cr, 34, log_y, "No events yet.", 12.0, 0.90, 0.90, 0.94, false);
+            draw_text(draw_cr, log_x, log_y, "No events yet.", 12.0, 0.90, 0.90, 0.94, false);
         } else {
-            for (const std::string& event : recent_events) {
-                draw_text(draw_cr, 34, log_y, event.c_str(), 12.0, 0.90, 0.90, 0.94, false);
-                log_y += 24.0;
+            const std::size_t first_visible =
+                recent_events.size() > max_log_lines ? recent_events.size() - max_log_lines : 0u;
+            for (std::size_t i = first_visible; i < recent_events.size(); ++i) {
+                draw_text(draw_cr, log_x, log_y, recent_events[i].c_str(), 12.0, 0.90, 0.90, 0.94, false);
+                log_y += log_line_height;
             }
         }
+        cairo_restore(draw_cr);
 
         if (!endpoints.empty()) {
             const EndpointRecord& selected = endpoints[selected_endpoint_index];
+            EffectiveSemaphoreState effective{};
+            registry.effective_semaphore_state(selected.session_slot,
+                                               selected.endpoint_slot,
+                                               &effective);
+            if (selected_edit_group_slot > 4) {
+                selected_edit_group_slot = 0;
+            }
+
+            GroupRecord edit_group = default_group_record(selected.session_slot,
+                                                          selected_edit_group_slot == 0 ? 1 : selected_edit_group_slot);
+            if (selected_edit_group_slot > 0) {
+                registry.group_snapshot(selected.session_slot, selected_edit_group_slot, &edit_group);
+            }
+
+            const bool editing_group = selected_edit_group_slot > 0;
+            const OutsiderMode editor_mode = editing_group ? edit_group.mode : selected.mode;
             CommandPacket preview = semaphore.preview_for(selected, registry, authority);
             std::snprintf(line, sizeof(line), "Selected endpoint: %u.%u", selected.session_slot, selected.endpoint_slot);
             draw_text(draw_cr, 34, 544, line, 13.0, 0.95, 0.95, 0.98, true);
+            if (selected.follows_group && selected.group_slot > 0) {
+                std::snprintf(line, sizeof(line), "Endpoint control: following group G%u", selected.group_slot);
+            } else if (selected.group_slot > 0) {
+                std::snprintf(line, sizeof(line), "Endpoint control: own settings, assigned to G%u", selected.group_slot);
+            } else {
+                std::snprintf(line, sizeof(line), "Endpoint control: own settings, no group");
+            }
+            draw_text(draw_cr, 320, 544, line, 12.0, 0.82, 0.86, 0.92, false);
 
-            draw_control_button(draw_cr, 34, 552, 72, 18, "Bypass", selected.mode == OutsiderMode::Bypass);
-            draw_control_button(draw_cr, 116, 552, 72, 18, "P-Mix", selected.mode == OutsiderMode::PMix);
-            draw_control_button(draw_cr, 198, 552, 72, 18, "E-Mix", selected.mode == OutsiderMode::EMix);
+            draw_control_button(draw_cr, 34, 554, 56, 18, "Ep", !editing_group);
+            draw_control_button(draw_cr, 100, 554, 56, 18, "G1", selected_edit_group_slot == 1);
+            draw_control_button(draw_cr, 166, 554, 56, 18, "G2", selected_edit_group_slot == 2);
+            draw_control_button(draw_cr, 232, 554, 56, 18, "G3", selected_edit_group_slot == 3);
+            draw_control_button(draw_cr, 298, 554, 56, 18, "G4", selected_edit_group_slot == 4);
 
-            std::snprintf(line, sizeof(line), "Mode %s  ->  %s  gain %.2f  duration %.2f beats",
+            if (editing_group) {
+                std::snprintf(line, sizeof(line), "Editing: Group G%u", selected_edit_group_slot);
+            } else {
+                std::snprintf(line, sizeof(line), "Editing: Endpoint");
+            }
+            draw_text(draw_cr, 370, 568, line, 12.0, 0.92, 0.92, 0.95, false);
+
+            draw_control_button(draw_cr, 34, 580, 72, 18, "Bypass", editor_mode == OutsiderMode::Bypass);
+            draw_control_button(draw_cr, 116, 580, 72, 18, "P-Mix", editor_mode == OutsiderMode::PMix);
+            draw_control_button(draw_cr, 198, 580, 72, 18, "E-Mix", editor_mode == OutsiderMode::EMix);
+
+            draw_control_button(draw_cr, 310, 580, 60, 18, "None", selected.group_slot == 0);
+            draw_control_button(draw_cr, 380, 580, 48, 18, "G1", selected.group_slot == 1);
+            draw_control_button(draw_cr, 438, 580, 48, 18, "G2", selected.group_slot == 2);
+            draw_control_button(draw_cr, 496, 580, 48, 18, "G3", selected.group_slot == 3);
+            draw_control_button(draw_cr, 554, 580, 48, 18, "G4", selected.group_slot == 4);
+
+            draw_control_button(draw_cr, 618, 580, 62, 18, "Own", !selected.follows_group);
+            draw_control_button(draw_cr, 690, 580, 78, 18, "Follow", selected.follows_group);
+
+            std::snprintf(line, sizeof(line), "Effective mode %s  ->  %s  gain %.2f  duration %.2f beats",
                           mode_name(preview.mode),
                           target_state_name(preview.target_state),
                           preview.target_gain,
                           preview.duration_beats);
-            draw_text(draw_cr, 34, 592, line, 12.0, 0.90, 0.90, 0.94, false);
+            draw_text(draw_cr, 34, 610, line, 12.0, 0.90, 0.90, 0.94, false);
 
             std::snprintf(line, sizeof(line), "Apply at bar %u step16 %u",
                           preview.apply_at_bar,
                           preview.apply_at_step16);
-            draw_text(draw_cr, 34, 618, line, 12.0, 0.90, 0.90, 0.94, false);
+            draw_text(draw_cr, 34, 632, line, 12.0, 0.90, 0.90, 0.94, false);
 
-            if (selected.mode == OutsiderMode::PMix) {
-                draw_control_button(draw_cr, 306, 552, 66, 18, "Bars -", false);
-                draw_control_button(draw_cr, 382, 552, 66, 18, "Bars +", false);
-                draw_control_button(draw_cr, 468, 552, 66, 18, "Bias -", false);
-                draw_control_button(draw_cr, 544, 552, 66, 18, "Bias +", false);
+            if (editor_mode == OutsiderMode::PMix) {
+                draw_control_button(draw_cr, 34, 642, 66, 18, "Bars -", false);
+                draw_control_button(draw_cr, 110, 642, 66, 18, "Bars +", false);
+                draw_control_button(draw_cr, 196, 642, 66, 18, "Bias -", false);
+                draw_control_button(draw_cr, 272, 642, 66, 18, "Bias +", false);
+                const PMixParams& params = editing_group ? edit_group.p_mix_params : selected.p_mix_params;
                 std::snprintf(line, sizeof(line),
                               "P-Mix params: granularity %d maintain %.0f fade %.0f cut %.0f bias %.0f",
-                              selected.p_mix_params.granularity_bars,
-                              selected.p_mix_params.maintain_weight,
-                              selected.p_mix_params.fade_weight,
-                              selected.p_mix_params.cut_weight,
-                              selected.p_mix_params.bias_percent);
-            } else if (selected.mode == OutsiderMode::EMix) {
-                draw_control_button(draw_cr, 306, 552, 72, 18, "Steps -", false);
-                draw_control_button(draw_cr, 388, 552, 72, 18, "Steps +", false);
-                draw_control_button(draw_cr, 480, 552, 76, 18, "Offset -", false);
-                draw_control_button(draw_cr, 566, 552, 76, 18, "Offset +", false);
+                              params.granularity_bars,
+                              params.maintain_weight,
+                              params.fade_weight,
+                              params.cut_weight,
+                              params.bias_percent);
+            } else if (editor_mode == OutsiderMode::EMix) {
+                draw_control_button(draw_cr, 34, 642, 72, 18, "Steps -", false);
+                draw_control_button(draw_cr, 116, 642, 72, 18, "Steps +", false);
+                draw_control_button(draw_cr, 208, 642, 76, 18, "Offset -", false);
+                draw_control_button(draw_cr, 294, 642, 76, 18, "Offset +", false);
+                const EMixParams& params = editing_group ? edit_group.e_mix_params : selected.e_mix_params;
                 std::snprintf(line, sizeof(line),
                               "E-Mix params: total bars %d division %d steps %d offset %d fade %.2f",
-                              selected.e_mix_params.total_bars,
-                              selected.e_mix_params.division,
-                              selected.e_mix_params.steps,
-                              selected.e_mix_params.offset,
-                              selected.e_mix_params.fade_bars);
+                              params.total_bars,
+                              params.division,
+                              params.steps,
+                              params.offset,
+                              params.fade_bars);
             } else {
-                std::snprintf(line, sizeof(line), "Bypass mode: server would keep the endpoint fully audible.");
+                std::snprintf(line, sizeof(line), "Bypass mode: server keeps the endpoint fully audible.");
             }
-            draw_text(draw_cr, 34, 646, line, 12.0, 0.82, 0.86, 0.92, false);
-            draw_text(draw_cr, 34, 674,
-                      "Click endpoint rows above, then use the mode and parameter buttons here.",
-                      12.0, 0.70, 0.76, 0.84, false);
+            draw_text(draw_cr, 360, 656, line, 12.0, 0.82, 0.86, 0.92, false);
+
+            char group_summary[512];
+            std::snprintf(group_summary, sizeof(group_summary), "Groups:");
+            for (std::uint8_t slot = 1; slot <= 4; ++slot) {
+                GroupRecord group = default_group_record(active_session, slot);
+                registry.group_snapshot(active_session, slot, &group);
+                int members = 0;
+                int followers = 0;
+                for (const EndpointRecord& endpoint : endpoints) {
+                    if (endpoint.session_slot == active_session && endpoint.group_slot == slot) {
+                        members++;
+                        if (endpoint.follows_group) {
+                            followers++;
+                        }
+                    }
+                }
+                char chunk[96];
+                std::snprintf(chunk, sizeof(chunk), " G%u %d/%d %s",
+                              slot,
+                              followers,
+                              members,
+                              mode_name(group.mode));
+                std::strncat(group_summary, chunk, sizeof(group_summary) - std::strlen(group_summary) - 1u);
+            }
+            draw_text(draw_cr, 34, 680, group_summary, 12.0, 0.70, 0.76, 0.84, false);
         } else {
             draw_text(draw_cr, 34, 556,
                       "No endpoints connected yet. Start the LV2 client and disable Demo Mode to exercise the live control path.",
@@ -396,6 +515,11 @@ public:
             const double row_y = 202.0 + 34.0 * static_cast<double>(i);
             if (point_in_rect(x, y, 404, row_y - 16.0, 660, 28.0)) {
                 selected_endpoint_index = i;
+                if (endpoints[i].follows_group && endpoints[i].group_slot > 0) {
+                    selected_edit_group_slot = endpoints[i].group_slot;
+                } else {
+                    selected_edit_group_slot = 0;
+                }
                 return;
             }
         }
@@ -404,52 +528,166 @@ public:
             selected_endpoint_index = endpoints.size() - 1;
         }
         const EndpointRecord& selected = endpoints[selected_endpoint_index];
+        const bool editing_group = selected_edit_group_slot > 0;
 
-        if (point_in_rect(x, y, 34, 552, 72, 18)) {
-            registry.set_endpoint_mode(selected.session_slot, selected.endpoint_slot, OutsiderMode::Bypass);
+        if (point_in_rect(x, y, 34, 554, 56, 18)) {
+            selected_edit_group_slot = 0;
             return;
         }
-        if (point_in_rect(x, y, 116, 552, 72, 18)) {
-            registry.set_endpoint_mode(selected.session_slot, selected.endpoint_slot, OutsiderMode::PMix);
+        if (point_in_rect(x, y, 100, 554, 56, 18)) {
+            selected_edit_group_slot = 1;
             return;
         }
-        if (point_in_rect(x, y, 198, 552, 72, 18)) {
-            registry.set_endpoint_mode(selected.session_slot, selected.endpoint_slot, OutsiderMode::EMix);
+        if (point_in_rect(x, y, 166, 554, 56, 18)) {
+            selected_edit_group_slot = 2;
+            return;
+        }
+        if (point_in_rect(x, y, 232, 554, 56, 18)) {
+            selected_edit_group_slot = 3;
+            return;
+        }
+        if (point_in_rect(x, y, 298, 554, 56, 18)) {
+            selected_edit_group_slot = 4;
             return;
         }
 
-        if (selected.mode == OutsiderMode::PMix) {
-            if (point_in_rect(x, y, 306, 552, 66, 18)) {
-                registry.adjust_p_mix_granularity(selected.session_slot, selected.endpoint_slot, -1);
+        if (point_in_rect(x, y, 34, 580, 72, 18)) {
+            if (editing_group) {
+                registry.set_group_mode(selected.session_slot, selected_edit_group_slot, OutsiderMode::Bypass);
+            } else {
+                registry.set_endpoint_mode(selected.session_slot, selected.endpoint_slot, OutsiderMode::Bypass);
+            }
+            return;
+        }
+        if (point_in_rect(x, y, 116, 580, 72, 18)) {
+            if (editing_group) {
+                registry.set_group_mode(selected.session_slot, selected_edit_group_slot, OutsiderMode::PMix);
+            } else {
+                registry.set_endpoint_mode(selected.session_slot, selected.endpoint_slot, OutsiderMode::PMix);
+            }
+            return;
+        }
+        if (point_in_rect(x, y, 198, 580, 72, 18)) {
+            if (editing_group) {
+                registry.set_group_mode(selected.session_slot, selected_edit_group_slot, OutsiderMode::EMix);
+            } else {
+                registry.set_endpoint_mode(selected.session_slot, selected.endpoint_slot, OutsiderMode::EMix);
+            }
+            return;
+        }
+
+        if (point_in_rect(x, y, 310, 580, 60, 18)) {
+            registry.assign_endpoint_group(selected.session_slot, selected.endpoint_slot, 0);
+            return;
+        }
+        if (point_in_rect(x, y, 380, 580, 48, 18)) {
+            registry.assign_endpoint_group(selected.session_slot, selected.endpoint_slot, 1);
+            return;
+        }
+        if (point_in_rect(x, y, 438, 580, 48, 18)) {
+            registry.assign_endpoint_group(selected.session_slot, selected.endpoint_slot, 2);
+            return;
+        }
+        if (point_in_rect(x, y, 496, 580, 48, 18)) {
+            registry.assign_endpoint_group(selected.session_slot, selected.endpoint_slot, 3);
+            return;
+        }
+        if (point_in_rect(x, y, 554, 580, 48, 18)) {
+            registry.assign_endpoint_group(selected.session_slot, selected.endpoint_slot, 4);
+            return;
+        }
+        if (point_in_rect(x, y, 618, 580, 62, 18)) {
+            registry.set_endpoint_follows_group(selected.session_slot, selected.endpoint_slot, false);
+            return;
+        }
+        if (point_in_rect(x, y, 690, 580, 78, 18)) {
+            registry.set_endpoint_follows_group(selected.session_slot, selected.endpoint_slot, true);
+            return;
+        }
+
+        EffectiveSemaphoreState editor_state{};
+        if (editing_group) {
+            GroupRecord group{};
+            if (registry.group_snapshot(selected.session_slot, selected_edit_group_slot, &group)) {
+                editor_state.mode = group.mode;
+                editor_state.p_mix_params = group.p_mix_params;
+                editor_state.e_mix_params = group.e_mix_params;
+            } else {
+                GroupRecord fallback = default_group_record(selected.session_slot, selected_edit_group_slot);
+                editor_state.mode = fallback.mode;
+                editor_state.p_mix_params = fallback.p_mix_params;
+                editor_state.e_mix_params = fallback.e_mix_params;
+            }
+        } else {
+            editor_state.mode = selected.mode;
+            editor_state.p_mix_params = selected.p_mix_params;
+            editor_state.e_mix_params = selected.e_mix_params;
+        }
+
+        if (editor_state.mode == OutsiderMode::PMix) {
+            if (point_in_rect(x, y, 34, 642, 66, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_p_mix_granularity(selected.session_slot, selected_edit_group_slot, -1);
+                } else {
+                    registry.adjust_p_mix_granularity(selected.session_slot, selected.endpoint_slot, -1);
+                }
                 return;
             }
-            if (point_in_rect(x, y, 382, 552, 66, 18)) {
-                registry.adjust_p_mix_granularity(selected.session_slot, selected.endpoint_slot, 1);
+            if (point_in_rect(x, y, 110, 642, 66, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_p_mix_granularity(selected.session_slot, selected_edit_group_slot, 1);
+                } else {
+                    registry.adjust_p_mix_granularity(selected.session_slot, selected.endpoint_slot, 1);
+                }
                 return;
             }
-            if (point_in_rect(x, y, 468, 552, 66, 18)) {
-                registry.adjust_p_mix_bias(selected.session_slot, selected.endpoint_slot, -5.0f);
+            if (point_in_rect(x, y, 196, 642, 66, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_p_mix_bias(selected.session_slot, selected_edit_group_slot, -5.0f);
+                } else {
+                    registry.adjust_p_mix_bias(selected.session_slot, selected.endpoint_slot, -5.0f);
+                }
                 return;
             }
-            if (point_in_rect(x, y, 544, 552, 66, 18)) {
-                registry.adjust_p_mix_bias(selected.session_slot, selected.endpoint_slot, 5.0f);
+            if (point_in_rect(x, y, 272, 642, 66, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_p_mix_bias(selected.session_slot, selected_edit_group_slot, 5.0f);
+                } else {
+                    registry.adjust_p_mix_bias(selected.session_slot, selected.endpoint_slot, 5.0f);
+                }
                 return;
             }
-        } else if (selected.mode == OutsiderMode::EMix) {
-            if (point_in_rect(x, y, 306, 552, 72, 18)) {
-                registry.adjust_e_mix_steps(selected.session_slot, selected.endpoint_slot, -1);
+        } else if (editor_state.mode == OutsiderMode::EMix) {
+            if (point_in_rect(x, y, 34, 642, 72, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_e_mix_steps(selected.session_slot, selected_edit_group_slot, -1);
+                } else {
+                    registry.adjust_e_mix_steps(selected.session_slot, selected.endpoint_slot, -1);
+                }
                 return;
             }
-            if (point_in_rect(x, y, 388, 552, 72, 18)) {
-                registry.adjust_e_mix_steps(selected.session_slot, selected.endpoint_slot, 1);
+            if (point_in_rect(x, y, 116, 642, 72, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_e_mix_steps(selected.session_slot, selected_edit_group_slot, 1);
+                } else {
+                    registry.adjust_e_mix_steps(selected.session_slot, selected.endpoint_slot, 1);
+                }
                 return;
             }
-            if (point_in_rect(x, y, 480, 552, 76, 18)) {
-                registry.adjust_e_mix_offset(selected.session_slot, selected.endpoint_slot, -1);
+            if (point_in_rect(x, y, 208, 642, 76, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_e_mix_offset(selected.session_slot, selected_edit_group_slot, -1);
+                } else {
+                    registry.adjust_e_mix_offset(selected.session_slot, selected.endpoint_slot, -1);
+                }
                 return;
             }
-            if (point_in_rect(x, y, 566, 552, 76, 18)) {
-                registry.adjust_e_mix_offset(selected.session_slot, selected.endpoint_slot, 1);
+            if (point_in_rect(x, y, 294, 642, 76, 18)) {
+                if (editing_group) {
+                    registry.adjust_group_e_mix_offset(selected.session_slot, selected_edit_group_slot, 1);
+                } else {
+                    registry.adjust_e_mix_offset(selected.session_slot, selected.endpoint_slot, 1);
+                }
                 return;
             }
         }
@@ -470,6 +708,7 @@ public:
     int height = kWindowHeight;
     bool running = true;
     std::size_t selected_endpoint_index = 0;
+    std::uint8_t selected_edit_group_slot = 0;
     std::uint64_t last_draw_ms = 0;
 };
 

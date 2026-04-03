@@ -180,6 +180,18 @@ static bool point_in_rect(int px, int py, double x, double y, double w, double h
     return px >= (int)x && px <= (int)(x + w) && py >= (int)y && py <= (int)(y + h);
 }
 
+static int clamp_session_slot_value(int value) {
+    if (value < 1) return 1;
+    if (value > 64) return 64;
+    return value;
+}
+
+static int clamp_endpoint_slot_value(int value) {
+    if (value < 0) return 0;
+    if (value > 64) return 64;
+    return value;
+}
+
 static void apply_port_value(OutsiderClientUI* ui, uint32_t port_index, float value) {
     switch (port_index) {
         case PORT_ENABLE: ui->enable = value; break;
@@ -214,6 +226,36 @@ static void send_control_value(OutsiderClientUI* ui, uint32_t port_index, float 
 }
 
 static void handle_button_press(OutsiderClientUI* ui, int x, int y) {
+    if (point_in_rect(x, y, 28, 92, 24, 14)) {
+        const int session = clamp_session_slot_value((int)(ui->session_slot + 0.5f) - 1);
+        send_control_value(ui, PORT_SESSION_SLOT, (float)session);
+        return;
+    }
+    if (point_in_rect(x, y, 58, 92, 24, 14)) {
+        const int session = clamp_session_slot_value((int)(ui->session_slot + 0.5f) + 1);
+        send_control_value(ui, PORT_SESSION_SLOT, (float)session);
+        return;
+    }
+    if (point_in_rect(x, y, 128, 92, 24, 14)) {
+        int endpoint = (int)(ui->endpoint_slot + 0.5f);
+        if (endpoint <= 0) endpoint = 1;
+        endpoint = clamp_endpoint_slot_value(endpoint - 1);
+        if (endpoint == 0) endpoint = 1;
+        send_control_value(ui, PORT_ENDPOINT_SLOT, (float)endpoint);
+        return;
+    }
+    if (point_in_rect(x, y, 158, 92, 24, 14)) {
+        int endpoint = (int)(ui->endpoint_slot + 0.5f);
+        if (endpoint <= 0) endpoint = 0;
+        endpoint = clamp_endpoint_slot_value(endpoint + 1);
+        if (endpoint == 0) endpoint = 1;
+        send_control_value(ui, PORT_ENDPOINT_SLOT, (float)endpoint);
+        return;
+    }
+    if (point_in_rect(x, y, 188, 92, 54, 14)) {
+        send_control_value(ui, PORT_ENDPOINT_SLOT, 0.0f);
+        return;
+    }
     if (point_in_rect(x, y, 28, 118, 78, 16)) {
         send_control_value(ui, PORT_ENABLE, ui->enable >= 0.5f ? 0.0f : 1.0f);
         return;
@@ -275,19 +317,30 @@ static void draw_ui(OutsiderClientUI* ui) {
     char line[256];
     snprintf(line, sizeof(line), "Session %d", (int)(ui->session_slot + 0.5f));
     draw_badge(cr, 28, 66, 90, 22, line, 0.42, 0.78, 0.94);
-    snprintf(line, sizeof(line), "Endpoint %d", (int)(ui->endpoint_slot + 0.5f));
-    draw_badge(cr, 128, 66, 108, 22, line, 0.46, 0.86, 0.58);
-    draw_badge(cr, 246, 66, 90, 22, ui->enable >= 0.5f ? "Enabled" : "Disabled", 0.94, 0.74, 0.32);
+    if (ui->endpoint_slot < 0.5f) {
+        snprintf(line, sizeof(line), "Endpoint Auto");
+    } else {
+        snprintf(line, sizeof(line), "Endpoint %d", (int)(ui->endpoint_slot + 0.5f));
+    }
+    draw_badge(cr, 128, 66, 120, 22, line, 0.46, 0.86, 0.58);
+    draw_badge(cr, 258, 66, 90, 22, ui->enable >= 0.5f ? "Enabled" : "Disabled", 0.94, 0.74, 0.32);
+
+    draw_control_button(cr, 28, 92, 24, 14, "-", false);
+    draw_control_button(cr, 58, 92, 24, 14, "+", false);
+    draw_control_button(cr, 128, 92, 24, 14, "-", false);
+    draw_control_button(cr, 158, 92, 24, 14, "+", false);
+    draw_control_button(cr, 188, 92, 54, 14, "Auto", ui->endpoint_slot < 0.5f);
 
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
     cairo_set_font_size(cr, 12.0);
     snprintf(line, sizeof(line), "Authority request: %s", ui->authority >= 0.5f ? "on" : "off");
     cairo_move_to(cr, 30, 108);
     cairo_show_text(cr, line);
-    snprintf(line, sizeof(line), "Reconnect: %s    Fallback Gain: %.2f    Demo: %s",
+    snprintf(line, sizeof(line), "Reconnect: %s    Fallback Gain: %.2f    Demo: %s    Identity: %s",
              ui->reconnect >= 0.5f ? "on" : "off",
              ui->fallback_gain,
-             demo_mode_name(ui->demo_mode));
+             demo_mode_name(ui->demo_mode),
+             ui->endpoint_slot < 0.5f ? "auto" : "manual");
     cairo_move_to(cr, 220, 108);
     cairo_show_text(cr, line);
 
@@ -351,10 +404,12 @@ static void draw_ui(OutsiderClientUI* ui) {
     cairo_show_text(cr, "Notes");
     cairo_set_source_rgb(cr, 0.90, 0.90, 0.94);
     cairo_move_to(cr, 30, 380);
-    cairo_show_text(cr, "- Click Off above to disable local demo mode and listen only to the server.");
+    cairo_show_text(cr, "- Endpoint Slot Auto gives each plugin instance a unique runtime ID; use +/- to set a manual slot.");
     cairo_move_to(cr, 30, 404);
-    cairo_show_text(cr, "- Live commands are now queued to the requested local bar/step boundary instead of applied on receipt.");
+    cairo_show_text(cr, "- Click Off above to disable local demo mode and listen only to the server.");
     cairo_move_to(cr, 30, 428);
+    cairo_show_text(cr, "- Live commands are queued to the requested local bar/step boundary instead of applied on receipt.");
+    cairo_move_to(cr, 30, 452);
     cairo_show_text(cr, "- With the server running, connected/server seen should turn on and current mode/config should match the server.");
 
     cairo_set_source_surface(ui->cr, ui->back_buffer, 0, 0);
@@ -422,12 +477,12 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor*,
     }
 
     ui->width = 640;
-    ui->height = 450;
+    ui->height = 474;
     ui->write = write_function;
     ui->controller = controller;
     ui->enable = 1.0f;
     ui->session_slot = 1.0f;
-    ui->endpoint_slot = 1.0f;
+    ui->endpoint_slot = 0.0f;
     ui->authority = 1.0f;
     ui->reconnect = 1.0f;
     ui->fallback_gain = 1.0f;

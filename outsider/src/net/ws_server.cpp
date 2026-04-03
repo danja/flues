@@ -313,21 +313,23 @@ void WsServerStub::maybe_send_params(Connection& connection) {
         return;
     }
 
-    EndpointRecord endpoint{};
-    if (!registry_.endpoint_snapshot(connection.session_slot, connection.endpoint_slot, &endpoint)) {
+    EffectiveSemaphoreState effective{};
+    if (!registry_.effective_semaphore_state(connection.session_slot,
+                                             connection.endpoint_slot,
+                                             &effective)) {
         return;
     }
-    if (endpoint.params_revision == connection.last_params_revision_sent) {
+    if (effective.params_revision == connection.last_params_revision_sent) {
         return;
     }
 
     send_line(connection,
-              encode_params_message(endpoint.session_slot,
-                                    endpoint.endpoint_slot,
-                                    endpoint.mode,
-                                    endpoint.p_mix_params,
-                                    endpoint.e_mix_params));
-    connection.last_params_revision_sent = endpoint.params_revision;
+              encode_params_message(connection.session_slot,
+                                    connection.endpoint_slot,
+                                    effective.mode,
+                                    effective.p_mix_params,
+                                    effective.e_mix_params));
+    connection.last_params_revision_sent = effective.params_revision;
 }
 
 void WsServerStub::maybe_send_preview_command(Connection& connection) {

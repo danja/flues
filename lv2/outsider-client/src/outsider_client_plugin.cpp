@@ -12,6 +12,7 @@
 #include "spsc_queue.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -105,6 +106,7 @@ struct OutsiderClient {
     std::uint64_t block_counter = 0;
 
     outsider_client::PersistedConfig config{};
+    std::uint16_t auto_endpoint_slot = 1;
     outsider::OutsiderMode current_mode = outsider::OutsiderMode::Bypass;
     outsider::RuntimeState current_state = outsider::RuntimeState::Bypass;
     float current_gain = 1.0f;
@@ -128,16 +130,35 @@ struct OutsiderClient {
     outsider_client::OutsiderClientNet net;
 };
 
+static std::atomic<std::uint32_t> g_auto_endpoint_counter{0u};
+
 static inline float clampf(float value, float min_value, float max_value) {
     if (value < min_value) return min_value;
     if (value > max_value) return max_value;
     return value;
 }
 
-static inline std::uint16_t clamp_slot(float value) {
+static inline std::uint16_t clamp_session_slot(float value) {
     int rounded = static_cast<int>(std::lrint(value));
     if (rounded < 1) rounded = 1;
     if (rounded > 65535) rounded = 65535;
+    return static_cast<std::uint16_t>(rounded);
+}
+
+static inline std::uint16_t allocate_auto_endpoint_slot() {
+    const std::uint32_t raw = g_auto_endpoint_counter.fetch_add(1u, std::memory_order_relaxed);
+    return static_cast<std::uint16_t>((raw % 65535u) + 1u);
+}
+
+static inline std::uint16_t resolve_endpoint_slot(float configured_value,
+                                                  std::uint16_t auto_slot) {
+    int rounded = static_cast<int>(std::lrint(configured_value));
+    if (rounded <= 0) {
+        return auto_slot > 0 ? auto_slot : 1u;
+    }
+    if (rounded > 65535) {
+        rounded = 65535;
+    }
     return static_cast<std::uint16_t>(rounded);
 }
 
@@ -562,6 +583,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*,
                               const LV2_Feature* const* features) {
     OutsiderClient* self = new OutsiderClient();
     self->sample_rate = rate;
+    self->auto_endpoint_slot = allocate_auto_endpoint_slot();
 
     for (int i = 0; features && features[i]; ++i) {
         if (!std::strcmp(features[i]->URI, LV2_URID__map)) {
@@ -638,8 +660,9 @@ static void run(LV2_Handle instance, std::uint32_t n_samples) {
     update_cached_config(self);
 
     const bool enabled = self->config.enable >= 0.5f;
-    const std::uint16_t session_slot = clamp_slot(self->config.session_slot);
-    const std::uint16_t endpoint_slot = clamp_slot(self->config.endpoint_slot);
+    const std::uint16_t session_slot = clamp_session_slot(self->config.session_slot);
+    const std::uint16_t endpoint_slot =
+        resolve_endpoint_slot(self->config.endpoint_slot, self->auto_endpoint_slot);
     const bool authority_requested = self->config.authority >= 0.5f;
     const bool reconnect_enabled = self->config.reconnect >= 0.5f;
 

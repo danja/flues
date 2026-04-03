@@ -9,7 +9,7 @@ namespace outsider_client {
 struct PersistedConfig {
     float enable = 1.0f;
     float session_slot = 1.0f;
-    float endpoint_slot = 1.0f;
+    float endpoint_slot = 0.0f;
     float authority = 1.0f;
     float reconnect = 1.0f;
     float fallback_gain = 1.0f;

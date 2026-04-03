@@ -10,15 +10,24 @@ CommandPacket SemaphoreEngine::preview_for(const EndpointRecord& endpoint,
                                            const SessionRegistry& registry,
                                            const TransportAuthority&) const {
     const TransportSnapshot transport = registry.transport_snapshot();
-    if (endpoint.mode == OutsiderMode::PMix) {
+    EffectiveSemaphoreState effective{};
+    if (!registry.effective_semaphore_state(endpoint.session_slot,
+                                            endpoint.endpoint_slot,
+                                            &effective)) {
+        effective.mode = endpoint.mode;
+        effective.p_mix_params = endpoint.p_mix_params;
+        effective.e_mix_params = endpoint.e_mix_params;
+    }
+
+    if (effective.mode == OutsiderMode::PMix) {
         PMixModel model;
         return model.preview(transport,
-                             endpoint.p_mix_params,
+                             effective.p_mix_params,
                              endpoint.current_gain > 0.5f).command;
     }
-    if (endpoint.mode == OutsiderMode::EMix) {
+    if (effective.mode == OutsiderMode::EMix) {
         EMixModel model;
-        return model.preview(transport, endpoint.e_mix_params).command;
+        return model.preview(transport, effective.e_mix_params).command;
     }
 
     CommandPacket bypass{};
