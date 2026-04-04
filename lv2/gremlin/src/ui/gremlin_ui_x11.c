@@ -239,15 +239,15 @@ static const char* const kMacroLabels[8] = {
 };
 
 static const char* const kMomentaryLabels[8] = {
-    "FRZ", "STT", "CHA", "CRN", "FDB", "WRP", "NOI", "DCK"
+    "FREEZE", "ST MAX", "CHAOS", "CRUNCH", "FDBK", "WARP", "NOISE", "DUCK"
 };
 
 static const char* const kRecLabels[8] = {
-    "SHD", "SRV", "SPR", "COL", "SPL", "MLT", "RST", "TUN"
+    "SHARD", "SERVO", "SPRAY", "COLLAP", "SPLINT", "MELT", "RUST", "TUNNEL"
 };
 
 static const char* const kSoloLabels[8] = {
-    "RSD", "BST", "RNS", "RND", "ALL", "<SC", ">SC", "RST"
+    "SEED", "BURST", "R SRC", "R DLY", "R ALL", "SC < ", "SC > ", "PANIC"
 };
 
 static const uint32_t kTopRowPorts[8] = {
@@ -509,15 +509,15 @@ static void draw_status_pill(cairo_t* cr,
     cairo_restore(cr);
 }
 
-static void draw_master_bar(cairo_t* cr, double x, double y, double w, double h, float value) {
+static void draw_master_fader(cairo_t* cr, double x, double y, double w, double h, float value) {
     value = clamp_float(value, 0.0f, 1.0f);
 
     cairo_save(cr);
     cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     cairo_set_font_size(cr, 11.0);
     cairo_set_source_rgb(cr, 0.92, 0.90, 0.84);
-    cairo_move_to(cr, x, y - 8.0);
-    cairo_show_text(cr, "Master Trim");
+    cairo_move_to(cr, x, y - 10.0);
+    cairo_show_text(cr, "MASTER");
 
     cairo_rectangle(cr, x, y, w, h);
     cairo_set_source_rgb(cr, 0.10, 0.11, 0.13);
@@ -526,15 +526,25 @@ static void draw_master_bar(cairo_t* cr, double x, double y, double w, double h,
     cairo_set_line_width(cr, 1.0);
     cairo_stroke(cr);
 
-    cairo_rectangle(cr, x + 2.0, y + 2.0, (w - 4.0) * value, h - 4.0);
+    cairo_rectangle(cr, x + w * 0.34, y + 12.0, w * 0.32, h - 24.0);
+    cairo_set_source_rgb(cr, 0.14, 0.15, 0.18);
+    cairo_fill(cr);
+
+    const double fill_h = (h - 28.0) * value;
+    cairo_rectangle(cr, x + w * 0.34 + 3.0, y + h - 14.0 - fill_h, w * 0.32 - 6.0, fill_h);
     cairo_set_source_rgb(cr, 0.90, 0.46, 0.14);
+    cairo_fill(cr);
+
+    const double handle_y = y + h - 14.0 - fill_h;
+    cairo_rectangle(cr, x + 6.0, handle_y - 3.0, w - 12.0, 6.0);
+    cairo_set_source_rgb(cr, 0.95, 0.84, 0.52);
     cairo_fill(cr);
 
     char value_str[32];
     snprintf(value_str, sizeof(value_str), "%.2f", value);
     cairo_text_extents_t extents;
     cairo_text_extents(cr, value_str, &extents);
-    cairo_move_to(cr, x + w + 10.0, y + h * 0.70);
+    cairo_move_to(cr, x + (w - extents.width) * 0.5, y + h + 14.0);
     cairo_show_text(cr, value_str);
     cairo_restore(cr);
 }
@@ -592,7 +602,7 @@ static void draw_button_cell(cairo_t* cr,
     cairo_rectangle(cr, x, y, w, h);
     cairo_set_source_rgb(cr, 0.10, 0.11, 0.13);
     cairo_fill_preserve(cr);
-    cairo_set_source_rgb(cr, 0.29, 0.31, 0.36);
+    cairo_set_source_rgba(cr, r, g, b, 0.28 + active * 0.35);
     cairo_set_line_width(cr, 1.0);
     cairo_stroke(cr);
 
@@ -601,7 +611,7 @@ static void draw_button_cell(cairo_t* cr,
     cairo_fill(cr);
 
     cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, 9.0);
+    cairo_set_font_size(cr, strlen(label) > 5 ? 8.0 : 9.0);
     cairo_set_source_rgb(cr, 0.92, 0.90, 0.84);
     cairo_text_extents_t extents;
     cairo_text_extents(cr, label, &extents);
@@ -628,43 +638,95 @@ static void draw_status_panel(cairo_t* cr, const GremlinUI* ui) {
     cairo_set_font_size(cr, 14.0);
     cairo_set_source_rgb(cr, 0.95, 0.72, 0.22);
     cairo_move_to(cr, x + 18.0, y + 24.0);
-    cairo_show_text(cr, "Master / MIDImix");
+    cairo_show_text(cr, "Master Strip");
 
     cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, 10.0);
     cairo_set_source_rgb(cr, 0.72, 0.76, 0.78);
     cairo_move_to(cr, x + 18.0, y + 42.0);
-    cairo_show_text(cr, "Mode knob + master fader. Live status stays visible even if hardware LEDs fail.");
+    cairo_show_text(cr, "Controls and action legend.");
 
     draw_status_pill(cr, x + 18.0, y + 54.0, 88.0, 22.0, "CTRL IN", ui->controller_activity, 0.44, 0.96, 0.26);
     draw_status_pill(cr, x + 114.0, y + 54.0, 88.0, 22.0, "CTRL OUT", ui->controller_out_active, 0.24, 0.82, 0.96);
     draw_status_pill(cr, x + 210.0, y + 54.0, 58.0, 22.0, "SOLO", ui->solo_held, 0.96, 0.38, 0.12);
 
     cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, 12.0);
-    cairo_set_source_rgb(cr, 0.64, 0.69, 0.74);
-    cairo_move_to(cr, x + 18.0, y + 228.0);
+    cairo_set_font_size(cr, 11.0);
+    cairo_set_source_rgb(cr, 0.70, 0.74, 0.80);
+    cairo_move_to(cr, x + 18.0, y + 94.0);
     cairo_show_text(cr, "MODE");
-    cairo_move_to(cr, x + 18.0, y + 286.0);
-    cairo_show_text(cr, "SCENE");
 
-    cairo_set_font_size(cr, 28.0);
-    cairo_set_source_rgb(cr, 0.96, 0.93, 0.87);
-    cairo_move_to(cr, x + 18.0, y + 256.0);
-    cairo_show_text(cr, kModeLabels[ui->live_mode < 0 ? 0 : ui->live_mode > 3 ? 3 : ui->live_mode]);
-    cairo_move_to(cr, x + 18.0, y + 314.0);
-    cairo_show_text(cr, kSceneLabels[ui->scene_index < 0 ? 0 : ui->scene_index > 4 ? 4 : ui->scene_index]);
+    draw_button_cell(cr, x + 18.0, y + 202.0, 50.0, 24.0, 0.0f, "<", 0.82, 0.82, 0.86);
+    draw_button_cell(cr, x + 76.0, y + 202.0, 50.0, 24.0, 0.0f, ">", 0.82, 0.82, 0.86);
+    draw_button_cell(cr, x + 134.0, y + 202.0, 58.0, 24.0, ui->solo_held, "SOLO", 0.26, 0.68, 0.96);
 
-    draw_macro_bar(cr, x + 208.0, y + 168.0, 42.0, 188.0, ui->master_trim, "MSTR");
+    cairo_rectangle(cr, x + 18.0, y + 238.0, 174.0, 112.0);
+    cairo_set_source_rgb(cr, 0.08, 0.09, 0.11);
+    cairo_fill_preserve(cr);
+    cairo_set_source_rgb(cr, 0.30, 0.32, 0.36);
+    cairo_set_line_width(cr, 1.0);
+    cairo_stroke(cr);
 
     cairo_set_font_size(cr, 10.0);
-    cairo_set_source_rgb(cr, 0.78, 0.83, 0.88);
-    cairo_move_to(cr, x + 18.0, y + 352.0);
-    cairo_show_text(cr, "REC row: modes 1-4, scenes 5-8");
-    cairo_move_to(cr, x + 18.0, y + 370.0);
-    cairo_show_text(cr, "SOLO row: action bank while SOLO held");
-    cairo_move_to(cr, x + 18.0, y + 388.0);
-    cairo_show_text(cr, "MUTE row: momentary performance layer");
+    cairo_set_source_rgb(cr, 0.65, 0.70, 0.76);
+    cairo_move_to(cr, x + 32.0, y + 262.0);
+    cairo_show_text(cr, "LIVE MODE");
+    cairo_move_to(cr, x + 32.0, y + 314.0);
+    cairo_show_text(cr, "SCENE");
+
+    cairo_set_font_size(cr, 24.0);
+    cairo_set_source_rgb(cr, 0.96, 0.93, 0.87);
+    cairo_move_to(cr, x + 32.0, y + 290.0);
+    cairo_show_text(cr, kModeLabels[ui->live_mode < 0 ? 0 : ui->live_mode > 3 ? 3 : ui->live_mode]);
+    cairo_move_to(cr, x + 32.0, y + 340.0);
+    cairo_show_text(cr, kSceneLabels[ui->scene_index < 0 ? 0 : ui->scene_index > 4 ? 4 : ui->scene_index]);
+
+    draw_master_fader(cr, x + 214.0, y + 94.0, 42.0, 534.0, ui->master_trim);
+
+    cairo_set_font_size(cr, 10.0);
+    cairo_set_source_rgb(cr, 0.82, 0.84, 0.88);
+    cairo_move_to(cr, x + 18.0, y + 380.0);
+    cairo_show_text(cr, "ROW LEGEND");
+
+    draw_button_cell(cr, x + 18.0, y + 392.0, 62.0, 22.0, 1.0f, "REC", 0.96, 0.70, 0.18);
+    cairo_set_source_rgb(cr, 0.82, 0.84, 0.88);
+    cairo_move_to(cr, x + 88.0, y + 407.0);
+    cairo_show_text(cr, "1-4 modes");
+    cairo_move_to(cr, x + 88.0, y + 421.0);
+    cairo_show_text(cr, "5-8 scenes");
+
+    draw_button_cell(cr, x + 18.0, y + 424.0, 62.0, 22.0, ui->solo_held, "SOLO", 0.26, 0.68, 0.96);
+    cairo_set_source_rgb(cr, 0.82, 0.84, 0.88);
+    cairo_move_to(cr, x + 88.0, y + 439.0);
+    cairo_show_text(cr, "seed, burst,");
+    cairo_move_to(cr, x + 88.0, y + 453.0);
+    cairo_show_text(cr, "randomize, scene,");
+    cairo_move_to(cr, x + 88.0, y + 467.0);
+    cairo_show_text(cr, "panic");
+
+    draw_button_cell(cr, x + 18.0, y + 456.0, 62.0, 22.0, 1.0f, "MUTE", 0.55, 0.94, 0.22);
+    cairo_set_source_rgb(cr, 0.82, 0.84, 0.88);
+    cairo_move_to(cr, x + 88.0, y + 471.0);
+    cairo_show_text(cr, "hold for freeze,");
+    cairo_move_to(cr, x + 88.0, y + 485.0);
+    cairo_show_text(cr, "stutter, chaos,");
+    cairo_move_to(cr, x + 88.0, y + 499.0);
+    cairo_show_text(cr, "crunch, feedback,");
+    cairo_move_to(cr, x + 88.0, y + 513.0);
+    cairo_show_text(cr, "warp, noise, duck");
+
+    cairo_set_source_rgb(cr, 0.64, 0.69, 0.74);
+    cairo_move_to(cr, x + 18.0, y + 544.0);
+    cairo_show_text(cr, "BUTTON ABBREVIATIONS");
+    cairo_set_source_rgb(cr, 0.82, 0.84, 0.88);
+    cairo_move_to(cr, x + 18.0, y + 564.0);
+    cairo_show_text(cr, "R SRC = random source");
+    cairo_move_to(cr, x + 18.0, y + 578.0);
+    cairo_show_text(cr, "R DLY = random delay");
+    cairo_move_to(cr, x + 18.0, y + 592.0);
+    cairo_show_text(cr, "R ALL = random all");
+    cairo_move_to(cr, x + 18.0, y + 606.0);
+    cairo_show_text(cr, "SC < / SC > = prev/next scene");
 
     cairo_restore(cr);
 }
@@ -702,7 +764,7 @@ static void draw_ui(GremlinUI* ui) {
     cairo_show_text(cr, "Three knob rows, channel macros, and button rows aligned to the controller.");
 
     {
-        const char* row_labels[] = { "TOP", "MID", "LOW", "FADER", "REC", "SOLO", "MUTE" };
+        const char* row_labels[] = { "KNOB 1", "KNOB 2", "KNOB 3", "FADER", "REC ARM", "SOLO FX", "MUTE FX" };
         const double row_y[] = {
             ui->strip_y + 52.0,
             ui->strip_y + 52.0 + (KNOB_HEIGHT + 18),
@@ -712,10 +774,19 @@ static void draw_ui(GremlinUI* ui) {
             ui->solo_y + 14.0,
             ui->mute_y + 14.0
         };
+        const double row_color[][3] = {
+            {0.67, 0.70, 0.76},
+            {0.67, 0.70, 0.76},
+            {0.67, 0.70, 0.76},
+            {0.80, 0.72, 0.46},
+            {0.96, 0.70, 0.18},
+            {0.26, 0.68, 0.96},
+            {0.55, 0.94, 0.22}
+        };
         cairo_select_font_face(cr, "Fira Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
         cairo_set_font_size(cr, 10.0);
-        cairo_set_source_rgb(cr, 0.67, 0.70, 0.76);
         for (int i = 0; i < 7; ++i) {
+            cairo_set_source_rgb(cr, row_color[i][0], row_color[i][1], row_color[i][2]);
             cairo_move_to(cr, ui->board_x + 14.0, row_y[i]);
             cairo_show_text(cr, row_labels[i]);
         }

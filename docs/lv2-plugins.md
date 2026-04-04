@@ -91,6 +91,11 @@ PM-Synth is the LV2 port of the Stove physical-modeling engine. It brings interf
 ### disyn
 Disyn is a distortion-synthesis instrument based on multiple algorithmic oscillator models. It emphasizes rich harmonic and inharmonic spectra with compact parameter sets.
 
+### gremlin
+Gremlin is a glitch-heavy malfunction instrument built around unstable digital oscillators, chaotic modulation, and a delay network that is designed to wobble, smear, and threaten runaway feedback. It has a dedicated MIDImix performance layer, an X11/Cairo UI that mirrors the controller strip layout, and status feedback for mode, scene, macros, and button layers even if the hardware LEDs are unreliable.
+
+*One of the more immediately playable oddballs in the repo. Good for broken synth stabs, unstable drones, and delay-driven accidents.*
+
 ### chatterbox
 Chatterbox is a formant-based speech synthesizer with larynx/noise sources and F1-F4 shaping. It includes vocal modes and dynamics controls for expressive synthetic voice design.
 
@@ -188,9 +193,9 @@ MetaLV is an LV2 host plugin that can load and route other LV2 plugins in multip
 3. After the install step, verify the plugin is registered by running `lv2ls | grep flues`.
 
 ### Helper scripts
-`./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `chatterbox`, `chatgen`, `drumkit`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
+`./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `gremlin`, `chatterbox`, `chatgen`, `drumkit`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
 
-Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
+Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-gremlin.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
 
 For Meson-based builds such as `grid-seq`, the scripts wrap `meson setup`, `meson compile`, and `meson install`, so those commands can also be run manually if you prefer. If you want fine-grained control, open `lv2/<plugin>/README.md` for plugin-specific notes and repeat the manual CMake/Meson commands outlined in this section.
 
