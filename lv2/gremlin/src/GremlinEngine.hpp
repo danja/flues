@@ -222,7 +222,7 @@ public:
         const float toned = toneFilter_.process(shaped);
 
         const StereoFrame delayed = processDelay(toned);
-        const float outGain = 0.08f + output_ * 1.65f;
+        const float outGain = 0.03f + output_ * 0.72f;
         const float left = dcLeft_.process(delayed.left * outGain);
         const float right = dcRight_.process(delayed.right * outGain);
 
@@ -447,7 +447,7 @@ private:
     float feedback_ = 0.55f;
     float warp_ = 0.45f;
     float stutter_ = 0.35f;
-    float sourceGain_ = 0.72f;
+    float sourceGain_ = 0.58f;
     float burst_ = 0.40f;
     float pitchSpread_ = 0.50f;
     float delayMix_ = 0.55f;
@@ -460,7 +460,7 @@ private:
     float space_ = 0.55f;
     float attack_ = 0.05f;
     float release_ = 0.25f;
-    float output_ = 0.70f;
+    float output_ = 0.45f;
 
     bool gate_ = false;
     uint8_t currentMidiNote_ = 0;

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <vector>
 
 #include <lv2/atom/atom.h>
 #include <lv2/atom/util.h>
@@ -21,6 +22,7 @@ enum PortIndex : uint32_t {
     PORT_AUDIO_OUT_L = 0,
     PORT_AUDIO_OUT_R,
     PORT_MIDI_IN,
+    PORT_CONTROLLER_IN,
     PORT_MODE,
     PORT_DAMAGE,
     PORT_CHAOS,
@@ -38,6 +40,14 @@ enum PortIndex : uint32_t {
     PORT_ATTACK,
     PORT_RELEASE,
     PORT_OUTPUT,
+    PORT_SOURCE_GAIN,
+    PORT_BURST,
+    PORT_PITCH_SPREAD,
+    PORT_DELAY_MIX,
+    PORT_CROSS_FEEDBACK,
+    PORT_GLITCH_LENGTH,
+    PORT_CHAOS_RATE,
+    PORT_DUCK,
     PORT_TOTAL_COUNT
 };
 
@@ -81,6 +91,7 @@ struct GremlinLV2 {
     float* audioOutLeft;
     float* audioOutRight;
     const LV2_Atom_Sequence* midiIn;
+    const LV2_Atom_Sequence* controllerIn;
 
     const float* mode;
     const float* damage;
@@ -99,6 +110,14 @@ struct GremlinLV2 {
     const float* attack;
     const float* release;
     const float* output;
+    const float* sourceGain;
+    const float* burst;
+    const float* pitchSpread;
+    const float* delayMix;
+    const float* crossFeedback;
+    const float* glitchLength;
+    const float* chaosRate;
+    const float* duck;
 
     LV2_URID_Map* map;
     LV2_URID midiEventUrid;
@@ -107,6 +126,7 @@ struct GremlinLV2 {
     float liveParams[LIVE_PARAM_COUNT];
     bool liveOverrides[LIVE_PARAM_COUNT];
     float hiddenParams[HIDDEN_PARAM_COUNT];
+    bool hiddenOverrides[HIDDEN_PARAM_COUNT];
     float macroFaders[8];
     float masterTrim;
     bool momentaryButtons[8];
@@ -199,14 +219,14 @@ static float default_live_value(LiveParamIndex index) {
         case LIVE_SPACE: return 0.55f;
         case LIVE_ATTACK: return 0.05f;
         case LIVE_RELEASE: return 0.25f;
-        case LIVE_OUTPUT: return 0.70f;
+        case LIVE_OUTPUT: return 0.45f;
         default: return 0.5f;
     }
 }
 
 static float default_hidden_value(HiddenParamIndex index) {
     switch (index) {
-        case HIDDEN_SOURCE_GAIN: return 0.72f;
+        case HIDDEN_SOURCE_GAIN: return 0.58f;
         case HIDDEN_BURST: return 0.40f;
         case HIDDEN_PITCH_SPREAD: return 0.50f;
         case HIDDEN_DELAY_MIX: return 0.55f;
@@ -253,6 +273,7 @@ static void set_hidden_param(GremlinLV2* self, HiddenParamIndex index, float val
         return;
     }
     self->hiddenParams[index] = clampf(value);
+    self->hiddenOverrides[index] = true;
 }
 
 static void sync_from_ports(GremlinLV2* self) {
@@ -277,6 +298,15 @@ static void sync_from_ports(GremlinLV2* self) {
     if (!self->liveOverrides[LIVE_ATTACK]) self->liveParams[LIVE_ATTACK] = clampf(port_or_default(self->attack, default_live_value(LIVE_ATTACK)));
     if (!self->liveOverrides[LIVE_RELEASE]) self->liveParams[LIVE_RELEASE] = clampf(port_or_default(self->release, default_live_value(LIVE_RELEASE)));
     if (!self->liveOverrides[LIVE_OUTPUT]) self->liveParams[LIVE_OUTPUT] = clampf(port_or_default(self->output, default_live_value(LIVE_OUTPUT)));
+
+    if (!self->hiddenOverrides[HIDDEN_SOURCE_GAIN]) self->hiddenParams[HIDDEN_SOURCE_GAIN] = clampf(port_or_default(self->sourceGain, default_hidden_value(HIDDEN_SOURCE_GAIN)));
+    if (!self->hiddenOverrides[HIDDEN_BURST]) self->hiddenParams[HIDDEN_BURST] = clampf(port_or_default(self->burst, default_hidden_value(HIDDEN_BURST)));
+    if (!self->hiddenOverrides[HIDDEN_PITCH_SPREAD]) self->hiddenParams[HIDDEN_PITCH_SPREAD] = clampf(port_or_default(self->pitchSpread, default_hidden_value(HIDDEN_PITCH_SPREAD)));
+    if (!self->hiddenOverrides[HIDDEN_DELAY_MIX]) self->hiddenParams[HIDDEN_DELAY_MIX] = clampf(port_or_default(self->delayMix, default_hidden_value(HIDDEN_DELAY_MIX)));
+    if (!self->hiddenOverrides[HIDDEN_CROSS_FEEDBACK]) self->hiddenParams[HIDDEN_CROSS_FEEDBACK] = clampf(port_or_default(self->crossFeedback, default_hidden_value(HIDDEN_CROSS_FEEDBACK)));
+    if (!self->hiddenOverrides[HIDDEN_GLITCH_LENGTH]) self->hiddenParams[HIDDEN_GLITCH_LENGTH] = clampf(port_or_default(self->glitchLength, default_hidden_value(HIDDEN_GLITCH_LENGTH)));
+    if (!self->hiddenOverrides[HIDDEN_CHAOS_RATE]) self->hiddenParams[HIDDEN_CHAOS_RATE] = clampf(port_or_default(self->chaosRate, default_hidden_value(HIDDEN_CHAOS_RATE)));
+    if (!self->hiddenOverrides[HIDDEN_DUCK]) self->hiddenParams[HIDDEN_DUCK] = clampf(port_or_default(self->duck, default_hidden_value(HIDDEN_DUCK)));
 }
 
 static void reset_midimix_state(GremlinLV2* self) {
@@ -290,6 +320,7 @@ static void reset_midimix_state(GremlinLV2* self) {
     }
     for (uint32_t i = 0; i < HIDDEN_PARAM_COUNT; ++i) {
         self->hiddenParams[i] = default_hidden_value(static_cast<HiddenParamIndex>(i));
+        self->hiddenOverrides[i] = false;
     }
     for (float& macro : self->macroFaders) {
         macro = 0.5f;
@@ -298,7 +329,7 @@ static void reset_midimix_state(GremlinLV2* self) {
         held = false;
     }
 
-    self->masterTrim = 0.75f;
+    self->masterTrim = 0.45f;
     self->currentScene = -1;
     self->postGain = 1.0f;
 }
@@ -563,7 +594,7 @@ static void apply_live_state(GremlinLV2* self) {
     self->engine->setOutput(output);
     self->engine->setFreezeDelay(self->momentaryButtons[0]);
 
-    self->postGain = 0.18f + self->masterTrim * 1.82f;
+    self->postGain = 0.05f + self->masterTrim * 0.75f;
 }
 
 static bool handle_midimix_cc(GremlinLV2* self, uint8_t cc, uint8_t value) {
@@ -745,6 +776,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->audioOutLeft = nullptr;
     self->audioOutRight = nullptr;
     self->midiIn = nullptr;
+    self->controllerIn = nullptr;
 
     self->mode = nullptr;
     self->damage = nullptr;
@@ -763,6 +795,14 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->attack = nullptr;
     self->release = nullptr;
     self->output = nullptr;
+    self->sourceGain = nullptr;
+    self->burst = nullptr;
+    self->pitchSpread = nullptr;
+    self->delayMix = nullptr;
+    self->crossFeedback = nullptr;
+    self->glitchLength = nullptr;
+    self->chaosRate = nullptr;
+    self->duck = nullptr;
 
     self->map = nullptr;
     self->midiEventUrid = 0;
@@ -804,6 +844,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_AUDIO_OUT_L: self->audioOutLeft = static_cast<float*>(data); break;
         case PORT_AUDIO_OUT_R: self->audioOutRight = static_cast<float*>(data); break;
         case PORT_MIDI_IN: self->midiIn = static_cast<const LV2_Atom_Sequence*>(data); break;
+        case PORT_CONTROLLER_IN: self->controllerIn = static_cast<const LV2_Atom_Sequence*>(data); break;
         case PORT_MODE: self->mode = static_cast<const float*>(data); break;
         case PORT_DAMAGE: self->damage = static_cast<const float*>(data); break;
         case PORT_CHAOS: self->chaos = static_cast<const float*>(data); break;
@@ -821,6 +862,14 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_ATTACK: self->attack = static_cast<const float*>(data); break;
         case PORT_RELEASE: self->release = static_cast<const float*>(data); break;
         case PORT_OUTPUT: self->output = static_cast<const float*>(data); break;
+        case PORT_SOURCE_GAIN: self->sourceGain = static_cast<const float*>(data); break;
+        case PORT_BURST: self->burst = static_cast<const float*>(data); break;
+        case PORT_PITCH_SPREAD: self->pitchSpread = static_cast<const float*>(data); break;
+        case PORT_DELAY_MIX: self->delayMix = static_cast<const float*>(data); break;
+        case PORT_CROSS_FEEDBACK: self->crossFeedback = static_cast<const float*>(data); break;
+        case PORT_GLITCH_LENGTH: self->glitchLength = static_cast<const float*>(data); break;
+        case PORT_CHAOS_RATE: self->chaosRate = static_cast<const float*>(data); break;
+        case PORT_DUCK: self->duck = static_cast<const float*>(data); break;
         default: break;
     }
 }
@@ -860,40 +909,65 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         std::memset(outRight, 0, n_samples * sizeof(float));
     }
 
-    uint32_t frame = 0;
+    struct PendingEvent {
+        uint32_t frame;
+        const uint8_t* msg;
+        uint32_t size;
+    };
 
-    if (self->midiIn && self->midiIn->atom.type == self->atomSequenceUrid) {
-        LV2_ATOM_SEQUENCE_FOREACH(self->midiIn, ev) {
+    std::vector<PendingEvent> events;
+    events.reserve(64);
+
+    auto collect_events = [&](const LV2_Atom_Sequence* seq) {
+        if (!seq || seq->atom.type != self->atomSequenceUrid) {
+            return;
+        }
+
+        LV2_ATOM_SEQUENCE_FOREACH(seq, ev) {
+            if (ev->body.type != self->midiEventUrid) {
+                continue;
+            }
             const uint32_t eventFrame = ev->time.frames >= 0
                 ? static_cast<uint32_t>(ev->time.frames)
                 : 0u;
-
-            if (frame < eventFrame) {
-                const uint32_t limit = std::min(eventFrame, n_samples);
-                for (; frame < limit; ++frame) {
-                    const StereoFrame s = self->engine->process();
-                    outLeft[frame] = s.left * self->postGain;
-                    outRight[frame] = s.right * self->postGain;
-                }
-            }
-
             if (eventFrame >= n_samples) {
                 continue;
             }
+            events.push_back(PendingEvent{
+                eventFrame,
+                reinterpret_cast<const uint8_t*>(ev + 1),
+                ev->body.size
+            });
+        }
+    };
 
-            if (ev->body.type == self->midiEventUrid) {
-                const auto* msg = reinterpret_cast<const uint8_t*>(ev + 1);
-                if (handle_midi(self, msg, ev->body.size)) {
-                    apply_live_state(self);
-                }
+    collect_events(self->midiIn);
+    collect_events(self->controllerIn);
+
+    std::stable_sort(events.begin(), events.end(), [](const PendingEvent& a, const PendingEvent& b) {
+        return a.frame < b.frame;
+    });
+
+    uint32_t frame = 0;
+    for (const PendingEvent& event : events) {
+        if (frame < event.frame) {
+            const uint32_t limit = std::min(event.frame, n_samples);
+            for (; frame < limit; ++frame) {
+                const StereoFrame s = self->engine->process();
+                outLeft[frame] = 0.92f * std::tanh(s.left * self->postGain);
+                outRight[frame] = 0.92f * std::tanh(s.right * self->postGain);
             }
+        }
+
+        if (handle_midi(self, event.msg, event.size)) {
+            apply_live_state(self);
         }
     }
 
     for (; frame < n_samples; ++frame) {
         const StereoFrame s = self->engine->process();
-        outLeft[frame] = s.left * self->postGain;
-        outRight[frame] = s.right * self->postGain;
+        outLeft[frame] = 0.92f * std::tanh(s.left * self->postGain);
+        outRight[frame] = 0.92f * std::tanh(s.right * self->postGain);
     }
 }
 

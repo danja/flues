@@ -50,10 +50,25 @@ lv2info https://danja.github.io/flues/plugins/gremlin
 - `Attack`: envelope attack
 - `Release`: envelope release
 - `Output`: final gain
+- `Source Gain`: source level before downstream destruction
+- `Burst`: transient/strike emphasis
+- `Pitch Spread`: detune / interval spread between unstable source components
+- `Delay Mix`: wetness of the delay network
+- `Cross Feedback`: left/right feedback bleed
+- `Glitch Length`: average duration of the short repeat grabs
+- `Chaos Rate`: how quickly the chaotic control maps evolve
+- `Duck`: how much the dry injection backs off when the feedback loop gets loud
 
 ## MIDImix Layout
 
 Gremlin now has a built-in mapping for the Akai MIDImix factory control layout, so you do not need host MIDI learn for normal use.
+
+### Routing
+
+- `MIDI In`: note performance input
+- `Controller In`: optional second MIDI input intended for the MIDImix
+
+If your host only delivers one MIDI source per plugin input, connect your keyboard or sequencer to `MIDI In` and the MIDImix to `Controller In`.
 
 ### Knobs
 
@@ -79,4 +94,5 @@ Gremlin now has a built-in mapping for the Akai MIDImix factory control layout, 
 ### Notes
 
 - The direct MIDImix mapping assumes the controller is using the factory/default identifiers.
+- All third-row MIDImix controls are also normal LV2 control ports now, so Gremlin is fully host-automatable.
 - Host automation and the standard LV2 ports still work. Once you touch a directly-mapped MIDImix control, that parameter becomes locally owned by the controller until you hit the `Reset/Panic` combo.
