@@ -5,6 +5,7 @@
 @prefix midi: <http://lv2plug.in/ns/ext/midi#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ui: <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
 
 <https://danja.github.io/flues/plugins/gremlin>
@@ -17,6 +18,7 @@
         foaf:homepage <https://danja.github.io/flues/>
     ] ;
     lv2:requiredFeature urid:map ;
+    ui:ui <https://danja.github.io/flues/plugins/gremlin#ui> ;
     lv2:port [
         a lv2:OutputPort , lv2:AudioPort ;
         lv2:index 0 ;
@@ -262,4 +264,629 @@
         lv2:name "Controller Out" ;
         atom:bufferType atom:Sequence ;
         atom:supports midi:MidiEvent
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 30 ;
+        lv2:symbol "live_mode" ;
+        lv2:name "Live Mode" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 3 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Shard" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Servo" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Spray" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Collapse" ; rdf:value 3 ]
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 31 ;
+        lv2:symbol "live_damage" ;
+        lv2:name "Live Damage" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 32 ;
+        lv2:symbol "live_chaos" ;
+        lv2:name "Live Chaos" ;
+        lv2:default 0.60 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 33 ;
+        lv2:symbol "live_noise" ;
+        lv2:name "Live Noise" ;
+        lv2:default 0.30 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 34 ;
+        lv2:symbol "live_drift" ;
+        lv2:name "Live Drift" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 35 ;
+        lv2:symbol "live_crunch" ;
+        lv2:name "Live Crunch" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 36 ;
+        lv2:symbol "live_fold" ;
+        lv2:name "Live Fold" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 37 ;
+        lv2:symbol "live_delay_time" ;
+        lv2:name "Live Delay Time" ;
+        lv2:default 0.32 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 38 ;
+        lv2:symbol "live_feedback" ;
+        lv2:name "Live Feedback" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 39 ;
+        lv2:symbol "live_warp" ;
+        lv2:name "Live Warp" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 40 ;
+        lv2:symbol "live_stutter" ;
+        lv2:name "Live Stutter" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 41 ;
+        lv2:symbol "live_tone" ;
+        lv2:name "Live Tone" ;
+        lv2:default 0.65 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 42 ;
+        lv2:symbol "live_damping" ;
+        lv2:name "Live Damping" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 43 ;
+        lv2:symbol "live_space" ;
+        lv2:name "Live Space" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 44 ;
+        lv2:symbol "live_attack" ;
+        lv2:name "Live Attack" ;
+        lv2:default 0.05 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 45 ;
+        lv2:symbol "live_release" ;
+        lv2:name "Live Release" ;
+        lv2:default 0.25 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 46 ;
+        lv2:symbol "live_output" ;
+        lv2:name "Live Output" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 47 ;
+        lv2:symbol "live_source_gain" ;
+        lv2:name "Live Source Gain" ;
+        lv2:default 0.58 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 48 ;
+        lv2:symbol "live_burst" ;
+        lv2:name "Live Burst" ;
+        lv2:default 0.40 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 49 ;
+        lv2:symbol "live_pitch_spread" ;
+        lv2:name "Live Pitch Spread" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 50 ;
+        lv2:symbol "live_delay_mix" ;
+        lv2:name "Live Delay Mix" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 51 ;
+        lv2:symbol "live_cross_feedback" ;
+        lv2:name "Live Cross Feedback" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 52 ;
+        lv2:symbol "live_glitch_length" ;
+        lv2:name "Live Glitch Length" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 53 ;
+        lv2:symbol "live_chaos_rate" ;
+        lv2:name "Live Chaos Rate" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 54 ;
+        lv2:symbol "live_duck" ;
+        lv2:name "Live Duck" ;
+        lv2:default 0.10 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 55 ;
+        lv2:symbol "status_scene" ;
+        lv2:name "Scene Status" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 4 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Manual" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Splinter" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Melt" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Rust" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Tunnel" ; rdf:value 4 ]
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 56 ;
+        lv2:symbol "status_controller_activity" ;
+        lv2:name "Controller Activity" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 57 ;
+        lv2:symbol "status_controller_out_active" ;
+        lv2:name "Controller Out Active" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 58 ;
+        lv2:symbol "status_solo_held" ;
+        lv2:name "Solo Held" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 59 ;
+        lv2:symbol "status_master_trim" ;
+        lv2:name "Master Trim Status" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 60 ;
+        lv2:symbol "macro_source" ;
+        lv2:name "Macro Source" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 61 ;
+        lv2:symbol "macro_pitch" ;
+        lv2:name "Macro Pitch" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 62 ;
+        lv2:symbol "macro_breakage" ;
+        lv2:name "Macro Breakage" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 63 ;
+        lv2:symbol "macro_delay" ;
+        lv2:name "Macro Delay" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 64 ;
+        lv2:symbol "macro_space" ;
+        lv2:name "Macro Space" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 65 ;
+        lv2:symbol "macro_stutter" ;
+        lv2:name "Macro Stutter" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 66 ;
+        lv2:symbol "macro_tone" ;
+        lv2:name "Macro Tone" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 67 ;
+        lv2:symbol "macro_output" ;
+        lv2:name "Macro Output" ;
+        lv2:default 0.50 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 68 ;
+        lv2:symbol "momentary_freeze" ;
+        lv2:name "Momentary Freeze" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 69 ;
+        lv2:symbol "momentary_stutter_max" ;
+        lv2:name "Momentary Stutter Max" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 70 ;
+        lv2:symbol "momentary_chaos_boost" ;
+        lv2:name "Momentary Chaos Boost" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 71 ;
+        lv2:symbol "momentary_crunch_blast" ;
+        lv2:name "Momentary Crunch Blast" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 72 ;
+        lv2:symbol "momentary_feedback_push" ;
+        lv2:name "Momentary Feedback Push" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 73 ;
+        lv2:symbol "momentary_warp_push" ;
+        lv2:name "Momentary Warp Push" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 74 ;
+        lv2:symbol "momentary_noise_burst" ;
+        lv2:name "Momentary Noise Burst" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 75 ;
+        lv2:symbol "momentary_duck_kill" ;
+        lv2:name "Momentary Duck Kill" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:toggled
+    ] .
+
+<https://danja.github.io/flues/plugins/gremlin#ui>
+    a ui:X11UI ;
+    ui:binary <gremlin_ui.so> ;
+    rdfs:label "Gremlin Control Panel" ;
+    ui:portNotification [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 30 ; lv2:symbol "live_mode" ] ;
+        ui:portIndex 30 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 31 ; lv2:symbol "live_damage" ] ;
+        ui:portIndex 31 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 32 ; lv2:symbol "live_chaos" ] ;
+        ui:portIndex 32 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 33 ; lv2:symbol "live_noise" ] ;
+        ui:portIndex 33 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 34 ; lv2:symbol "live_drift" ] ;
+        ui:portIndex 34 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 35 ; lv2:symbol "live_crunch" ] ;
+        ui:portIndex 35 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 36 ; lv2:symbol "live_fold" ] ;
+        ui:portIndex 36 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 37 ; lv2:symbol "live_delay_time" ] ;
+        ui:portIndex 37 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 38 ; lv2:symbol "live_feedback" ] ;
+        ui:portIndex 38 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 39 ; lv2:symbol "live_warp" ] ;
+        ui:portIndex 39 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 40 ; lv2:symbol "live_stutter" ] ;
+        ui:portIndex 40 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 41 ; lv2:symbol "live_tone" ] ;
+        ui:portIndex 41 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 42 ; lv2:symbol "live_damping" ] ;
+        ui:portIndex 42 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 43 ; lv2:symbol "live_space" ] ;
+        ui:portIndex 43 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 44 ; lv2:symbol "live_attack" ] ;
+        ui:portIndex 44 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 45 ; lv2:symbol "live_release" ] ;
+        ui:portIndex 45 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 46 ; lv2:symbol "live_output" ] ;
+        ui:portIndex 46 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 47 ; lv2:symbol "live_source_gain" ] ;
+        ui:portIndex 47 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 48 ; lv2:symbol "live_burst" ] ;
+        ui:portIndex 48 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 49 ; lv2:symbol "live_pitch_spread" ] ;
+        ui:portIndex 49 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 50 ; lv2:symbol "live_delay_mix" ] ;
+        ui:portIndex 50 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 51 ; lv2:symbol "live_cross_feedback" ] ;
+        ui:portIndex 51 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 52 ; lv2:symbol "live_glitch_length" ] ;
+        ui:portIndex 52 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 53 ; lv2:symbol "live_chaos_rate" ] ;
+        ui:portIndex 53 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 54 ; lv2:symbol "live_duck" ] ;
+        ui:portIndex 54 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 55 ; lv2:symbol "status_scene" ] ;
+        ui:portIndex 55 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 56 ; lv2:symbol "status_controller_activity" ] ;
+        ui:portIndex 56 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 57 ; lv2:symbol "status_controller_out_active" ] ;
+        ui:portIndex 57 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 58 ; lv2:symbol "status_solo_held" ] ;
+        ui:portIndex 58 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 59 ; lv2:symbol "status_master_trim" ] ;
+        ui:portIndex 59 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 60 ; lv2:symbol "macro_source" ] ;
+        ui:portIndex 60 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 61 ; lv2:symbol "macro_pitch" ] ;
+        ui:portIndex 61 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 62 ; lv2:symbol "macro_breakage" ] ;
+        ui:portIndex 62 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 63 ; lv2:symbol "macro_delay" ] ;
+        ui:portIndex 63 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 64 ; lv2:symbol "macro_space" ] ;
+        ui:portIndex 64 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 65 ; lv2:symbol "macro_stutter" ] ;
+        ui:portIndex 65 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 66 ; lv2:symbol "macro_tone" ] ;
+        ui:portIndex 66 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 67 ; lv2:symbol "macro_output" ] ;
+        ui:portIndex 67 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 68 ; lv2:symbol "momentary_freeze" ] ;
+        ui:portIndex 68 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 69 ; lv2:symbol "momentary_stutter_max" ] ;
+        ui:portIndex 69 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 70 ; lv2:symbol "momentary_chaos_boost" ] ;
+        ui:portIndex 70 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 71 ; lv2:symbol "momentary_crunch_blast" ] ;
+        ui:portIndex 71 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 72 ; lv2:symbol "momentary_feedback_push" ] ;
+        ui:portIndex 72 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 73 ; lv2:symbol "momentary_warp_push" ] ;
+        ui:portIndex 73 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 74 ; lv2:symbol "momentary_noise_burst" ] ;
+        ui:portIndex 74 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 75 ; lv2:symbol "momentary_duck_kill" ] ;
+        ui:portIndex 75 ;
+        ui:protocol ui:floatProtocol
     ] .

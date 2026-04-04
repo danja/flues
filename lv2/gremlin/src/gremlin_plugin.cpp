@@ -460,10 +460,50 @@ static void reset_midimix_state(GremlinLV2* self) {
     self->soloHeld = false;
     self->currentScene = -1;
     self->postGain = 1.0f;
+    self->controllerActivity = 0.0f;
     self->ledInitialized = false;
     self->lastMuteLeds.fill(0);
     self->lastSoloMuteLeds.fill(0);
     self->lastRecArmLeds.fill(0);
+}
+
+static void write_status_outputs(GremlinLV2* self) {
+    if (!self) {
+        return;
+    }
+
+    for (size_t i = 0; i < self->statusLiveOut.size(); ++i) {
+        if (self->statusLiveOut[i]) {
+            *self->statusLiveOut[i] = self->effectiveStatus[i];
+        }
+    }
+
+    if (self->statusSceneOut) {
+        *self->statusSceneOut = self->currentScene >= 0
+            ? static_cast<float>(self->currentScene + 1)
+            : 0.0f;
+    }
+    if (self->statusControllerActivityOut) {
+        *self->statusControllerActivityOut = clampf(self->controllerActivity);
+    }
+    if (self->statusControllerOutActiveOut) {
+        *self->statusControllerOutActiveOut = self->controllerOut ? 1.0f : 0.0f;
+    }
+    if (self->statusSoloHeldOut) {
+        *self->statusSoloHeldOut = self->soloHeld ? 1.0f : 0.0f;
+    }
+    if (self->statusMasterTrimOut) {
+        *self->statusMasterTrimOut = clampf(self->masterTrim);
+    }
+
+    for (size_t i = 0; i < self->statusMacroOut.size(); ++i) {
+        if (self->statusMacroOut[i]) {
+            *self->statusMacroOut[i] = clampf(self->macroFaders[i]);
+        }
+        if (self->statusMomentaryOut[i]) {
+            *self->statusMomentaryOut[i] = self->momentaryButtons[i] ? 1.0f : 0.0f;
+        }
+    }
 }
 
 static int array_index(const std::array<uint8_t, 8>& ids, uint8_t value) {
@@ -699,6 +739,32 @@ static void apply_live_state(GremlinLV2* self) {
     chaosRate = clampf(chaosRate + sourceMacro * 0.18f + spaceMacro * 0.18f);
     duck = clampf(duck + toneMacro * 0.42f + (self->momentaryButtons[7] ? 0.55f : 0.0f));
 
+    self->effectiveStatus[STATUS_LIVE_MODE] = self->liveParams[LIVE_MODE];
+    self->effectiveStatus[STATUS_LIVE_DAMAGE] = damage;
+    self->effectiveStatus[STATUS_LIVE_CHAOS] = chaos;
+    self->effectiveStatus[STATUS_LIVE_NOISE] = noise;
+    self->effectiveStatus[STATUS_LIVE_DRIFT] = drift;
+    self->effectiveStatus[STATUS_LIVE_CRUNCH] = crunch;
+    self->effectiveStatus[STATUS_LIVE_FOLD] = fold;
+    self->effectiveStatus[STATUS_LIVE_DELAY_TIME] = delayTime;
+    self->effectiveStatus[STATUS_LIVE_FEEDBACK] = feedback;
+    self->effectiveStatus[STATUS_LIVE_WARP] = warp;
+    self->effectiveStatus[STATUS_LIVE_STUTTER] = stutter;
+    self->effectiveStatus[STATUS_LIVE_TONE] = tone;
+    self->effectiveStatus[STATUS_LIVE_DAMPING] = damping;
+    self->effectiveStatus[STATUS_LIVE_SPACE] = space;
+    self->effectiveStatus[STATUS_LIVE_ATTACK] = attack;
+    self->effectiveStatus[STATUS_LIVE_RELEASE] = release;
+    self->effectiveStatus[STATUS_LIVE_OUTPUT] = output;
+    self->effectiveStatus[STATUS_LIVE_SOURCE_GAIN] = sourceGain;
+    self->effectiveStatus[STATUS_LIVE_BURST] = burst;
+    self->effectiveStatus[STATUS_LIVE_PITCH_SPREAD] = pitchSpread;
+    self->effectiveStatus[STATUS_LIVE_DELAY_MIX] = delayMix;
+    self->effectiveStatus[STATUS_LIVE_CROSS_FEEDBACK] = crossFeedback;
+    self->effectiveStatus[STATUS_LIVE_GLITCH_LENGTH] = glitchLength;
+    self->effectiveStatus[STATUS_LIVE_CHAOS_RATE] = chaosRate;
+    self->effectiveStatus[STATUS_LIVE_DUCK] = duck;
+
     self->engine->setMode(self->liveParams[LIVE_MODE]);
     self->engine->setDamage(damage);
     self->engine->setChaos(chaos);
@@ -773,23 +839,27 @@ static bool handle_midimix_cc(GremlinLV2* self, uint8_t cc, uint8_t value) {
     const int primary = primary_cc_index(cc);
     if (primary >= 0) {
         set_live_param(self, kPrimaryKnobTargets[static_cast<size_t>(primary)], normalized);
+        self->controllerActivity = 1.0f;
         return true;
     }
 
     const int hidden = hidden_cc_index(cc);
     if (hidden >= 0) {
         set_hidden_param(self, kHiddenKnobTargets[static_cast<size_t>(hidden)], normalized);
+        self->controllerActivity = 1.0f;
         return true;
     }
 
     const int macro = macro_cc_index(cc);
     if (macro >= 0) {
         self->macroFaders[static_cast<size_t>(macro)] = normalized;
+        self->controllerActivity = 1.0f;
         return true;
     }
 
     if (cc == kMasterFaderCC) {
         self->masterTrim = normalized;
+        self->controllerActivity = 1.0f;
         return true;
     }
 
@@ -800,11 +870,17 @@ static bool handle_midimix_button(GremlinLV2* self, uint8_t note, bool pressed) 
     const int muteIndex = array_index(kMuteNotes, note);
     if (muteIndex >= 0) {
         self->momentaryButtons[static_cast<size_t>(muteIndex)] = pressed;
+        self->controllerActivity = 1.0f;
         return true;
     }
 
     if (!pressed) {
-        return note == kSoloNote;
+        if (note == kSoloNote) {
+            self->soloHeld = false;
+            self->controllerActivity = 1.0f;
+            return true;
+        }
+        return false;
     }
 
     const int recIndex = array_index(kRecArmNotes, note);
@@ -814,6 +890,7 @@ static bool handle_midimix_button(GremlinLV2* self, uint8_t note, bool pressed) 
         } else {
             load_scene(self, recIndex - 4);
         }
+        self->controllerActivity = 1.0f;
         return true;
     }
 
@@ -850,19 +927,23 @@ static bool handle_midimix_button(GremlinLV2* self, uint8_t note, bool pressed) 
             default:
                 break;
         }
+        self->controllerActivity = 1.0f;
         return true;
     }
 
     if (note == kBankLeftNote) {
         cycle_mode(self, -1);
+        self->controllerActivity = 1.0f;
         return true;
     }
     if (note == kBankRightNote) {
         cycle_mode(self, 1);
+        self->controllerActivity = 1.0f;
         return true;
     }
     if (note == kSoloNote) {
         self->soloHeld = pressed;
+        self->controllerActivity = 1.0f;
         return true;
     }
 
@@ -984,6 +1065,24 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->postGain = 1.0f;
     self->rngState = 0x4d3c2b1au;
     self->midiOutCapacity = 8192;
+    self->controllerActivity = 0.0f;
+    self->statusSceneOut = nullptr;
+    self->statusControllerActivityOut = nullptr;
+    self->statusControllerOutActiveOut = nullptr;
+    self->statusSoloHeldOut = nullptr;
+    self->statusMasterTrimOut = nullptr;
+    for (float& value : self->effectiveStatus) {
+        value = 0.0f;
+    }
+    for (float*& ptr : self->statusLiveOut) {
+        ptr = nullptr;
+    }
+    for (float*& ptr : self->statusMacroOut) {
+        ptr = nullptr;
+    }
+    for (float*& ptr : self->statusMomentaryOut) {
+        ptr = nullptr;
+    }
 
     reset_midimix_state(self);
 
@@ -1013,12 +1112,30 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
     using namespace flues::gremlin;
 
     auto* self = static_cast<GremlinLV2*>(instance);
+    if (port >= PORT_STATUS_LIVE_MODE && port <= PORT_STATUS_LIVE_DUCK) {
+        self->statusLiveOut[port - PORT_STATUS_LIVE_MODE] = static_cast<float*>(data);
+        return;
+    }
+    if (port >= PORT_STATUS_MACRO_1 && port <= PORT_STATUS_MACRO_8) {
+        self->statusMacroOut[port - PORT_STATUS_MACRO_1] = static_cast<float*>(data);
+        return;
+    }
+    if (port >= PORT_STATUS_MOMENTARY_1 && port <= PORT_STATUS_MOMENTARY_8) {
+        self->statusMomentaryOut[port - PORT_STATUS_MOMENTARY_1] = static_cast<float*>(data);
+        return;
+    }
+
     switch (port) {
         case PORT_AUDIO_OUT_L: self->audioOutLeft = static_cast<float*>(data); break;
         case PORT_AUDIO_OUT_R: self->audioOutRight = static_cast<float*>(data); break;
         case PORT_MIDI_IN: self->midiIn = static_cast<const LV2_Atom_Sequence*>(data); break;
         case PORT_CONTROLLER_IN: self->controllerIn = static_cast<const LV2_Atom_Sequence*>(data); break;
         case PORT_CONTROLLER_OUT: self->controllerOut = static_cast<LV2_Atom_Sequence*>(data); break;
+        case PORT_STATUS_SCENE: self->statusSceneOut = static_cast<float*>(data); break;
+        case PORT_STATUS_CONTROLLER_ACTIVITY: self->statusControllerActivityOut = static_cast<float*>(data); break;
+        case PORT_STATUS_CONTROLLER_OUT_ACTIVE: self->statusControllerOutActiveOut = static_cast<float*>(data); break;
+        case PORT_STATUS_SOLO_HELD: self->statusSoloHeldOut = static_cast<float*>(data); break;
+        case PORT_STATUS_MASTER_TRIM: self->statusMasterTrimOut = static_cast<float*>(data); break;
         case PORT_MODE: self->mode = static_cast<const float*>(data); break;
         case PORT_DAMAGE: self->damage = static_cast<const float*>(data); break;
         case PORT_CHAOS: self->chaos = static_cast<const float*>(data); break;
@@ -1062,6 +1179,7 @@ static void activate(LV2_Handle instance) {
     reset_midimix_state(self);
     sync_from_ports(self);
     apply_live_state(self);
+    write_status_outputs(self);
 }
 
 static void run(LV2_Handle instance, uint32_t n_samples) {
@@ -1071,6 +1189,9 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
     if (!self || !self->engine || !self->audioOutLeft) {
         return;
     }
+
+    const float activityDrop = static_cast<float>(n_samples) / std::max(1.0f, self->sampleRate * 0.35f);
+    self->controllerActivity = std::max(0.0f, self->controllerActivity - activityDrop);
 
     sync_from_ports(self);
     apply_live_state(self);
@@ -1145,6 +1266,7 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
         }
     }
 
+    write_status_outputs(self);
     emit_led_feedback(self, 0);
 
     for (; frame < n_samples; ++frame) {

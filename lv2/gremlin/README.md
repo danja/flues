@@ -31,6 +31,8 @@ lv2ls | grep gremlin
 lv2info https://danja.github.io/flues/plugins/gremlin
 ```
 
+Gremlin now ships with a raw X11/Cairo UI for hosts such as Reaper. The panel mirrors the live effective values from the internal MIDImix layer rather than only the host automation ports, and the layout now follows the MIDImix strip arrangement more closely.
+
 ## Host Controls
 
 - `Mode`: `Shard`, `Servo`, `Spray`, `Collapse`
@@ -99,3 +101,4 @@ If you want LED feedback, route `Controller Out` back to the MIDImix device.
 - Gremlin drives `REC ARM` LEDs for mode/scene state and `MUTE` LEDs for the momentary layer. While `SOLO` is held, the alternate `SOLO+MUTE` action bank is lit.
 - All third-row MIDImix controls are also normal LV2 control ports now, so Gremlin is fully host-automatable.
 - Host automation and the standard LV2 ports still work. Once you touch a directly-mapped MIDImix control, that parameter becomes locally owned by the controller until you hit the `Reset/Panic` combo.
+- The X11 UI includes a MIDImix status panel showing controller activity, scene, master trim, macro faders, and the momentary button layer, so you still have visual feedback if the hardware LEDs are dead.
