@@ -89,6 +89,32 @@ public:
     void setFeedback(float value) { feedback_ = std::clamp(value, 0.0f, 1.0f); }
     void setWarp(float value) { warp_ = std::clamp(value, 0.0f, 1.0f); }
     void setStutter(float value) { stutter_ = std::clamp(value, 0.0f, 1.0f); }
+    void setSourceGain(float value) { sourceGain_ = std::clamp(value, 0.0f, 1.0f); }
+    void setBurst(float value) { burst_ = std::clamp(value, 0.0f, 1.0f); }
+    void setPitchSpread(float value) { pitchSpread_ = std::clamp(value, 0.0f, 1.0f); }
+    void setDelayMix(float value) { delayMix_ = std::clamp(value, 0.0f, 1.0f); }
+    void setCrossFeedback(float value) { crossFeedback_ = std::clamp(value, 0.0f, 1.0f); }
+    void setGlitchLength(float value) { glitchLength_ = std::clamp(value, 0.0f, 1.0f); }
+    void setChaosRate(float value) { chaosRate_ = std::clamp(value, 0.0f, 1.0f); }
+    void setDuck(float value) { duck_ = std::clamp(value, 0.0f, 1.0f); }
+    void setFreezeDelay(bool enabled) { freezeDelay_ = enabled; }
+
+    void triggerBurst(float amount = 1.0f) {
+        transient_ = std::max(transient_, 0.8f + std::clamp(amount, 0.0f, 1.0f) * 1.8f);
+    }
+
+    void reseedChaos(uint32_t salt = 0) {
+        rngState_ = rngState_ * 1664525u + 1013904223u + (salt ? salt : 0x9e3779b9u);
+        const float a = std::fabs(whiteNoise());
+        const float b = std::fabs(whiteNoise());
+        const float c = whiteNoise();
+        logistic_ = 0.1f + a * 0.8f;
+        tent_ = 0.1f + b * 0.8f;
+        henonX_ = c * 0.8f;
+        henonY_ = whiteNoise() * 0.2f;
+        fastChaos_ = 0.0f;
+        slowChaos_ = 0.0f;
+    }
 
     void setTone(float value) {
         tone_ = std::clamp(value, 0.0f, 1.0f);
@@ -135,7 +161,7 @@ public:
     StereoFrame process() {
         const float target = gate_ ? 1.0f : 0.0f;
         env_ += (target - env_) * (gate_ ? attackStep_ : releaseStep_);
-        transient_ *= 0.9955f - damage_ * 0.024f;
+        transient_ *= std::max(0.90f, 0.9962f - damage_ * 0.022f - burst_ * 0.006f);
 
         if (env_ < 1.0e-5f && !gate_ && std::fabs(lastLeft_) < 1.0e-5f && std::fabs(lastRight_) < 1.0e-5f) {
             return {0.0f, 0.0f};
@@ -145,9 +171,9 @@ public:
         updateSampleHold();
 
         const float freqA = std::clamp(baseFrequency_ * pitchModSemitone(0.85f), 18.0f, sampleRate_ * 0.45f);
-        const float freqB = std::clamp(baseFrequency_ * (1.35f + 0.45f * chaos_ + 0.22f * damage_)
+        const float freqB = std::clamp(baseFrequency_ * (1.18f + pitchSpread_ * 1.35f + 0.22f * chaos_ + 0.18f * damage_)
                                        * pitchRatio(0.25f * slowChaos_ + 0.15f * fastChaos_), 18.0f, sampleRate_ * 0.45f);
-        const float freqC = std::clamp(baseFrequency_ * (2.0f + 0.9f * damage_ + 0.35f * chaosAbs_)
+        const float freqC = std::clamp(baseFrequency_ * (1.55f + pitchSpread_ * 2.6f + 0.55f * damage_ + 0.28f * chaosAbs_)
                                        * pitchRatio(0.12f * tentChaos_), 18.0f, sampleRate_ * 0.45f);
 
         phaseA_ = wrapPhase(phaseA_ + freqA / sampleRate_);
@@ -164,29 +190,30 @@ public:
         const float chaosAudio = std::tanh((henonChaos_ * 0.9f + fastChaos_ * 0.7f + tentChaos_ * 0.35f) * (1.4f + 2.0f * chaos_));
 
         float source = 0.0f;
+        const float burstFactor = 0.35f + burst_ * 1.65f;
         switch (mode_) {
             case SHARD:
                 source = 0.50f * sawA + 0.28f * comparator + 0.18f * (squareA * squareB)
-                       + 0.20f * transient_ + 0.12f * chaosAudio;
+                       + 0.20f * transient_ * burstFactor + 0.12f * chaosAudio;
                 break;
             case SERVO:
                 source = 0.72f * std::sin(2.0f * kPi * (phaseA_ + chaosAudio * (0.18f + 0.32f * chaos_)))
                        + 0.30f * (sawB * triC)
-                       + 0.12f * heldNoise_;
+                        + 0.12f * heldNoise_;
                 break;
             case SPRAY:
                 source = 0.42f * heldNoise_ + 0.26f * (squareA * sawB) + 0.22f * comparator
-                       + 0.34f * transient_ * (0.5f + 0.5f * chaosAbs_);
+                       + 0.34f * transient_ * burstFactor * (0.5f + 0.5f * chaosAbs_);
                 break;
             case COLLAPSE:
             default:
                 source = 0.34f * chaosAudio + 0.20f * sawA + 0.22f * sineA + 0.18f * comparator
-                       + 0.20f * heldNoise_ + 0.14f * transient_;
+                       + 0.20f * heldNoise_ + 0.14f * transient_ * burstFactor;
                 break;
         }
 
-        source += whiteNoise() * noise_ * (0.08f + 0.22f * chaosAbs_ + 0.16f * transient_);
-        source *= (0.24f + velocity_ * 0.9f) * env_;
+        source += whiteNoise() * noise_ * (0.08f + 0.22f * chaosAbs_ + 0.16f * transient_ * burstFactor);
+        source *= (0.24f + velocity_ * 0.9f) * env_ * (0.30f + sourceGain_ * 1.55f);
 
         const float crushed = processCrunch(source);
         const float driven = crushed * (1.0f + damage_ * 3.5f + fold_ * 4.5f);
@@ -240,18 +267,21 @@ private:
 
     void updateChaosState() {
         const float logisticR = 3.55f + chaos_ * 0.43f + damage_ * 0.015f;
-        logistic_ = std::clamp(logisticR * logistic_ * (1.0f - logistic_), 0.0001f, 0.9999f);
+        const float chaosBlend = 0.12f + chaosRate_ * 0.88f;
+        const float nextLogistic = std::clamp(logisticR * logistic_ * (1.0f - logistic_), 0.0001f, 0.9999f);
+        logistic_ = std::clamp(mixf(logistic_, nextLogistic, chaosBlend), 0.0001f, 0.9999f);
 
         const float tentMu = 1.60f + chaos_ * 0.38f;
-        tent_ = tent_ < 0.5f ? tent_ * tentMu : (1.0f - tent_) * tentMu;
+        const float nextTent = tent_ < 0.5f ? tent_ * tentMu : (1.0f - tent_) * tentMu;
+        tent_ = mixf(tent_, nextTent, chaosBlend);
         tent_ = tent_ - std::floor(tent_);
 
         const float a = 1.16f + chaos_ * 0.22f + damage_ * 0.08f;
         const float b = 0.18f + 0.10f * space_;
         const float nextHenonX = 1.0f - a * henonX_ * henonX_ + henonY_;
         const float nextHenonY = b * henonX_;
-        henonX_ = std::clamp(nextHenonX, -1.5f, 1.5f);
-        henonY_ = std::clamp(nextHenonY, -0.5f, 0.5f);
+        henonX_ = std::clamp(mixf(henonX_, nextHenonX, chaosBlend), -1.5f, 1.5f);
+        henonY_ = std::clamp(mixf(henonY_, nextHenonY, chaosBlend), -0.5f, 0.5f);
 
         fastChaos_ = std::clamp(0.55f * (logistic_ * 2.0f - 1.0f)
                               + 0.30f * (tent_ * 2.0f - 1.0f)
@@ -259,7 +289,7 @@ private:
         tentChaos_ = std::clamp(tent_ * 2.0f - 1.0f, -1.0f, 1.0f);
         henonChaos_ = std::clamp(henonX_ * 0.9f + henonY_ * 0.7f, -1.0f, 1.0f);
         chaosAbs_ = std::clamp(std::fabs(fastChaos_) * 0.65f + std::fabs(henonChaos_) * 0.35f, 0.0f, 1.0f);
-        slowChaos_ += (fastChaos_ - slowChaos_) * (0.0009f + drift_ * 0.0024f);
+        slowChaos_ += (fastChaos_ - slowChaos_) * ((0.0007f + drift_ * 0.0020f) * (0.35f + chaosRate_ * 2.1f));
     }
 
     void updateSampleHold() {
@@ -320,10 +350,11 @@ private:
 
         const float chance = (0.00001f + stutter_ * 0.00018f) * (0.55f + chaos_ * 0.8f + damage_ * 0.4f);
         if ((whiteNoise() * 0.5f + 0.5f) < chance) {
-            const float maxShortDelay = std::max(24.0f, std::min(baseDelaySamples * (0.28f + 0.46f * chaosAbs_), sampleRate_ * 0.12f));
+            const float shortScale = 0.18f + glitchLength_ * 0.75f;
+            const float maxShortDelay = std::max(24.0f, std::min(baseDelaySamples * shortScale * (0.55f + 0.45f * chaosAbs_), sampleRate_ * 0.18f));
             glitchDelaySamples_ = 12.0f + (whiteNoise() * 0.5f + 0.5f) * (maxShortDelay - 12.0f);
             glitchBlend_ = 0.4f + 0.5f * stutter_;
-            glitchHold_ = 96 + static_cast<int>((0.005f + 0.04f * stutter_ + 0.02f * chaos_) * sampleRate_ * (0.7f + 0.3f * chaosAbs_));
+            glitchHold_ = 96 + static_cast<int>((0.005f + 0.05f * stutter_ + 0.05f * glitchLength_) * sampleRate_ * (0.7f + 0.3f * chaosAbs_));
         } else {
             glitchBlend_ = 0.0f;
         }
@@ -351,18 +382,27 @@ private:
         const float filteredRight = feedbackFilterRight_.process(delayedRight);
 
         const float feedbackGain = std::min(0.985f, 0.06f + std::pow(feedback_, 1.2f) * 0.91f + damage_ * 0.03f);
-        const float crossAmount = space_ * (0.08f + 0.16f * chaos_);
+        const float crossAmount = crossFeedback_ * space_ * (0.05f + 0.22f * chaos_);
         const float collapsePolarity = (mode_ == COLLAPSE && fastChaos_ < 0.0f) ? -0.82f : 1.0f;
+        float inputSource = source;
+        if (duck_ > 0.0001f) {
+            const float feedbackEnergy = std::clamp((std::fabs(filteredLeft) + std::fabs(filteredRight)) * 0.75f, 0.0f, 1.0f);
+            inputSource *= (1.0f - duck_ * feedbackEnergy);
+        }
 
-        const float writeLeft = std::tanh(source + (filteredLeft + filteredRight * crossAmount) * feedbackGain);
-        const float writeRight = std::tanh(source + (filteredRight * collapsePolarity + filteredLeft * crossAmount) * feedbackGain);
+        const float writeLeft = freezeDelay_
+            ? std::tanh((filteredLeft + filteredRight * crossAmount) * 0.998f)
+            : std::tanh(inputSource + (filteredLeft + filteredRight * crossAmount) * feedbackGain);
+        const float writeRight = freezeDelay_
+            ? std::tanh((filteredRight * collapsePolarity + filteredLeft * crossAmount) * 0.998f)
+            : std::tanh(inputSource + (filteredRight * collapsePolarity + filteredLeft * crossAmount) * feedbackGain);
 
         delayLeft_[static_cast<size_t>(writePos_)] = writeLeft;
         delayRight_[static_cast<size_t>(writePos_)] = writeRight;
         writePos_ = (writePos_ + 1) % kDelayBufferSize;
 
-        const float wet = 0.28f + feedback_ * 0.40f + warp_ * 0.18f + stutter_ * 0.14f;
-        const float dry = 0.90f - feedback_ * 0.24f;
+        const float wet = std::clamp(0.02f + delayMix_ * (0.55f + feedback_ * 0.24f + warp_ * 0.10f + stutter_ * 0.08f), 0.0f, 1.0f);
+        const float dry = 1.0f - wet * 0.88f;
         float left = source * dry + delayedLeft * wet;
         float right = source * dry + delayedRight * wet;
 
@@ -407,6 +447,14 @@ private:
     float feedback_ = 0.55f;
     float warp_ = 0.45f;
     float stutter_ = 0.35f;
+    float sourceGain_ = 0.72f;
+    float burst_ = 0.40f;
+    float pitchSpread_ = 0.50f;
+    float delayMix_ = 0.55f;
+    float crossFeedback_ = 0.50f;
+    float glitchLength_ = 0.50f;
+    float chaosRate_ = 0.55f;
+    float duck_ = 0.10f;
     float tone_ = 0.65f;
     float damping_ = 0.45f;
     float space_ = 0.55f;
@@ -449,6 +497,7 @@ private:
     int glitchHold_ = 0;
     float glitchDelaySamples_ = 48.0f;
     float glitchBlend_ = 0.0f;
+    bool freezeDelay_ = false;
 
     OnePoleLowPass toneFilter_;
     OnePoleLowPass feedbackFilterLeft_;

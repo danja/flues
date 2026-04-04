@@ -9,6 +9,7 @@ PLUGINS=(
   chatterbox
   chatgen
   drumkit
+  gremlin
   euclid
   pm-synth
   flues-control

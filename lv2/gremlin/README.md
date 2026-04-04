@@ -11,6 +11,7 @@ The engine combines:
 - Sample-rate reduction and quantisation for broken converter textures
 - Foldback and saturation stages for collapse / overload behavior
 - A stereo delay network with modulation, stutter grabs, cross-feedback, and damping
+- A dedicated direct-MIDImix performance layer on top of the regular LV2 ports
 
 It is intended to sit somewhere between glitch synth, broken delay box, and small feedback instrument.
 
@@ -30,7 +31,7 @@ lv2ls | grep gremlin
 lv2info https://danja.github.io/flues/plugins/gremlin
 ```
 
-## Controls
+## Host Controls
 
 - `Mode`: `Shard`, `Servo`, `Spray`, `Collapse`
 - `Damage`: overall instability, drive, and edge
@@ -52,11 +53,30 @@ lv2info https://danja.github.io/flues/plugins/gremlin
 
 ## MIDImix Layout
 
-The parameter set is arranged to be easy to learn onto an Akai MIDImix:
+Gremlin now has a built-in mapping for the Akai MIDImix factory control layout, so you do not need host MIDI learn for normal use.
+
+### Knobs
 
 - Top row: `Damage`, `Chaos`, `Noise`, `Drift`, `Crunch`, `Fold`, `Attack`, `Release`
-- Second row: `Delay Time`, `Feedback`, `Warp`, `Stutter`, `Tone`, `Damping`, `Space`, `Output`
+- Middle row: `Delay Time`, `Feedback`, `Warp`, `Stutter`, `Tone`, `Damping`, `Space`, `Output`
+- Bottom row: `Source Gain`, `Burst`, `Pitch Spread`, `Delay Mix`, `Cross Feedback`, `Glitch Length`, `Chaos Rate`, `Duck`
 
-`Mode` is the odd one out and works best on a spare knob or button mapping in the host.
+### Faders
 
-This first pass does not hardcode MIDImix CC numbers. The idea is to let the host do MIDI learn, which is more flexible if you already use different MIDImix presets elsewhere.
+- Channel faders 1-8 are live macros for: Source, Pitch, Breakage, Delay, Space, Stutter, Tone, Output
+- Master fader is a final trim after the engine
+
+### Buttons
+
+- `REC ARM` 1-4: select modes `Shard`, `Servo`, `Spray`, `Collapse`
+- `REC ARM` 5-8: load four scenes: `Splinter`, `Melt`, `Rust`, `Tunnel`
+- `MUTE` row is momentary performance control while held:
+  `Freeze`, `Stutter Max`, `Chaos Boost`, `Crunch Blast`, `Feedback Push`, `Warp Push`, `Noise Burst`, `Duck Kill`
+- `SOLO` + `MUTE` combinations trigger actions:
+  `Reseed`, `Burst`, `Random Source`, `Random Delay`, `Random All`, `Prev Scene`, `Next Scene`, `Reset/Panic`
+- `BANK LEFT/RIGHT`: step backward/forward through the four source modes
+
+### Notes
+
+- The direct MIDImix mapping assumes the controller is using the factory/default identifiers.
+- Host automation and the standard LV2 ports still work. Once you touch a directly-mapped MIDImix control, that parameter becomes locally owned by the controller until you hit the `Reset/Panic` combo.
