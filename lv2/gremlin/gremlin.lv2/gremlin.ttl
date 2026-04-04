@@ -255,4 +255,11 @@
         lv2:default 0.10 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
+    ] , [
+        a lv2:OutputPort , atom:AtomPort ;
+        lv2:index 29 ;
+        lv2:symbol "controller_out" ;
+        lv2:name "Controller Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent
     ] .

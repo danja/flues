@@ -48,6 +48,7 @@ enum PortIndex : uint32_t {
     PORT_GLITCH_LENGTH,
     PORT_CHAOS_RATE,
     PORT_DUCK,
+    PORT_CONTROLLER_OUT,
     PORT_TOTAL_COUNT
 };
 
@@ -92,6 +93,7 @@ struct GremlinLV2 {
     float* audioOutRight;
     const LV2_Atom_Sequence* midiIn;
     const LV2_Atom_Sequence* controllerIn;
+    LV2_Atom_Sequence* controllerOut;
 
     const float* mode;
     const float* damage;
@@ -130,10 +132,16 @@ struct GremlinLV2 {
     float macroFaders[8];
     float masterTrim;
     bool momentaryButtons[8];
+    bool soloHeld;
     int currentScene;
     int currentNote;
     float postGain;
     uint32_t rngState;
+    uint32_t midiOutCapacity;
+    bool ledInitialized;
+    std::array<uint8_t, 8> lastMuteLeds;
+    std::array<uint8_t, 8> lastSoloMuteLeds;
+    std::array<uint8_t, 8> lastRecArmLeds;
 };
 
 static constexpr std::array<uint8_t, 16> kPrimaryKnobCCs = {
@@ -255,9 +263,43 @@ static float rand_range(GremlinLV2* self, float minValue, float maxValue) {
     return minValue + (maxValue - minValue) * rand01(self);
 }
 
+static void append_midi(LV2_Atom_Sequence* seq,
+                        uint32_t capacity,
+                        LV2_URID midiEventUrid,
+                        uint32_t frame,
+                        const uint8_t* msg,
+                        uint32_t size) {
+    if (!seq) {
+        return;
+    }
+
+    LV2_Atom_Event ev;
+    ev.time.frames = frame;
+    ev.body.type = midiEventUrid;
+    ev.body.size = size;
+
+    LV2_Atom_Event* appended = lv2_atom_sequence_append_event(seq, capacity, &ev);
+    if (appended) {
+        std::memcpy(appended + 1, msg, size);
+    }
+}
+
+static void append_led_note(GremlinLV2* self, uint8_t noteId, bool lit, uint32_t frame) {
+    const uint8_t msg[3] = {
+        0x90,
+        noteId,
+        static_cast<uint8_t>(lit ? 0x7F : 0x00)
+    };
+    append_midi(self->controllerOut, self->midiOutCapacity, self->midiEventUrid, frame, msg, 3);
+}
+
 static void set_live_param(GremlinLV2* self, LiveParamIndex index, float value) {
     if (!self) {
         return;
+    }
+
+    if (index == LIVE_MODE) {
+        self->currentScene = -1;
     }
 
     if (index == LIVE_MODE) {
@@ -330,8 +372,13 @@ static void reset_midimix_state(GremlinLV2* self) {
     }
 
     self->masterTrim = 0.45f;
+    self->soloHeld = false;
     self->currentScene = -1;
     self->postGain = 1.0f;
+    self->ledInitialized = false;
+    self->lastMuteLeds.fill(0);
+    self->lastSoloMuteLeds.fill(0);
+    self->lastRecArmLeds.fill(0);
 }
 
 static int array_index(const std::array<uint8_t, 8>& ids, uint8_t value) {
@@ -597,6 +644,44 @@ static void apply_live_state(GremlinLV2* self) {
     self->postGain = 0.05f + self->masterTrim * 0.75f;
 }
 
+static void emit_led_feedback(GremlinLV2* self, uint32_t frame) {
+    if (!self || !self->controllerOut) {
+        return;
+    }
+
+    std::array<uint8_t, 8> muteLeds {};
+    std::array<uint8_t, 8> soloMuteLeds {};
+    std::array<uint8_t, 8> recArmLeds {};
+
+    for (size_t i = 0; i < 8; ++i) {
+        muteLeds[i] = self->momentaryButtons[i] ? 1u : 0u;
+        soloMuteLeds[i] = self->soloHeld ? 1u : 0u;
+    }
+
+    const int modeIndex = std::clamp(static_cast<int>(std::lround(self->liveParams[LIVE_MODE])), 0, 3);
+    recArmLeds[static_cast<size_t>(modeIndex)] = 1u;
+    if (self->currentScene >= 0 && self->currentScene < 4) {
+        recArmLeds[static_cast<size_t>(self->currentScene + 4)] = 1u;
+    }
+
+    for (size_t i = 0; i < 8; ++i) {
+        if (!self->ledInitialized || self->lastMuteLeds[i] != muteLeds[i]) {
+            append_led_note(self, kMuteNotes[i], muteLeds[i] != 0, frame);
+            self->lastMuteLeds[i] = muteLeds[i];
+        }
+        if (!self->ledInitialized || self->lastSoloMuteLeds[i] != soloMuteLeds[i]) {
+            append_led_note(self, kSoloMuteNotes[i], soloMuteLeds[i] != 0, frame);
+            self->lastSoloMuteLeds[i] = soloMuteLeds[i];
+        }
+        if (!self->ledInitialized || self->lastRecArmLeds[i] != recArmLeds[i]) {
+            append_led_note(self, kRecArmNotes[i], recArmLeds[i] != 0, frame);
+            self->lastRecArmLeds[i] = recArmLeds[i];
+        }
+    }
+
+    self->ledInitialized = true;
+}
+
 static bool handle_midimix_cc(GremlinLV2* self, uint8_t cc, uint8_t value) {
     const float normalized = static_cast<float>(value) / 127.0f;
 
@@ -692,6 +777,7 @@ static bool handle_midimix_button(GremlinLV2* self, uint8_t note, bool pressed) 
         return true;
     }
     if (note == kSoloNote) {
+        self->soloHeld = pressed;
         return true;
     }
 
@@ -777,6 +863,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->audioOutRight = nullptr;
     self->midiIn = nullptr;
     self->controllerIn = nullptr;
+    self->controllerOut = nullptr;
 
     self->mode = nullptr;
     self->damage = nullptr;
@@ -811,6 +898,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->currentNote = -1;
     self->postGain = 1.0f;
     self->rngState = 0x4d3c2b1au;
+    self->midiOutCapacity = 8192;
 
     reset_midimix_state(self);
 
@@ -845,6 +933,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_AUDIO_OUT_R: self->audioOutRight = static_cast<float*>(data); break;
         case PORT_MIDI_IN: self->midiIn = static_cast<const LV2_Atom_Sequence*>(data); break;
         case PORT_CONTROLLER_IN: self->controllerIn = static_cast<const LV2_Atom_Sequence*>(data); break;
+        case PORT_CONTROLLER_OUT: self->controllerOut = static_cast<LV2_Atom_Sequence*>(data); break;
         case PORT_MODE: self->mode = static_cast<const float*>(data); break;
         case PORT_DAMAGE: self->damage = static_cast<const float*>(data); break;
         case PORT_CHAOS: self->chaos = static_cast<const float*>(data); break;
@@ -903,6 +992,13 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
     float* outLeft = self->audioOutLeft;
     float* outRight = self->audioOutRight ? self->audioOutRight : self->audioOutLeft;
+
+    if (self->controllerOut) {
+        self->controllerOut->atom.type = self->atomSequenceUrid;
+        self->controllerOut->atom.size = sizeof(LV2_Atom_Sequence_Body);
+        self->controllerOut->body.unit = 0;
+        self->controllerOut->body.pad = 0;
+    }
 
     std::memset(outLeft, 0, n_samples * sizeof(float));
     if (outRight != outLeft) {
@@ -963,6 +1059,8 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             apply_live_state(self);
         }
     }
+
+    emit_led_feedback(self, 0);
 
     for (; frame < n_samples; ++frame) {
         const StereoFrame s = self->engine->process();

@@ -67,8 +67,10 @@ Gremlin now has a built-in mapping for the Akai MIDImix factory control layout, 
 
 - `MIDI In`: note performance input
 - `Controller In`: optional second MIDI input intended for the MIDImix
+- `Controller Out`: MIDI feedback output for MIDImix LEDs
 
 If your host only delivers one MIDI source per plugin input, connect your keyboard or sequencer to `MIDI In` and the MIDImix to `Controller In`.
+If you want LED feedback, route `Controller Out` back to the MIDImix device.
 
 ### Knobs
 
@@ -94,5 +96,6 @@ If your host only delivers one MIDI source per plugin input, connect your keyboa
 ### Notes
 
 - The direct MIDImix mapping assumes the controller is using the factory/default identifiers.
+- Gremlin drives `REC ARM` LEDs for mode/scene state and `MUTE` LEDs for the momentary layer. While `SOLO` is held, the alternate `SOLO+MUTE` action bank is lit.
 - All third-row MIDImix controls are also normal LV2 control ports now, so Gremlin is fully host-automatable.
 - Host automation and the standard LV2 ports still work. Once you touch a directly-mapped MIDImix control, that parameter becomes locally owned by the controller until you hit the `Reset/Panic` combo.
