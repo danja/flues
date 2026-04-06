@@ -10,6 +10,7 @@ PLUGINS=(
   chatgen
   drumkit
   gremlin
+  gremlin-driver
   euclid
   pm-synth
   flues-control

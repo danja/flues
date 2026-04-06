@@ -1,0 +1,416 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+
+<https://danja.github.io/flues/plugins/gremlin-driver>
+    a lv2:Plugin , lv2:UtilityPlugin ;
+    doap:name "GremlinDriver" ;
+    doap:license <https://opensource.org/licenses/MIT> ;
+    doap:maintainer [
+        foaf:name "Danny Ayers" ;
+        foaf:homepage <https://danja.github.io/flues/>
+    ] ;
+    lv2:project <https://danja.github.io/flues> ;
+    lv2:requiredFeature urid:map ;
+    rdfs:comment "Tempo-aware modulation source that emits Gremlin-friendly MIDI CC and action notes." ;
+
+    lv2:port [
+        a atom:AtomPort , lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "control_in" ;
+        lv2:name "Control In" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent , time:Position ;
+    ] , [
+        a atom:AtomPort , lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "midi_out" ;
+        lv2:name "MIDI Out" ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 2 ;
+        lv2:symbol "clock_mode" ;
+        lv2:name "Clock Mode" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Free" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Transport" ; rdf:value 1 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:symbol "bpm" ;
+        lv2:name "BPM" ;
+        lv2:default 120 ;
+        lv2:minimum 40 ;
+        lv2:maximum 220 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "lane1_target" ;
+        lv2:name "Lane 1 Target" ;
+        lv2:default 1 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 1" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 2" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 3" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 4" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 5" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 6" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 7" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 8" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Master" ; rdf:value 9 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "lane1_shape" ;
+        lv2:name "Lane 1 Shape" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 5 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Sine" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Triangle" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Ramp" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "SampleHold" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "RandomWalk" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Logistic" ; rdf:value 5 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "lane1_rate" ;
+        lv2:name "Lane 1 Rate" ;
+        lv2:default 0.46 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "lane1_depth" ;
+        lv2:name "Lane 1 Depth" ;
+        lv2:default 0.75 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "lane1_center" ;
+        lv2:name "Lane 1 Center" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "lane2_target" ;
+        lv2:name "Lane 2 Target" ;
+        lv2:default 3 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 1" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 2" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 3" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 4" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 5" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 6" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 7" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 8" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Master" ; rdf:value 9 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "lane2_shape" ;
+        lv2:name "Lane 2 Shape" ;
+        lv2:default 4 ;
+        lv2:minimum 0 ;
+        lv2:maximum 5 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Sine" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Triangle" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Ramp" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "SampleHold" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "RandomWalk" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Logistic" ; rdf:value 5 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "lane2_rate" ;
+        lv2:name "Lane 2 Rate" ;
+        lv2:default 0.34 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "lane2_depth" ;
+        lv2:name "Lane 2 Depth" ;
+        lv2:default 0.70 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "lane2_center" ;
+        lv2:name "Lane 2 Center" ;
+        lv2:default 0.55 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "lane3_target" ;
+        lv2:name "Lane 3 Target" ;
+        lv2:default 6 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 1" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 2" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 3" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 4" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 5" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 6" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 7" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 8" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Master" ; rdf:value 9 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "lane3_shape" ;
+        lv2:name "Lane 3 Shape" ;
+        lv2:default 3 ;
+        lv2:minimum 0 ;
+        lv2:maximum 5 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Sine" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Triangle" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Ramp" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "SampleHold" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "RandomWalk" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Logistic" ; rdf:value 5 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "lane3_rate" ;
+        lv2:name "Lane 3 Rate" ;
+        lv2:default 0.24 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "lane3_depth" ;
+        lv2:name "Lane 3 Depth" ;
+        lv2:default 0.85 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "lane3_center" ;
+        lv2:name "Lane 3 Center" ;
+        lv2:default 0.40 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "lane4_target" ;
+        lv2:name "Lane 4 Target" ;
+        lv2:default 8 ;
+        lv2:minimum 0 ;
+        lv2:maximum 9 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 1" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 2" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 3" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 4" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 5" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 6" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 7" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Macro 8" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Master" ; rdf:value 9 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:symbol "lane4_shape" ;
+        lv2:name "Lane 4 Shape" ;
+        lv2:default 5 ;
+        lv2:minimum 0 ;
+        lv2:maximum 5 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Sine" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Triangle" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Ramp" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "SampleHold" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "RandomWalk" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Logistic" ; rdf:value 5 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:symbol "lane4_rate" ;
+        lv2:name "Lane 4 Rate" ;
+        lv2:default 0.52 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:symbol "lane4_depth" ;
+        lv2:name "Lane 4 Depth" ;
+        lv2:default 0.60 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:symbol "lane4_center" ;
+        lv2:name "Lane 4 Center" ;
+        lv2:default 0.60 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 24 ;
+        lv2:symbol "trigger1_action" ;
+        lv2:name "Trigger 1 Action" ;
+        lv2:default 2 ;
+        lv2:minimum 0 ;
+        lv2:maximum 10 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Reseed" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Burst" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Rand Source" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Rand Delay" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Rand All" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Scene Down" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Scene Up" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Panic" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Mode Down" ; rdf:value 9 ] ;
+        lv2:scalePoint [ rdfs:label "Mode Up" ; rdf:value 10 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 25 ;
+        lv2:symbol "trigger1_rate" ;
+        lv2:name "Trigger 1 Rate" ;
+        lv2:default 0.20 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 26 ;
+        lv2:symbol "trigger1_chance" ;
+        lv2:name "Trigger 1 Chance" ;
+        lv2:default 0.28 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 27 ;
+        lv2:symbol "trigger2_action" ;
+        lv2:name "Trigger 2 Action" ;
+        lv2:default 7 ;
+        lv2:minimum 0 ;
+        lv2:maximum 10 ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+        lv2:scalePoint [ rdfs:label "Reseed" ; rdf:value 1 ] ;
+        lv2:scalePoint [ rdfs:label "Burst" ; rdf:value 2 ] ;
+        lv2:scalePoint [ rdfs:label "Rand Source" ; rdf:value 3 ] ;
+        lv2:scalePoint [ rdfs:label "Rand Delay" ; rdf:value 4 ] ;
+        lv2:scalePoint [ rdfs:label "Rand All" ; rdf:value 5 ] ;
+        lv2:scalePoint [ rdfs:label "Scene Down" ; rdf:value 6 ] ;
+        lv2:scalePoint [ rdfs:label "Scene Up" ; rdf:value 7 ] ;
+        lv2:scalePoint [ rdfs:label "Panic" ; rdf:value 8 ] ;
+        lv2:scalePoint [ rdfs:label "Mode Down" ; rdf:value 9 ] ;
+        lv2:scalePoint [ rdfs:label "Mode Up" ; rdf:value 10 ] ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 28 ;
+        lv2:symbol "trigger2_rate" ;
+        lv2:name "Trigger 2 Rate" ;
+        lv2:default 0.12 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 29 ;
+        lv2:symbol "trigger2_chance" ;
+        lv2:name "Trigger 2 Chance" ;
+        lv2:default 0.40 ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 30 ;
+        lv2:symbol "status_lane1" ;
+        lv2:name "Lane 1 Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 31 ;
+        lv2:symbol "status_lane2" ;
+        lv2:name "Lane 2 Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 32 ;
+        lv2:symbol "status_lane3" ;
+        lv2:name "Lane 3 Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 33 ;
+        lv2:symbol "status_lane4" ;
+        lv2:name "Lane 4 Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 34 ;
+        lv2:symbol "status_trigger1" ;
+        lv2:name "Trigger 1 Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 35 ;
+        lv2:symbol "status_trigger2" ;
+        lv2:name "Trigger 2 Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 36 ;
+        lv2:symbol "status_transport" ;
+        lv2:name "Transport Status" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+    ] , [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 37 ;
+        lv2:symbol "status_bpm" ;
+        lv2:name "Effective BPM" ;
+        lv2:minimum 40 ;
+        lv2:maximum 220 ;
+    ] .

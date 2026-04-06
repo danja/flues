@@ -26,6 +26,7 @@ If you are browsing the repo as a user rather than a contributor, treat the docu
 - **[PM-Synth](lv2/pm-synth/)** — Physical modeling plugin based on Stove.
 - **[Disyn](lv2/disyn/)** — Distortion synthesis plugin with 17 algorithms.
 - **[Gremlin](lv2/gremlin/)** — Glitchy malfunction instrument with chaotic modulation, unstable delay behavior, and MIDImix-oriented performance control.
+- **[GremlinDriver](lv2/gremlin-driver/)** — Companion MIDI modulation driver for Gremlin's macro and action control layer.
 - **[Chatterbox](lv2/chatterbox/)** — Speech synthesis plugin with formant controls.
 - **[ChatGen](lv2/chatgen/)** — Text-to-speech MIDI controller for Chatterbox.
 - **[Floozy](lv2/floozy/)** — Hybrid Disyn + physical modeling instrument.
@@ -239,6 +240,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/chatgen/README.md](lv2/chatgen/README.md) - Text-to-speech
 - [lv2/disyn/README.md](lv2/disyn/README.md) - Distortion synthesis
 - [lv2/gremlin/README.md](lv2/gremlin/README.md) - Malfunction instrument with MIDImix-focused live control
+- [lv2/gremlin-driver/README.md](lv2/gremlin-driver/README.md) - Companion MIDI modulation driver for Gremlin
 - [lv2/floozy/README.md](lv2/floozy/README.md) - Hybrid mono
 - [lv2/floozy-poly/README.md](lv2/floozy-poly/README.md) - Hybrid poly
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
