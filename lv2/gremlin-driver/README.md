@@ -36,6 +36,7 @@ Or from the repo root:
 
 - `Clock Mode`: `Transport` follows host play/stop when the host provides `time:Position`; `Free` ignores transport and runs from the local BPM port.
 - `BPM`: fallback clock in `Free` mode, and fallback tempo when the host does not provide BPM.
+- `Randomise`: one-shot Gremlin patch scramble. This sends a fresh random set of Gremlin direct-knob CCs, so it changes the underlying patch rather than just jolting the macro lanes for one block.
 
 ### Continuous lanes
 
@@ -86,5 +87,7 @@ This is a good first patch against Gremlin defaults:
 ## Notes
 
 - The current build is deliberately macro-first. It does not try to automate Gremlin's 24 direct knobs.
+- `Randomise` is the exception: it emits a one-shot burst across Gremlin's 24 direct controller CCs so the sound actually lands somewhere new.
 - Modulation is MIDI-rate rather than audio-rate, which is the practical choice for Gremlin's performance layer.
 - The status output ports expose the current lane values, trigger flashes, transport state, and effective BPM for hosts or a future custom UI.
+- In generic host UIs, `Randomise` may appear as a toggle. If so, click it off and on again to retrigger it.

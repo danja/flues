@@ -60,7 +60,8 @@ enum PortIndex : uint32_t {
     PORT_STATUS_TRIGGER1 = 34,
     PORT_STATUS_TRIGGER2 = 35,
     PORT_STATUS_TRANSPORT = 36,
-    PORT_STATUS_BPM = 37
+    PORT_STATUS_BPM = 37,
+    PORT_RANDOMIZE = 38
 };
 
 struct URIDs {
@@ -83,6 +84,7 @@ struct GremlinDriverLV2 {
     LV2_Atom_Sequence* midiOut = nullptr;
     const float* clockMode = nullptr;
     const float* bpm = nullptr;
+    const float* randomize = nullptr;
     std::array<const float*, 4> laneTarget{};
     std::array<const float*, 4> laneShape{};
     std::array<const float*, 4> laneRate{};
@@ -104,6 +106,17 @@ struct GremlinDriverLV2 {
     uint32_t bufferCapacity = 16384;
     std::array<int, 10> lastSentCc{};
     uint32_t refreshSamples = 0;
+    uint32_t randomState = 0x3c6ef372u;
+    bool lastRandomizePressed = false;
+};
+
+static constexpr std::array<uint8_t, 16> kPrimaryKnobCCs = {
+    16, 20, 24, 28, 46, 50, 54, 58,
+    17, 21, 25, 29, 47, 51, 55, 59
+};
+
+static constexpr std::array<uint8_t, 8> kHiddenKnobCCs = {
+    18, 22, 26, 30, 48, 52, 56, 60
 };
 
 static constexpr std::array<uint8_t, 8> kMacroFaderCCs = {
@@ -140,6 +153,19 @@ static int enum_from_port(const float* port, int fallback) {
 static int clamp_cc(float normalized) {
     const float clamped = std::clamp(normalized, 0.0f, 1.0f);
     return static_cast<int>(std::lround(clamped * 127.0f));
+}
+
+static uint32_t next_random_u32(GremlinDriverLV2* self) {
+    self->randomState = self->randomState * 1664525u + 1013904223u;
+    return self->randomState;
+}
+
+static uint8_t random_cc(GremlinDriverLV2* self, uint8_t minValue = 0, uint8_t maxValue = 127) {
+    if (maxValue < minValue) {
+        std::swap(maxValue, minValue);
+    }
+    const uint32_t span = static_cast<uint32_t>(maxValue - minValue) + 1u;
+    return static_cast<uint8_t>(minValue + (next_random_u32(self) % span));
 }
 
 static void append_midi(LV2_Atom_Sequence* seq,
@@ -221,6 +247,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_MIDI_OUT: self->midiOut = static_cast<LV2_Atom_Sequence*>(data); break;
         case PORT_CLOCK_MODE: self->clockMode = static_cast<const float*>(data); break;
         case PORT_BPM: self->bpm = static_cast<const float*>(data); break;
+        case PORT_RANDOMIZE: self->randomize = static_cast<const float*>(data); break;
         case PORT_LANE1_TARGET: self->laneTarget[0] = static_cast<const float*>(data); break;
         case PORT_LANE1_SHAPE: self->laneShape[0] = static_cast<const float*>(data); break;
         case PORT_LANE1_RATE: self->laneRate[0] = static_cast<const float*>(data); break;
@@ -266,6 +293,7 @@ static void activate(LV2_Handle instance) {
     }
     self->lastSentCc.fill(-1);
     self->refreshSamples = 0;
+    self->lastRandomizePressed = false;
     self->engine.reset();
 }
 
@@ -346,6 +374,42 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     }
 
     const auto result = self->engine.process(nframes, clock, lanes, triggers);
+
+    const bool randomizePressed = port_or_default(self->randomize, 0.0f) >= 0.5f;
+    if (randomizePressed && !self->lastRandomizePressed) {
+        for (const uint8_t cc : kPrimaryKnobCCs) {
+            MidiMessage message;
+            message.frame = 0;
+            message.order = 0;
+            uint8_t value = random_cc(self);
+            if (cc == 59) {
+                value = random_cc(self, 28, 92);
+            }
+            message.bytes = {
+                static_cast<uint8_t>(0xB0),
+                cc,
+                value
+            };
+            events.push_back(std::move(message));
+        }
+
+        for (const uint8_t cc : kHiddenKnobCCs) {
+            MidiMessage message;
+            message.frame = 0;
+            message.order = 0;
+            uint8_t value = random_cc(self);
+            if (cc == 18) {
+                value = random_cc(self, 36, 96);
+            }
+            message.bytes = {
+                static_cast<uint8_t>(0xB0),
+                cc,
+                value
+            };
+            events.push_back(std::move(message));
+        }
+    }
+    self->lastRandomizePressed = randomizePressed;
 
     self->refreshSamples += nframes;
     const bool forceRefresh = self->refreshSamples >= static_cast<uint32_t>(self->sampleRate * 0.25);
