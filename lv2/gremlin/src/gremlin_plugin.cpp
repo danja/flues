@@ -95,6 +95,7 @@ enum PortIndex : uint32_t {
     PORT_STATUS_MOMENTARY_6,
     PORT_STATUS_MOMENTARY_7,
     PORT_STATUS_MOMENTARY_8,
+    PORT_MASTER_TRIM,
     PORT_TOTAL_COUNT
 };
 
@@ -195,6 +196,7 @@ struct GremlinLV2 {
     const float* glitchLength;
     const float* chaosRate;
     const float* duck;
+    const float* masterTrimIn;
 
     LV2_URID_Map* map;
     LV2_URID midiEventUrid;
@@ -206,6 +208,8 @@ struct GremlinLV2 {
     bool hiddenOverrides[HIDDEN_PARAM_COUNT];
     float macroFaders[8];
     float masterTrim;
+    float lastMasterTrimPortValue;
+    bool masterTrimOverride;
     bool momentaryButtons[8];
     bool soloHeld;
     int currentScene;
@@ -434,6 +438,16 @@ static void sync_from_ports(GremlinLV2* self) {
     if (!self->hiddenOverrides[HIDDEN_GLITCH_LENGTH]) self->hiddenParams[HIDDEN_GLITCH_LENGTH] = clampf(port_or_default(self->glitchLength, default_hidden_value(HIDDEN_GLITCH_LENGTH)));
     if (!self->hiddenOverrides[HIDDEN_CHAOS_RATE]) self->hiddenParams[HIDDEN_CHAOS_RATE] = clampf(port_or_default(self->chaosRate, default_hidden_value(HIDDEN_CHAOS_RATE)));
     if (!self->hiddenOverrides[HIDDEN_DUCK]) self->hiddenParams[HIDDEN_DUCK] = clampf(port_or_default(self->duck, default_hidden_value(HIDDEN_DUCK)));
+
+    const float masterTrimPortValue = clampf(port_or_default(self->masterTrimIn, 0.45f));
+    if (std::fabs(masterTrimPortValue - self->lastMasterTrimPortValue) > 0.0001f) {
+        self->masterTrim = masterTrimPortValue;
+        self->masterTrimOverride = false;
+        self->lastMasterTrimPortValue = masterTrimPortValue;
+    } else if (!self->masterTrimOverride) {
+        self->masterTrim = masterTrimPortValue;
+        self->lastMasterTrimPortValue = masterTrimPortValue;
+    }
 }
 
 static void reset_midimix_state(GremlinLV2* self) {
@@ -457,6 +471,8 @@ static void reset_midimix_state(GremlinLV2* self) {
     }
 
     self->masterTrim = 0.45f;
+    self->lastMasterTrimPortValue = 0.45f;
+    self->masterTrimOverride = false;
     self->soloHeld = false;
     self->currentScene = -1;
     self->postGain = 1.0f;
@@ -859,6 +875,7 @@ static bool handle_midimix_cc(GremlinLV2* self, uint8_t cc, uint8_t value) {
 
     if (cc == kMasterFaderCC) {
         self->masterTrim = normalized;
+        self->masterTrimOverride = true;
         self->controllerActivity = 1.0f;
         return true;
     }
@@ -1056,6 +1073,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*, double rate,
     self->glitchLength = nullptr;
     self->chaosRate = nullptr;
     self->duck = nullptr;
+    self->masterTrimIn = nullptr;
 
     self->map = nullptr;
     self->midiEventUrid = 0;
@@ -1161,6 +1179,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_GLITCH_LENGTH: self->glitchLength = static_cast<const float*>(data); break;
         case PORT_CHAOS_RATE: self->chaosRate = static_cast<const float*>(data); break;
         case PORT_DUCK: self->duck = static_cast<const float*>(data); break;
+        case PORT_MASTER_TRIM: self->masterTrimIn = static_cast<const float*>(data); break;
         default: break;
     }
 }

@@ -106,6 +106,7 @@ typedef enum {
     PORT_STATUS_MOMENTARY_6,
     PORT_STATUS_MOMENTARY_7,
     PORT_STATUS_MOMENTARY_8,
+    PORT_MASTER_TRIM,
     PORT_TOTAL_COUNT
 } PortIndex;
 
@@ -187,6 +188,10 @@ typedef struct {
     int master_y;
     int master_width;
     int master_height;
+    int master_fader_x;
+    int master_fader_y;
+    int master_fader_width;
+    int master_fader_height;
     int strip_x[8];
     int strip_y;
     int strip_width;
@@ -218,6 +223,7 @@ typedef struct {
 
 static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static bool g_xlib_threads_ready = false;
+static const int kActiveMasterFader = -2;
 
 static const char* const kModeLabels[] = {
     "Shard",
@@ -869,6 +875,20 @@ static int find_knob_at(const GremlinUI* ui, int x, int y) {
     return -1;
 }
 
+static bool is_master_fader_hit(const GremlinUI* ui, int x, int y) {
+    return x >= ui->master_fader_x - 6 &&
+        x <= ui->master_fader_x + ui->master_fader_width + 6 &&
+        y >= ui->master_fader_y - 18 &&
+        y <= ui->master_fader_y + ui->master_fader_height + 18;
+}
+
+static float master_trim_from_y(const GremlinUI* ui, int y) {
+    const float bottom = (float)(ui->master_fader_y + ui->master_fader_height - 14);
+    const float usable = (float)(ui->master_fader_height - 28);
+    const float value = usable > 1.0f ? (bottom - (float)y) / usable : 0.0f;
+    return clamp_float(value, 0.0f, 1.0f);
+}
+
 static void notify_host(GremlinUI* ui, uint32_t port, float value) {
     if (ui->write) {
         ui->write(ui->controller, port, sizeof(float), 0, &value);
@@ -886,6 +906,11 @@ static void handle_button_press(GremlinUI* ui, const XButtonEvent* event) {
         ui->active_knob = knob_index;
         ui->drag_start_y = event->y;
         ui->drag_start_value = ui->knobs[knob_index].value;
+    } else if (is_master_fader_hit(ui, event->x, event->y)) {
+        ui->active_knob = kActiveMasterFader;
+        ui->master_trim = master_trim_from_y(ui, event->y);
+        ui->needs_redraw = true;
+        notify_host(ui, PORT_MASTER_TRIM, ui->master_trim);
     }
     pthread_mutex_unlock(&ui->mutex);
 }
@@ -899,26 +924,41 @@ static void handle_button_release(GremlinUI* ui, const XButtonEvent* event) {
 
 static void handle_scroll(GremlinUI* ui, const XButtonEvent* event) {
     int knob_index = find_knob_at(ui, event->x, event->y);
-    if (knob_index < 0) {
+    if (knob_index < 0 && !is_master_fader_hit(ui, event->x, event->y)) {
         return;
     }
 
     pthread_mutex_lock(&ui->mutex);
-    Knob* knob = &ui->knobs[knob_index];
-    float step = knob->steps > 1
-        ? (knob->max - knob->min) / (float)(knob->steps - 1)
-        : (knob->max - knob->min) / 100.0f;
-    float value = knob->value;
-    if (event->button == Button4) {
-        value += step;
-    } else if (event->button == Button5) {
-        value -= step;
-    }
-    value = clamp_knob_value(knob, value);
-    if (fabsf(value - knob->value) > 0.0001f) {
-        knob->value = value;
-        ui->needs_redraw = true;
-        notify_host(ui, knob->control_port, knob->value);
+    if (knob_index >= 0) {
+        Knob* knob = &ui->knobs[knob_index];
+        float step = knob->steps > 1
+            ? (knob->max - knob->min) / (float)(knob->steps - 1)
+            : (knob->max - knob->min) / 100.0f;
+        float value = knob->value;
+        if (event->button == Button4) {
+            value += step;
+        } else if (event->button == Button5) {
+            value -= step;
+        }
+        value = clamp_knob_value(knob, value);
+        if (fabsf(value - knob->value) > 0.0001f) {
+            knob->value = value;
+            ui->needs_redraw = true;
+            notify_host(ui, knob->control_port, knob->value);
+        }
+    } else {
+        float value = ui->master_trim;
+        if (event->button == Button4) {
+            value += 0.02f;
+        } else if (event->button == Button5) {
+            value -= 0.02f;
+        }
+        value = clamp_float(value, 0.0f, 1.0f);
+        if (fabsf(value - ui->master_trim) > 0.0001f) {
+            ui->master_trim = value;
+            ui->needs_redraw = true;
+            notify_host(ui, PORT_MASTER_TRIM, ui->master_trim);
+        }
     }
     pthread_mutex_unlock(&ui->mutex);
 }
@@ -934,6 +974,13 @@ static void handle_motion(GremlinUI* ui, const XMotionEvent* event) {
             knob->value = value;
             ui->needs_redraw = true;
             notify_host(ui, knob->control_port, knob->value);
+        }
+    } else if (ui->active_knob == kActiveMasterFader) {
+        const float value = master_trim_from_y(ui, event->y);
+        if (fabsf(value - ui->master_trim) > 0.0001f) {
+            ui->master_trim = value;
+            ui->needs_redraw = true;
+            notify_host(ui, PORT_MASTER_TRIM, ui->master_trim);
         }
     }
     pthread_mutex_unlock(&ui->mutex);
@@ -1110,6 +1157,11 @@ static void setup_layout(GremlinUI* ui, int available_width) {
             mode->y = ui->master_y + 82;
         }
     }
+
+    ui->master_fader_x = ui->master_x + 214;
+    ui->master_fader_y = ui->master_y + 94;
+    ui->master_fader_width = 42;
+    ui->master_fader_height = 534;
 }
 
 static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* descriptor,
@@ -1350,6 +1402,7 @@ static void ui_port_event(LV2UI_Handle handle,
             updated = true;
             break;
         case PORT_STATUS_MASTER_TRIM:
+        case PORT_MASTER_TRIM:
             ui->master_trim = clamp_float(value, 0.0f, 1.0f);
             updated = true;
             break;

@@ -653,6 +653,14 @@
         lv2:minimum 0 ;
         lv2:maximum 1 ;
         lv2:portProperty lv2:toggled
+    ] , [
+        a lv2:InputPort , lv2:ControlPort ;
+        lv2:index 76 ;
+        lv2:symbol "master_trim" ;
+        lv2:name "Master Trim" ;
+        lv2:default 0.45 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0
     ] .
 
 <https://danja.github.io/flues/plugins/gremlin#ui>
@@ -888,5 +896,10 @@
         ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
         ui:port [ lv2:index 75 ; lv2:symbol "momentary_duck_kill" ] ;
         ui:portIndex 75 ;
+        ui:protocol ui:floatProtocol
+    ] , [
+        ui:plugin <https://danja.github.io/flues/plugins/gremlin> ;
+        ui:port [ lv2:index 76 ; lv2:symbol "master_trim" ] ;
+        ui:portIndex 76 ;
         ui:protocol ui:floatProtocol
     ] .
