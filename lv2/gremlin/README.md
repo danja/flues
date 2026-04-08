@@ -33,6 +33,8 @@ lv2info https://danja.github.io/flues/plugins/gremlin
 
 Gremlin now ships with a raw X11/Cairo UI for hosts such as Reaper. The panel mirrors the live effective values from the internal MIDImix layer rather than only the host automation ports, and the layout now follows the MIDImix strip arrangement more closely.
 
+The current tuning is intentionally more note-driven than the first pass: defaults and scenes lean toward percussive pitched hits with unstable echoes, rather than constant broadband wash.
+
 ## Host Controls
 
 - `Mode`: `Shard`, `Servo`, `Spray`, `Collapse`
@@ -94,6 +96,13 @@ If you want LED feedback, route `Controller Out` back to the MIDImix device.
 - `SOLO` + `MUTE` combinations trigger actions:
   `Reseed`, `Burst`, `Random Source`, `Random Delay`, `Random All`, `Prev Scene`, `Next Scene`, `Reset/Panic`
 - `BANK LEFT/RIGHT`: step backward/forward through the four source modes
+
+### Scene Character
+
+- `Splinter`: the driest and most percussive setting
+- `Melt`: tonal echoes with moderate motion
+- `Rust`: sharper broken hits and short repeat grabs
+- `Tunnel`: the wettest scene, but still more pitch-led than the original build
 
 ### Notes
 

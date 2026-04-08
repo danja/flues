@@ -168,6 +168,42 @@ static uint8_t random_cc(GremlinDriverLV2* self, uint8_t minValue = 0, uint8_t m
     return static_cast<uint8_t>(minValue + (next_random_u32(self) % span));
 }
 
+static uint8_t random_primary_knob_value(GremlinDriverLV2* self, uint8_t cc) {
+    switch (cc) {
+        case 16: return random_cc(self, 20, 82);  // Damage
+        case 20: return random_cc(self, 18, 78);  // Chaos
+        case 24: return random_cc(self, 0, 40);   // Noise
+        case 28: return random_cc(self, 8, 58);   // Drift
+        case 46: return random_cc(self, 0, 52);   // Crunch
+        case 50: return random_cc(self, 10, 55);  // Fold
+        case 54: return random_cc(self, 0, 20);   // Attack
+        case 58: return random_cc(self, 6, 40);   // Release
+        case 17: return random_cc(self, 10, 70);  // Delay Time
+        case 21: return random_cc(self, 18, 78);  // Feedback
+        case 25: return random_cc(self, 5, 60);   // Warp
+        case 29: return random_cc(self, 8, 62);   // Stutter
+        case 47: return random_cc(self, 60, 118); // Tone
+        case 51: return random_cc(self, 42, 98);  // Damping
+        case 55: return random_cc(self, 16, 82);  // Space
+        case 59: return random_cc(self, 30, 76);  // Output
+        default: return random_cc(self);
+    }
+}
+
+static uint8_t random_hidden_knob_value(GremlinDriverLV2* self, uint8_t cc) {
+    switch (cc) {
+        case 18: return random_cc(self, 58, 104); // Source Gain
+        case 22: return random_cc(self, 70, 127); // Burst
+        case 26: return random_cc(self, 10, 68);  // Pitch Spread
+        case 30: return random_cc(self, 20, 72);  // Delay Mix
+        case 48: return random_cc(self, 12, 68);  // Cross Feedback
+        case 52: return random_cc(self, 10, 54);  // Glitch Length
+        case 56: return random_cc(self, 18, 76);  // Chaos Rate
+        case 60: return random_cc(self, 28, 86);  // Duck
+        default: return random_cc(self);
+    }
+}
+
 static void append_midi(LV2_Atom_Sequence* seq,
                         uint32_t capacity,
                         LV2_URID midiEventUrid,
@@ -381,10 +417,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
             MidiMessage message;
             message.frame = 0;
             message.order = 0;
-            uint8_t value = random_cc(self);
-            if (cc == 59) {
-                value = random_cc(self, 28, 92);
-            }
+            const uint8_t value = random_primary_knob_value(self, cc);
             message.bytes = {
                 static_cast<uint8_t>(0xB0),
                 cc,
@@ -397,10 +430,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
             MidiMessage message;
             message.frame = 0;
             message.order = 0;
-            uint8_t value = random_cc(self);
-            if (cc == 18) {
-                value = random_cc(self, 36, 96);
-            }
+            const uint8_t value = random_hidden_knob_value(self, cc);
             message.bytes = {
                 static_cast<uint8_t>(0xB0),
                 cc,

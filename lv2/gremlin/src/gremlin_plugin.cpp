@@ -301,36 +301,36 @@ static float clampf(float value, float minValue = 0.0f, float maxValue = 1.0f) {
 static float default_live_value(LiveParamIndex index) {
     switch (index) {
         case LIVE_MODE: return 0.0f;
-        case LIVE_DAMAGE: return 0.55f;
-        case LIVE_CHAOS: return 0.60f;
-        case LIVE_NOISE: return 0.30f;
-        case LIVE_DRIFT: return 0.35f;
-        case LIVE_CRUNCH: return 0.45f;
-        case LIVE_FOLD: return 0.35f;
-        case LIVE_DELAY_TIME: return 0.32f;
-        case LIVE_FEEDBACK: return 0.55f;
-        case LIVE_WARP: return 0.45f;
-        case LIVE_STUTTER: return 0.35f;
-        case LIVE_TONE: return 0.65f;
-        case LIVE_DAMPING: return 0.45f;
-        case LIVE_SPACE: return 0.55f;
-        case LIVE_ATTACK: return 0.05f;
-        case LIVE_RELEASE: return 0.25f;
-        case LIVE_OUTPUT: return 0.45f;
+        case LIVE_DAMAGE: return 0.34f;
+        case LIVE_CHAOS: return 0.38f;
+        case LIVE_NOISE: return 0.10f;
+        case LIVE_DRIFT: return 0.18f;
+        case LIVE_CRUNCH: return 0.18f;
+        case LIVE_FOLD: return 0.18f;
+        case LIVE_DELAY_TIME: return 0.24f;
+        case LIVE_FEEDBACK: return 0.34f;
+        case LIVE_WARP: return 0.24f;
+        case LIVE_STUTTER: return 0.20f;
+        case LIVE_TONE: return 0.76f;
+        case LIVE_DAMPING: return 0.60f;
+        case LIVE_SPACE: return 0.32f;
+        case LIVE_ATTACK: return 0.02f;
+        case LIVE_RELEASE: return 0.12f;
+        case LIVE_OUTPUT: return 0.40f;
         default: return 0.5f;
     }
 }
 
 static float default_hidden_value(HiddenParamIndex index) {
     switch (index) {
-        case HIDDEN_SOURCE_GAIN: return 0.58f;
-        case HIDDEN_BURST: return 0.40f;
-        case HIDDEN_PITCH_SPREAD: return 0.50f;
-        case HIDDEN_DELAY_MIX: return 0.55f;
-        case HIDDEN_CROSS_FEEDBACK: return 0.50f;
-        case HIDDEN_GLITCH_LENGTH: return 0.50f;
-        case HIDDEN_CHAOS_RATE: return 0.55f;
-        case HIDDEN_DUCK: return 0.10f;
+        case HIDDEN_SOURCE_GAIN: return 0.62f;
+        case HIDDEN_BURST: return 0.72f;
+        case HIDDEN_PITCH_SPREAD: return 0.24f;
+        case HIDDEN_DELAY_MIX: return 0.30f;
+        case HIDDEN_CROSS_FEEDBACK: return 0.28f;
+        case HIDDEN_GLITCH_LENGTH: return 0.22f;
+        case HIDDEN_CHAOS_RATE: return 0.32f;
+        case HIDDEN_DUCK: return 0.32f;
         default: return 0.5f;
     }
 }
@@ -571,75 +571,112 @@ static void load_scene(GremlinLV2* self, int sceneIndex) {
     switch (sceneIndex) {
         case 0:
             set_live_param(self, LIVE_MODE, 0.0f);
-            set_live_param(self, LIVE_DAMAGE, 0.68f);
-            set_live_param(self, LIVE_CHAOS, 0.58f);
-            set_live_param(self, LIVE_NOISE, 0.18f);
-            set_live_param(self, LIVE_CRUNCH, 0.64f);
-            set_live_param(self, LIVE_FOLD, 0.53f);
-            set_live_param(self, LIVE_DELAY_TIME, 0.16f);
-            set_live_param(self, LIVE_FEEDBACK, 0.42f);
-            set_live_param(self, LIVE_WARP, 0.27f);
-            set_live_param(self, LIVE_STUTTER, 0.36f);
-            set_live_param(self, LIVE_TONE, 0.72f);
-            set_hidden_param(self, HIDDEN_SOURCE_GAIN, 0.74f);
-            set_hidden_param(self, HIDDEN_BURST, 0.62f);
-            set_hidden_param(self, HIDDEN_PITCH_SPREAD, 0.42f);
-            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.35f);
-            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.28f);
+            set_live_param(self, LIVE_DAMAGE, 0.34f);
+            set_live_param(self, LIVE_CHAOS, 0.26f);
+            set_live_param(self, LIVE_NOISE, 0.05f);
+            set_live_param(self, LIVE_DRIFT, 0.12f);
+            set_live_param(self, LIVE_CRUNCH, 0.10f);
+            set_live_param(self, LIVE_FOLD, 0.12f);
+            set_live_param(self, LIVE_DELAY_TIME, 0.12f);
+            set_live_param(self, LIVE_FEEDBACK, 0.28f);
+            set_live_param(self, LIVE_WARP, 0.12f);
+            set_live_param(self, LIVE_STUTTER, 0.18f);
+            set_live_param(self, LIVE_TONE, 0.84f);
+            set_live_param(self, LIVE_DAMPING, 0.68f);
+            set_live_param(self, LIVE_SPACE, 0.20f);
+            set_live_param(self, LIVE_ATTACK, 0.01f);
+            set_live_param(self, LIVE_RELEASE, 0.10f);
+            set_live_param(self, LIVE_OUTPUT, 0.38f);
+            set_hidden_param(self, HIDDEN_SOURCE_GAIN, 0.70f);
+            set_hidden_param(self, HIDDEN_BURST, 0.88f);
+            set_hidden_param(self, HIDDEN_PITCH_SPREAD, 0.16f);
+            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.22f);
+            set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, 0.16f);
+            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.14f);
+            set_hidden_param(self, HIDDEN_CHAOS_RATE, 0.18f);
+            set_hidden_param(self, HIDDEN_DUCK, 0.40f);
             break;
         case 1:
             set_live_param(self, LIVE_MODE, 1.0f);
-            set_live_param(self, LIVE_DAMAGE, 0.46f);
-            set_live_param(self, LIVE_CHAOS, 0.72f);
-            set_live_param(self, LIVE_DRIFT, 0.52f);
-            set_live_param(self, LIVE_DELAY_TIME, 0.48f);
-            set_live_param(self, LIVE_FEEDBACK, 0.74f);
-            set_live_param(self, LIVE_WARP, 0.62f);
-            set_live_param(self, LIVE_STUTTER, 0.22f);
-            set_live_param(self, LIVE_DAMPING, 0.62f);
-            set_live_param(self, LIVE_SPACE, 0.78f);
-            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.82f);
-            set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, 0.72f);
-            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.76f);
-            set_hidden_param(self, HIDDEN_CHAOS_RATE, 0.48f);
-            set_hidden_param(self, HIDDEN_DUCK, 0.18f);
+            set_live_param(self, LIVE_DAMAGE, 0.30f);
+            set_live_param(self, LIVE_CHAOS, 0.46f);
+            set_live_param(self, LIVE_NOISE, 0.08f);
+            set_live_param(self, LIVE_DRIFT, 0.24f);
+            set_live_param(self, LIVE_CRUNCH, 0.14f);
+            set_live_param(self, LIVE_FOLD, 0.16f);
+            set_live_param(self, LIVE_DELAY_TIME, 0.34f);
+            set_live_param(self, LIVE_FEEDBACK, 0.48f);
+            set_live_param(self, LIVE_WARP, 0.34f);
+            set_live_param(self, LIVE_STUTTER, 0.20f);
+            set_live_param(self, LIVE_TONE, 0.74f);
+            set_live_param(self, LIVE_DAMPING, 0.56f);
+            set_live_param(self, LIVE_SPACE, 0.44f);
+            set_live_param(self, LIVE_ATTACK, 0.02f);
+            set_live_param(self, LIVE_RELEASE, 0.18f);
+            set_live_param(self, LIVE_OUTPUT, 0.40f);
+            set_hidden_param(self, HIDDEN_SOURCE_GAIN, 0.62f);
+            set_hidden_param(self, HIDDEN_BURST, 0.76f);
+            set_hidden_param(self, HIDDEN_PITCH_SPREAD, 0.28f);
+            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.42f);
+            set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, 0.36f);
+            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.22f);
+            set_hidden_param(self, HIDDEN_CHAOS_RATE, 0.34f);
+            set_hidden_param(self, HIDDEN_DUCK, 0.32f);
             break;
         case 2:
             set_live_param(self, LIVE_MODE, 2.0f);
-            set_live_param(self, LIVE_DAMAGE, 0.78f);
-            set_live_param(self, LIVE_CHAOS, 0.84f);
-            set_live_param(self, LIVE_NOISE, 0.56f);
-            set_live_param(self, LIVE_CRUNCH, 0.78f);
-            set_live_param(self, LIVE_FOLD, 0.66f);
-            set_live_param(self, LIVE_DELAY_TIME, 0.24f);
-            set_live_param(self, LIVE_FEEDBACK, 0.51f);
-            set_live_param(self, LIVE_WARP, 0.54f);
-            set_live_param(self, LIVE_STUTTER, 0.61f);
-            set_hidden_param(self, HIDDEN_SOURCE_GAIN, 0.86f);
-            set_hidden_param(self, HIDDEN_BURST, 0.74f);
-            set_hidden_param(self, HIDDEN_PITCH_SPREAD, 0.72f);
-            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.46f);
-            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.58f);
-            set_hidden_param(self, HIDDEN_CHAOS_RATE, 0.78f);
+            set_live_param(self, LIVE_DAMAGE, 0.48f);
+            set_live_param(self, LIVE_CHAOS, 0.56f);
+            set_live_param(self, LIVE_NOISE, 0.16f);
+            set_live_param(self, LIVE_DRIFT, 0.26f);
+            set_live_param(self, LIVE_CRUNCH, 0.34f);
+            set_live_param(self, LIVE_FOLD, 0.24f);
+            set_live_param(self, LIVE_DELAY_TIME, 0.18f);
+            set_live_param(self, LIVE_FEEDBACK, 0.34f);
+            set_live_param(self, LIVE_WARP, 0.24f);
+            set_live_param(self, LIVE_STUTTER, 0.40f);
+            set_live_param(self, LIVE_TONE, 0.68f);
+            set_live_param(self, LIVE_DAMPING, 0.54f);
+            set_live_param(self, LIVE_SPACE, 0.36f);
+            set_live_param(self, LIVE_ATTACK, 0.01f);
+            set_live_param(self, LIVE_RELEASE, 0.14f);
+            set_live_param(self, LIVE_OUTPUT, 0.42f);
+            set_hidden_param(self, HIDDEN_SOURCE_GAIN, 0.74f);
+            set_hidden_param(self, HIDDEN_BURST, 0.82f);
+            set_hidden_param(self, HIDDEN_PITCH_SPREAD, 0.42f);
+            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.32f);
+            set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, 0.28f);
+            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.32f);
+            set_hidden_param(self, HIDDEN_CHAOS_RATE, 0.44f);
+            set_hidden_param(self, HIDDEN_DUCK, 0.26f);
             break;
         case 3:
         default:
             set_live_param(self, LIVE_MODE, 3.0f);
-            set_live_param(self, LIVE_DAMAGE, 0.60f);
-            set_live_param(self, LIVE_CHAOS, 0.66f);
-            set_live_param(self, LIVE_NOISE, 0.34f);
-            set_live_param(self, LIVE_DRIFT, 0.64f);
-            set_live_param(self, LIVE_DELAY_TIME, 0.72f);
-            set_live_param(self, LIVE_FEEDBACK, 0.86f);
-            set_live_param(self, LIVE_WARP, 0.71f);
-            set_live_param(self, LIVE_STUTTER, 0.41f);
-            set_live_param(self, LIVE_TONE, 0.40f);
-            set_live_param(self, LIVE_DAMPING, 0.76f);
-            set_live_param(self, LIVE_SPACE, 0.88f);
-            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.88f);
-            set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, 0.82f);
-            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.68f);
-            set_hidden_param(self, HIDDEN_DUCK, 0.30f);
+            set_live_param(self, LIVE_DAMAGE, 0.40f);
+            set_live_param(self, LIVE_CHAOS, 0.52f);
+            set_live_param(self, LIVE_NOISE, 0.12f);
+            set_live_param(self, LIVE_DRIFT, 0.34f);
+            set_live_param(self, LIVE_CRUNCH, 0.20f);
+            set_live_param(self, LIVE_FOLD, 0.18f);
+            set_live_param(self, LIVE_DELAY_TIME, 0.44f);
+            set_live_param(self, LIVE_FEEDBACK, 0.62f);
+            set_live_param(self, LIVE_WARP, 0.50f);
+            set_live_param(self, LIVE_STUTTER, 0.28f);
+            set_live_param(self, LIVE_TONE, 0.58f);
+            set_live_param(self, LIVE_DAMPING, 0.66f);
+            set_live_param(self, LIVE_SPACE, 0.62f);
+            set_live_param(self, LIVE_ATTACK, 0.02f);
+            set_live_param(self, LIVE_RELEASE, 0.24f);
+            set_live_param(self, LIVE_OUTPUT, 0.40f);
+            set_hidden_param(self, HIDDEN_SOURCE_GAIN, 0.58f);
+            set_hidden_param(self, HIDDEN_BURST, 0.68f);
+            set_hidden_param(self, HIDDEN_PITCH_SPREAD, 0.30f);
+            set_hidden_param(self, HIDDEN_DELAY_MIX, 0.56f);
+            set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, 0.50f);
+            set_hidden_param(self, HIDDEN_GLITCH_LENGTH, 0.28f);
+            set_hidden_param(self, HIDDEN_CHAOS_RATE, 0.40f);
+            set_hidden_param(self, HIDDEN_DUCK, 0.36f);
             break;
     }
 
@@ -654,31 +691,33 @@ static void cycle_scene(GremlinLV2* self, int delta) {
 
 static void randomize_source(GremlinLV2* self) {
     set_live_param(self, LIVE_MODE, static_cast<float>(static_cast<int>(rand01(self) * 4.0f) % 4));
-    set_live_param(self, LIVE_DAMAGE, rand_range(self, 0.25f, 0.90f));
-    set_live_param(self, LIVE_CHAOS, rand_range(self, 0.20f, 0.95f));
-    set_live_param(self, LIVE_NOISE, rand_range(self, 0.0f, 0.75f));
-    set_live_param(self, LIVE_DRIFT, rand_range(self, 0.0f, 0.85f));
-    set_live_param(self, LIVE_CRUNCH, rand_range(self, 0.15f, 0.92f));
-    set_live_param(self, LIVE_FOLD, rand_range(self, 0.08f, 0.85f));
-    set_hidden_param(self, HIDDEN_SOURCE_GAIN, rand_range(self, 0.35f, 0.95f));
-    set_hidden_param(self, HIDDEN_BURST, rand_range(self, 0.18f, 0.95f));
-    set_hidden_param(self, HIDDEN_PITCH_SPREAD, rand_range(self, 0.12f, 0.92f));
-    set_hidden_param(self, HIDDEN_CHAOS_RATE, rand_range(self, 0.08f, 0.95f));
+    set_live_param(self, LIVE_DAMAGE, rand_range(self, 0.18f, 0.72f));
+    set_live_param(self, LIVE_CHAOS, rand_range(self, 0.12f, 0.68f));
+    set_live_param(self, LIVE_NOISE, rand_range(self, 0.0f, 0.30f));
+    set_live_param(self, LIVE_DRIFT, rand_range(self, 0.04f, 0.48f));
+    set_live_param(self, LIVE_CRUNCH, rand_range(self, 0.0f, 0.44f));
+    set_live_param(self, LIVE_FOLD, rand_range(self, 0.04f, 0.50f));
+    set_live_param(self, LIVE_ATTACK, rand_range(self, 0.0f, 0.08f));
+    set_live_param(self, LIVE_RELEASE, rand_range(self, 0.06f, 0.24f));
+    set_hidden_param(self, HIDDEN_SOURCE_GAIN, rand_range(self, 0.50f, 0.82f));
+    set_hidden_param(self, HIDDEN_BURST, rand_range(self, 0.56f, 0.96f));
+    set_hidden_param(self, HIDDEN_PITCH_SPREAD, rand_range(self, 0.08f, 0.56f));
+    set_hidden_param(self, HIDDEN_CHAOS_RATE, rand_range(self, 0.10f, 0.56f));
     self->engine->reseedChaos(next_u32(self));
 }
 
 static void randomize_delay(GremlinLV2* self) {
-    set_live_param(self, LIVE_DELAY_TIME, rand_range(self, 0.05f, 0.95f));
-    set_live_param(self, LIVE_FEEDBACK, rand_range(self, 0.10f, 0.95f));
-    set_live_param(self, LIVE_WARP, rand_range(self, 0.05f, 0.95f));
-    set_live_param(self, LIVE_STUTTER, rand_range(self, 0.0f, 0.95f));
-    set_live_param(self, LIVE_TONE, rand_range(self, 0.20f, 0.95f));
-    set_live_param(self, LIVE_DAMPING, rand_range(self, 0.05f, 0.92f));
-    set_live_param(self, LIVE_SPACE, rand_range(self, 0.10f, 0.98f));
-    set_hidden_param(self, HIDDEN_DELAY_MIX, rand_range(self, 0.10f, 0.95f));
-    set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, rand_range(self, 0.0f, 0.92f));
-    set_hidden_param(self, HIDDEN_GLITCH_LENGTH, rand_range(self, 0.12f, 0.95f));
-    set_hidden_param(self, HIDDEN_DUCK, rand_range(self, 0.0f, 0.55f));
+    set_live_param(self, LIVE_DELAY_TIME, rand_range(self, 0.06f, 0.56f));
+    set_live_param(self, LIVE_FEEDBACK, rand_range(self, 0.18f, 0.72f));
+    set_live_param(self, LIVE_WARP, rand_range(self, 0.05f, 0.58f));
+    set_live_param(self, LIVE_STUTTER, rand_range(self, 0.06f, 0.55f));
+    set_live_param(self, LIVE_TONE, rand_range(self, 0.42f, 0.92f));
+    set_live_param(self, LIVE_DAMPING, rand_range(self, 0.38f, 0.78f));
+    set_live_param(self, LIVE_SPACE, rand_range(self, 0.18f, 0.70f));
+    set_hidden_param(self, HIDDEN_DELAY_MIX, rand_range(self, 0.18f, 0.66f));
+    set_hidden_param(self, HIDDEN_CROSS_FEEDBACK, rand_range(self, 0.10f, 0.58f));
+    set_hidden_param(self, HIDDEN_GLITCH_LENGTH, rand_range(self, 0.10f, 0.48f));
+    set_hidden_param(self, HIDDEN_DUCK, rand_range(self, 0.18f, 0.55f));
 }
 
 static void clear_midimix_overrides(GremlinLV2* self) {
@@ -726,34 +765,36 @@ static void apply_live_state(GremlinLV2* self) {
     const float toneMacro = self->macroFaders[6] - 0.5f;
     const float outputMacro = self->macroFaders[7] - 0.5f;
 
-    damage = clampf(damage + sourceMacro * 0.42f + breakMacro * 0.22f);
-    chaos = clampf(chaos + sourceMacro * 0.52f + pitchMacro * 0.18f + (self->momentaryButtons[2] ? 0.34f : 0.0f));
-    noise = clampf(noise + sourceMacro * 0.32f + (self->momentaryButtons[6] ? 0.60f : 0.0f));
-    drift = clampf(drift + pitchMacro * 0.65f);
-    attack = clampf(attack - pitchMacro * 0.28f);
-    release = clampf(release + pitchMacro * 0.35f);
+    damage = clampf(damage + sourceMacro * 0.18f + breakMacro * 0.26f);
+    chaos = clampf(chaos + sourceMacro * 0.20f + pitchMacro * 0.12f + spaceMacro * 0.08f
+                   + (self->momentaryButtons[2] ? 0.28f : 0.0f));
+    noise = clampf(noise + sourceMacro * 0.10f + breakMacro * 0.10f - toneMacro * 0.14f
+                   + (self->momentaryButtons[6] ? 0.46f : 0.0f));
+    drift = clampf(drift + pitchMacro * 0.48f);
+    attack = clampf(attack - pitchMacro * 0.20f - sourceMacro * 0.08f);
+    release = clampf(release - pitchMacro * 0.16f + delayMacro * 0.10f);
 
-    crunch = clampf(crunch + breakMacro * 0.72f + (self->momentaryButtons[3] ? 0.58f : 0.0f));
-    fold = clampf(fold + breakMacro * 0.60f);
+    crunch = clampf(crunch + breakMacro * 0.45f + stutterMacro * 0.10f + (self->momentaryButtons[3] ? 0.44f : 0.0f));
+    fold = clampf(fold + breakMacro * 0.34f + sourceMacro * 0.08f);
 
-    delayTime = clampf(delayTime + delayMacro * 0.72f);
-    feedback = clampf(feedback + delayMacro * 0.52f + (self->momentaryButtons[4] ? 0.34f : 0.0f));
-    warp = clampf(warp + spaceMacro * 0.55f + (self->momentaryButtons[5] ? 0.50f : 0.0f));
-    stutter = clampf(stutter + stutterMacro * 0.82f + (self->momentaryButtons[1] ? 0.90f : 0.0f));
+    delayTime = clampf(delayTime + delayMacro * 0.42f - stutterMacro * 0.08f);
+    feedback = clampf(feedback + delayMacro * 0.34f + spaceMacro * 0.12f + (self->momentaryButtons[4] ? 0.26f : 0.0f));
+    warp = clampf(warp + delayMacro * 0.12f + spaceMacro * 0.30f + (self->momentaryButtons[5] ? 0.32f : 0.0f));
+    stutter = clampf(stutter + stutterMacro * 0.42f + delayMacro * 0.12f + (self->momentaryButtons[1] ? 0.68f : 0.0f));
 
-    tone = clampf(tone + toneMacro * 0.58f);
-    damping = clampf(damping - toneMacro * 0.45f);
-    space = clampf(space + spaceMacro * 0.76f);
-    output = clampf(output + outputMacro * 0.62f);
+    tone = clampf(tone + toneMacro * 0.42f - breakMacro * 0.08f);
+    damping = clampf(damping - toneMacro * 0.32f + spaceMacro * 0.10f);
+    space = clampf(space + spaceMacro * 0.48f + delayMacro * 0.10f);
+    output = clampf(output + outputMacro * 0.34f);
 
-    sourceGain = clampf(sourceGain + sourceMacro * 0.45f + outputMacro * 0.18f);
-    burst = clampf(burst + pitchMacro * 0.32f + breakMacro * 0.22f);
-    pitchSpread = clampf(pitchSpread + pitchMacro * 0.60f);
-    delayMix = clampf(delayMix + delayMacro * 0.72f);
-    crossFeedback = clampf(crossFeedback + spaceMacro * 0.58f);
-    glitchLength = clampf(glitchLength + stutterMacro * 0.66f);
-    chaosRate = clampf(chaosRate + sourceMacro * 0.18f + spaceMacro * 0.18f);
-    duck = clampf(duck + toneMacro * 0.42f + (self->momentaryButtons[7] ? 0.55f : 0.0f));
+    sourceGain = clampf(sourceGain + sourceMacro * 0.40f + outputMacro * 0.08f);
+    burst = clampf(burst + sourceMacro * 0.34f + pitchMacro * 0.18f + stutterMacro * 0.08f);
+    pitchSpread = clampf(pitchSpread + pitchMacro * 0.48f + sourceMacro * 0.12f);
+    delayMix = clampf(delayMix + delayMacro * 0.36f + spaceMacro * 0.08f);
+    crossFeedback = clampf(crossFeedback + spaceMacro * 0.36f);
+    glitchLength = clampf(glitchLength + stutterMacro * 0.34f + delayMacro * 0.10f);
+    chaosRate = clampf(chaosRate + sourceMacro * 0.12f + spaceMacro * 0.10f + pitchMacro * 0.06f);
+    duck = clampf(duck + delayMacro * 0.18f + toneMacro * 0.20f - (self->momentaryButtons[7] ? 0.55f : 0.0f));
 
     self->effectiveStatus[STATUS_LIVE_MODE] = self->liveParams[LIVE_MODE];
     self->effectiveStatus[STATUS_LIVE_DAMAGE] = damage;

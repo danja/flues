@@ -100,7 +100,9 @@ public:
     void setFreezeDelay(bool enabled) { freezeDelay_ = enabled; }
 
     void triggerBurst(float amount = 1.0f) {
-        transient_ = std::max(transient_, 0.8f + std::clamp(amount, 0.0f, 1.0f) * 1.8f);
+        const float clamped = std::clamp(amount, 0.0f, 1.0f);
+        transient_ = std::max(transient_, 0.8f + clamped * 1.8f);
+        glitchExcite_ = std::max(glitchExcite_, 0.35f + clamped * 0.75f);
     }
 
     void reseedChaos(uint32_t salt = 0) {
@@ -145,7 +147,8 @@ public:
         gate_ = true;
         velocity_ = std::clamp(velocity, 0.0f, 1.0f);
         baseFrequency_ = midiToHz(midiNote);
-        transient_ = 1.0f;
+        transient_ = 1.25f + velocity_ * 0.9f;
+        glitchExcite_ = 1.0f;
     }
 
     void noteOff(uint8_t midiNote) {
@@ -162,6 +165,7 @@ public:
         const float target = gate_ ? 1.0f : 0.0f;
         env_ += (target - env_) * (gate_ ? attackStep_ : releaseStep_);
         transient_ *= std::max(0.90f, 0.9962f - damage_ * 0.022f - burst_ * 0.006f);
+        glitchExcite_ *= 0.99945f - stutter_ * 0.00015f;
 
         if (env_ < 1.0e-5f && !gate_ && std::fabs(lastLeft_) < 1.0e-5f && std::fabs(lastRight_) < 1.0e-5f) {
             return {0.0f, 0.0f};
@@ -186,34 +190,43 @@ public:
         const float squareA = phaseA_ < (0.5f + 0.12f * fastChaos_) ? 1.0f : -1.0f;
         const float squareB = phaseB_ < (0.48f - 0.10f * tentChaos_) ? 1.0f : -1.0f;
         const float sineA = std::sin(2.0f * kPi * (phaseA_ + 0.07f * fastChaos_ * chaos_));
+        const float sineB = std::sin(2.0f * kPi * phaseB_);
+        const float sineC = std::sin(2.0f * kPi * phaseC_);
         const float comparator = sawA > sawB ? 1.0f : -1.0f;
         const float chaosAudio = std::tanh((henonChaos_ * 0.9f + fastChaos_ * 0.7f + tentChaos_ * 0.35f) * (1.4f + 2.0f * chaos_));
 
         float source = 0.0f;
         const float burstFactor = 0.35f + burst_ * 1.65f;
+        const float attackTone = transient_ * burstFactor
+            * ((0.46f + 0.12f * (1.0f - damage_)) * sineA + 0.22f * sineB + 0.16f * sineC + 0.10f * triC);
+        const float metallicTone = transient_ * (0.22f + 0.28f * pitchSpread_) * (squareA * sineC);
+        const float gritGate = std::clamp(0.18f + transient_ * (0.62f + burst_ * 0.20f), 0.0f, 1.0f);
         switch (mode_) {
             case SHARD:
-                source = 0.50f * sawA + 0.28f * comparator + 0.18f * (squareA * squareB)
-                       + 0.20f * transient_ * burstFactor + 0.12f * chaosAudio;
+                source = 0.38f * sawA + 0.22f * comparator + 0.14f * (squareA * squareB)
+                       + 0.40f * attackTone + 0.10f * metallicTone + 0.08f * chaosAudio;
                 break;
             case SERVO:
-                source = 0.72f * std::sin(2.0f * kPi * (phaseA_ + chaosAudio * (0.18f + 0.32f * chaos_)))
-                       + 0.30f * (sawB * triC)
-                        + 0.12f * heldNoise_;
+                source = 0.70f * std::sin(2.0f * kPi * (phaseA_ + chaosAudio * (0.12f + 0.22f * chaos_)))
+                       + 0.22f * (sawB * triC)
+                       + 0.32f * attackTone
+                       + 0.05f * heldNoise_ * gritGate;
                 break;
             case SPRAY:
-                source = 0.42f * heldNoise_ + 0.26f * (squareA * sawB) + 0.22f * comparator
-                       + 0.34f * transient_ * burstFactor * (0.5f + 0.5f * chaosAbs_);
+                source = 0.18f * heldNoise_ * gritGate + 0.20f * (squareA * sawB) + 0.16f * comparator
+                       + 0.24f * attackTone + 0.16f * metallicTone
+                       + 0.16f * transient_ * burstFactor * (0.5f + 0.5f * chaosAbs_);
                 break;
             case COLLAPSE:
             default:
-                source = 0.34f * chaosAudio + 0.20f * sawA + 0.22f * sineA + 0.18f * comparator
-                       + 0.20f * heldNoise_ + 0.14f * transient_ * burstFactor;
+                source = 0.24f * chaosAudio + 0.16f * sawA + 0.28f * sineA + 0.12f * comparator
+                       + 0.08f * heldNoise_ * gritGate + 0.30f * attackTone + 0.10f * metallicTone;
                 break;
         }
 
-        source += whiteNoise() * noise_ * (0.08f + 0.22f * chaosAbs_ + 0.16f * transient_ * burstFactor);
-        source *= (0.24f + velocity_ * 0.9f) * env_ * (0.30f + sourceGain_ * 1.55f);
+        const float noiseGate = std::clamp(0.16f + transient_ * 0.82f + env_ * 0.18f, 0.0f, 1.0f);
+        source += whiteNoise() * noise_ * (0.02f + 0.10f * chaosAbs_ + 0.14f * transient_ * burstFactor) * noiseGate;
+        source *= (0.24f + velocity_ * 0.9f) * env_ * (0.36f + sourceGain_ * 1.35f);
 
         const float crushed = processCrunch(source);
         const float driven = crushed * (1.0f + damage_ * 3.5f + fold_ * 4.5f);
@@ -348,13 +361,17 @@ private:
             return;
         }
 
-        const float chance = (0.00001f + stutter_ * 0.00018f) * (0.55f + chaos_ * 0.8f + damage_ * 0.4f);
+        const float noteBias = std::clamp(0.08f + transient_ * 0.55f + glitchExcite_ * 0.95f, 0.0f, 1.4f);
+        const float chance = (0.000004f + stutter_ * 0.00008f)
+            * (0.45f + chaos_ * 0.55f + damage_ * 0.25f + glitchLength_ * 0.25f)
+            * noteBias;
         if ((whiteNoise() * 0.5f + 0.5f) < chance) {
             const float shortScale = 0.18f + glitchLength_ * 0.75f;
             const float maxShortDelay = std::max(24.0f, std::min(baseDelaySamples * shortScale * (0.55f + 0.45f * chaosAbs_), sampleRate_ * 0.18f));
             glitchDelaySamples_ = 12.0f + (whiteNoise() * 0.5f + 0.5f) * (maxShortDelay - 12.0f);
-            glitchBlend_ = 0.4f + 0.5f * stutter_;
-            glitchHold_ = 96 + static_cast<int>((0.005f + 0.05f * stutter_ + 0.05f * glitchLength_) * sampleRate_ * (0.7f + 0.3f * chaosAbs_));
+            glitchBlend_ = std::clamp(0.24f + 0.52f * stutter_ + 0.12f * glitchExcite_, 0.0f, 0.95f);
+            glitchHold_ = 48 + static_cast<int>((0.003f + 0.028f * stutter_ + 0.036f * glitchLength_) * sampleRate_ * (0.7f + 0.3f * chaosAbs_));
+            glitchExcite_ *= 0.35f;
         } else {
             glitchBlend_ = 0.0f;
         }
@@ -401,7 +418,7 @@ private:
         delayRight_[static_cast<size_t>(writePos_)] = writeRight;
         writePos_ = (writePos_ + 1) % kDelayBufferSize;
 
-        const float wet = std::clamp(0.02f + delayMix_ * (0.55f + feedback_ * 0.24f + warp_ * 0.10f + stutter_ * 0.08f), 0.0f, 1.0f);
+        const float wet = std::clamp(0.01f + delayMix_ * (0.40f + feedback_ * 0.28f + warp_ * 0.12f + stutter_ * 0.06f), 0.0f, 1.0f);
         const float dry = 1.0f - wet * 0.88f;
         float left = source * dry + delayedLeft * wet;
         float right = source * dry + delayedRight * wet;
@@ -497,6 +514,7 @@ private:
     int glitchHold_ = 0;
     float glitchDelaySamples_ = 48.0f;
     float glitchBlend_ = 0.0f;
+    float glitchExcite_ = 0.0f;
     bool freezeDelay_ = false;
 
     OnePoleLowPass toneFilter_;

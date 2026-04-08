@@ -70,7 +70,7 @@
         lv2:index 5 ;
         lv2:symbol "damage" ;
         lv2:name "Damage" ;
-        lv2:default 0.55 ;
+        lv2:default 0.34 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -78,7 +78,7 @@
         lv2:index 6 ;
         lv2:symbol "chaos" ;
         lv2:name "Chaos" ;
-        lv2:default 0.60 ;
+        lv2:default 0.38 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -86,7 +86,7 @@
         lv2:index 7 ;
         lv2:symbol "noise" ;
         lv2:name "Noise" ;
-        lv2:default 0.30 ;
+        lv2:default 0.10 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -94,7 +94,7 @@
         lv2:index 8 ;
         lv2:symbol "drift" ;
         lv2:name "Drift" ;
-        lv2:default 0.35 ;
+        lv2:default 0.18 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -102,7 +102,7 @@
         lv2:index 9 ;
         lv2:symbol "crunch" ;
         lv2:name "Crunch" ;
-        lv2:default 0.45 ;
+        lv2:default 0.18 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -110,7 +110,7 @@
         lv2:index 10 ;
         lv2:symbol "fold" ;
         lv2:name "Fold" ;
-        lv2:default 0.35 ;
+        lv2:default 0.18 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -118,7 +118,7 @@
         lv2:index 11 ;
         lv2:symbol "delay_time" ;
         lv2:name "Delay Time" ;
-        lv2:default 0.32 ;
+        lv2:default 0.24 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -126,7 +126,7 @@
         lv2:index 12 ;
         lv2:symbol "feedback" ;
         lv2:name "Feedback" ;
-        lv2:default 0.55 ;
+        lv2:default 0.34 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -134,7 +134,7 @@
         lv2:index 13 ;
         lv2:symbol "warp" ;
         lv2:name "Warp" ;
-        lv2:default 0.45 ;
+        lv2:default 0.24 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -142,7 +142,7 @@
         lv2:index 14 ;
         lv2:symbol "stutter" ;
         lv2:name "Stutter" ;
-        lv2:default 0.35 ;
+        lv2:default 0.20 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -150,7 +150,7 @@
         lv2:index 15 ;
         lv2:symbol "tone" ;
         lv2:name "Tone" ;
-        lv2:default 0.65 ;
+        lv2:default 0.76 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -158,7 +158,7 @@
         lv2:index 16 ;
         lv2:symbol "damping" ;
         lv2:name "Damping" ;
-        lv2:default 0.45 ;
+        lv2:default 0.60 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -166,7 +166,7 @@
         lv2:index 17 ;
         lv2:symbol "space" ;
         lv2:name "Space" ;
-        lv2:default 0.55 ;
+        lv2:default 0.32 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -174,7 +174,7 @@
         lv2:index 18 ;
         lv2:symbol "attack" ;
         lv2:name "Attack" ;
-        lv2:default 0.05 ;
+        lv2:default 0.02 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -182,7 +182,7 @@
         lv2:index 19 ;
         lv2:symbol "release" ;
         lv2:name "Release" ;
-        lv2:default 0.25 ;
+        lv2:default 0.12 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -190,7 +190,7 @@
         lv2:index 20 ;
         lv2:symbol "output" ;
         lv2:name "Output" ;
-        lv2:default 0.45 ;
+        lv2:default 0.40 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -198,7 +198,7 @@
         lv2:index 21 ;
         lv2:symbol "source_gain" ;
         lv2:name "Source Gain" ;
-        lv2:default 0.58 ;
+        lv2:default 0.62 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -206,7 +206,7 @@
         lv2:index 22 ;
         lv2:symbol "burst" ;
         lv2:name "Burst" ;
-        lv2:default 0.40 ;
+        lv2:default 0.72 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -214,7 +214,7 @@
         lv2:index 23 ;
         lv2:symbol "pitch_spread" ;
         lv2:name "Pitch Spread" ;
-        lv2:default 0.50 ;
+        lv2:default 0.24 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -222,7 +222,7 @@
         lv2:index 24 ;
         lv2:symbol "delay_mix" ;
         lv2:name "Delay Mix" ;
-        lv2:default 0.55 ;
+        lv2:default 0.30 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -230,7 +230,7 @@
         lv2:index 25 ;
         lv2:symbol "cross_feedback" ;
         lv2:name "Cross Feedback" ;
-        lv2:default 0.50 ;
+        lv2:default 0.28 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -238,7 +238,7 @@
         lv2:index 26 ;
         lv2:symbol "glitch_length" ;
         lv2:name "Glitch Length" ;
-        lv2:default 0.50 ;
+        lv2:default 0.22 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -246,7 +246,7 @@
         lv2:index 27 ;
         lv2:symbol "chaos_rate" ;
         lv2:name "Chaos Rate" ;
-        lv2:default 0.55 ;
+        lv2:default 0.32 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -254,7 +254,7 @@
         lv2:index 28 ;
         lv2:symbol "duck" ;
         lv2:name "Duck" ;
-        lv2:default 0.10 ;
+        lv2:default 0.32 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -282,7 +282,7 @@
         lv2:index 31 ;
         lv2:symbol "live_damage" ;
         lv2:name "Live Damage" ;
-        lv2:default 0.55 ;
+        lv2:default 0.34 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -290,7 +290,7 @@
         lv2:index 32 ;
         lv2:symbol "live_chaos" ;
         lv2:name "Live Chaos" ;
-        lv2:default 0.60 ;
+        lv2:default 0.38 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -298,7 +298,7 @@
         lv2:index 33 ;
         lv2:symbol "live_noise" ;
         lv2:name "Live Noise" ;
-        lv2:default 0.30 ;
+        lv2:default 0.10 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -306,7 +306,7 @@
         lv2:index 34 ;
         lv2:symbol "live_drift" ;
         lv2:name "Live Drift" ;
-        lv2:default 0.35 ;
+        lv2:default 0.18 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -314,7 +314,7 @@
         lv2:index 35 ;
         lv2:symbol "live_crunch" ;
         lv2:name "Live Crunch" ;
-        lv2:default 0.45 ;
+        lv2:default 0.18 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -322,7 +322,7 @@
         lv2:index 36 ;
         lv2:symbol "live_fold" ;
         lv2:name "Live Fold" ;
-        lv2:default 0.35 ;
+        lv2:default 0.18 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -330,7 +330,7 @@
         lv2:index 37 ;
         lv2:symbol "live_delay_time" ;
         lv2:name "Live Delay Time" ;
-        lv2:default 0.32 ;
+        lv2:default 0.24 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -338,7 +338,7 @@
         lv2:index 38 ;
         lv2:symbol "live_feedback" ;
         lv2:name "Live Feedback" ;
-        lv2:default 0.55 ;
+        lv2:default 0.34 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -346,7 +346,7 @@
         lv2:index 39 ;
         lv2:symbol "live_warp" ;
         lv2:name "Live Warp" ;
-        lv2:default 0.45 ;
+        lv2:default 0.24 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -354,7 +354,7 @@
         lv2:index 40 ;
         lv2:symbol "live_stutter" ;
         lv2:name "Live Stutter" ;
-        lv2:default 0.35 ;
+        lv2:default 0.20 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -362,7 +362,7 @@
         lv2:index 41 ;
         lv2:symbol "live_tone" ;
         lv2:name "Live Tone" ;
-        lv2:default 0.65 ;
+        lv2:default 0.76 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -370,7 +370,7 @@
         lv2:index 42 ;
         lv2:symbol "live_damping" ;
         lv2:name "Live Damping" ;
-        lv2:default 0.45 ;
+        lv2:default 0.60 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -378,7 +378,7 @@
         lv2:index 43 ;
         lv2:symbol "live_space" ;
         lv2:name "Live Space" ;
-        lv2:default 0.55 ;
+        lv2:default 0.32 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -386,7 +386,7 @@
         lv2:index 44 ;
         lv2:symbol "live_attack" ;
         lv2:name "Live Attack" ;
-        lv2:default 0.05 ;
+        lv2:default 0.02 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -394,7 +394,7 @@
         lv2:index 45 ;
         lv2:symbol "live_release" ;
         lv2:name "Live Release" ;
-        lv2:default 0.25 ;
+        lv2:default 0.12 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -402,7 +402,7 @@
         lv2:index 46 ;
         lv2:symbol "live_output" ;
         lv2:name "Live Output" ;
-        lv2:default 0.45 ;
+        lv2:default 0.40 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -410,7 +410,7 @@
         lv2:index 47 ;
         lv2:symbol "live_source_gain" ;
         lv2:name "Live Source Gain" ;
-        lv2:default 0.58 ;
+        lv2:default 0.62 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -418,7 +418,7 @@
         lv2:index 48 ;
         lv2:symbol "live_burst" ;
         lv2:name "Live Burst" ;
-        lv2:default 0.40 ;
+        lv2:default 0.72 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -426,7 +426,7 @@
         lv2:index 49 ;
         lv2:symbol "live_pitch_spread" ;
         lv2:name "Live Pitch Spread" ;
-        lv2:default 0.50 ;
+        lv2:default 0.24 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -434,7 +434,7 @@
         lv2:index 50 ;
         lv2:symbol "live_delay_mix" ;
         lv2:name "Live Delay Mix" ;
-        lv2:default 0.55 ;
+        lv2:default 0.30 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -442,7 +442,7 @@
         lv2:index 51 ;
         lv2:symbol "live_cross_feedback" ;
         lv2:name "Live Cross Feedback" ;
-        lv2:default 0.50 ;
+        lv2:default 0.28 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -450,7 +450,7 @@
         lv2:index 52 ;
         lv2:symbol "live_glitch_length" ;
         lv2:name "Live Glitch Length" ;
-        lv2:default 0.50 ;
+        lv2:default 0.22 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -458,7 +458,7 @@
         lv2:index 53 ;
         lv2:symbol "live_chaos_rate" ;
         lv2:name "Live Chaos Rate" ;
-        lv2:default 0.55 ;
+        lv2:default 0.32 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [
@@ -466,7 +466,7 @@
         lv2:index 54 ;
         lv2:symbol "live_duck" ;
         lv2:name "Live Duck" ;
-        lv2:default 0.10 ;
+        lv2:default 0.32 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0
     ] , [

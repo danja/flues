@@ -37,6 +37,7 @@ Or from the repo root:
 - `Clock Mode`: `Transport` follows host play/stop when the host provides `time:Position`; `Free` ignores transport and runs from the local BPM port.
 - `BPM`: fallback clock in `Free` mode, and fallback tempo when the host does not provide BPM.
 - `Randomise`: one-shot Gremlin patch scramble. This sends a fresh random set of Gremlin direct-knob CCs, so it changes the underlying patch rather than just jolting the macro lanes for one block.
+  The ranges are intentionally biased toward percussive tonal patches with glitchy delay space, not maximum damage at every control.
 
 ### Continuous lanes
 
@@ -75,14 +76,14 @@ When a trigger step lands and passes its probability check, GremlinDriver emits 
 
 ## Suggested starting setup
 
-This is a good first patch against Gremlin defaults:
+This is the current factory-leaning setup against Gremlin defaults:
 
-- `Lane 1`: `Macro 1`, `Sine`, medium rate, medium-high depth
-- `Lane 2`: `Macro 3`, `RandomWalk`, slower rate
-- `Lane 3`: `Macro 6`, `SampleHold`, slow rate, deeper movement
-- `Lane 4`: `Macro 8`, `Logistic`, medium rate, modest depth
-- `Trigger 1`: `Burst`, slow rate, low chance
-- `Trigger 2`: `Scene Up`, very slow rate, moderate chance
+- `Lane 1`: `Macro 1`, `Triangle`, slow rate, modest depth
+- `Lane 2`: `Macro 2`, `RandomWalk`, slow rate, moderate depth
+- `Lane 3`: `Macro 4`, `SampleHold`, slow rate, moderate depth
+- `Lane 4`: `Macro 6`, `Logistic`, slow rate, shallow depth
+- `Trigger 1`: `Burst`, slow rate, medium chance
+- `Trigger 2`: `Rand Delay`, very slow rate, low chance
 
 ## Notes
 
