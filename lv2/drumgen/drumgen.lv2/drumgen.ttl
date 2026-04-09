@@ -174,7 +174,7 @@
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 14 ;
         lv2:symbol "aux_amt" ;
-        lv2:name "Aux Amount" ;
+        lv2:name "Perc Amount" ;
         lv2:default 0.28 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
@@ -205,4 +205,20 @@
         lv2:minimum 0 ;
         lv2:maximum 1048576 ;
         lv2:portProperty lv2:integer ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "tom_amt" ;
+        lv2:name "Tom Amount" ;
+        lv2:default 0.30 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "metal_amt" ;
+        lv2:name "Metal Amount" ;
+        lv2:default 0.26 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
     ] .

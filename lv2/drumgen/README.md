@@ -31,7 +31,7 @@ From the repo root:
 
 - Selectors: Genre, Channel, Kit Map, Bars, Resolution
 - Feel: Density, Variation, Fill, Seed
-- Lane Macros: Kick, Backbeat, Hat, Aux
+- Lane Macros: Kick, Backbeat, Hat, Tom, Metal, Perc
 - Actions:
   - `New` regenerates the full pattern
   - `Mutate` rerolls the pattern with the current feel settings

@@ -38,6 +38,8 @@ enum PortIndex {
     PORT_ACTION_NEW,
     PORT_ACTION_MUTATE,
     PORT_ACTION_FILL,
+    PORT_TOM_AMT,
+    PORT_METAL_AMT,
     PORT_TOTAL_COUNT
 };
 
@@ -133,9 +135,30 @@ struct ControlSnapshot {
     float backbeat_amt = 0.76f;
     float hat_amt = 0.82f;
     float aux_amt = 0.28f;
+    float tom_amt = 0.30f;
+    float metal_amt = 0.26f;
     int action_new = 0;
     int action_mutate = 0;
     int action_fill = 0;
+};
+
+struct LegacyControlSnapshotV1 {
+    int genre;
+    int channel;
+    int kit_map;
+    int bars;
+    int resolution;
+    float density;
+    float variation;
+    float fill;
+    uint32_t seed;
+    float kick_amt;
+    float backbeat_amt;
+    float hat_amt;
+    float aux_amt;
+    int action_new;
+    int action_mutate;
+    int action_fill;
 };
 
 struct DrumStepCell {
@@ -202,6 +225,8 @@ struct DrumGen {
     const float* backbeat_amt_port = nullptr;
     const float* hat_amt_port = nullptr;
     const float* aux_amt_port = nullptr;
+    const float* tom_amt_port = nullptr;
+    const float* metal_amt_port = nullptr;
     const float* action_new_port = nullptr;
     const float* action_mutate_port = nullptr;
     const float* action_fill_port = nullptr;
@@ -341,7 +366,9 @@ static bool controls_match_excluding_actions(const ControlSnapshot& a, const Con
            fabsf(a.kick_amt - b.kick_amt) < 0.0001f &&
            fabsf(a.backbeat_amt - b.backbeat_amt) < 0.0001f &&
            fabsf(a.hat_amt - b.hat_amt) < 0.0001f &&
-           fabsf(a.aux_amt - b.aux_amt) < 0.0001f;
+           fabsf(a.aux_amt - b.aux_amt) < 0.0001f &&
+           fabsf(a.tom_amt - b.tom_amt) < 0.0001f &&
+           fabsf(a.metal_amt - b.metal_amt) < 0.0001f;
 }
 
 static int note_for_lane(int kit_map, int lane) {
@@ -356,10 +383,11 @@ static float lane_macro(const ControlSnapshot& controls, int lane) {
         case LANE_SNARE: return controls.backbeat_amt;
         case LANE_CLOSED_HAT:
         case LANE_OPEN_HAT: return controls.hat_amt;
-        case LANE_CRASH:
         case LANE_LOW_TOM:
-        case LANE_HIGH_TOM:
+        case LANE_HIGH_TOM: return controls.tom_amt;
+        case LANE_CRASH:
         case LANE_BASH:
+            return controls.metal_amt;
         case LANE_COWBELL:
         case LANE_CLAVE:
         default: return controls.aux_amt;
@@ -395,7 +423,9 @@ static float anchor_probability(const ControlSnapshot& controls,
     const float kick = controls.kick_amt;
     const float backbeat = controls.backbeat_amt;
     const float hat = controls.hat_amt;
-    const float aux = controls.aux_amt;
+    const float tom = controls.tom_amt;
+    const float metal = controls.metal_amt;
+    const float perc = controls.aux_amt;
     const float fill = controls.fill;
 
     switch (lane) {
@@ -472,10 +502,10 @@ static float anchor_probability(const ControlSnapshot& controls,
 
         case LANE_CRASH:
             if (beat_start && beat_index == 0) {
-                return (bar_index == 0 ? 0.34f : 0.16f) + 0.18f * aux;
+                return (bar_index == 0 ? 0.34f : 0.16f) + 0.18f * metal;
             }
             if (fill_bar && beat_start && beat_index >= 2) {
-                return 0.08f + 0.18f * fill;
+                return 0.08f + 0.18f * fill * (0.55f + 0.45f * metal);
             }
             break;
 
@@ -505,33 +535,33 @@ static float anchor_probability(const ControlSnapshot& controls,
 
         case LANE_LOW_TOM:
             if (fill_bar && beat_index >= 2 && (offbeat || late_sub)) {
-                return 0.08f + 0.28f * fill + 0.12f * aux;
+                return 0.08f + 0.28f * fill + 0.12f * tom;
             }
             break;
 
         case LANE_HIGH_TOM:
             if (fill_bar && beat_index >= 2 && !beat_start) {
-                return 0.08f + 0.26f * fill + 0.12f * aux;
+                return 0.08f + 0.26f * fill + 0.12f * tom;
             }
             break;
 
         case LANE_BASH:
             switch (controls.genre) {
                 case GENRE_ELECTRO:
-                    if (beat_start && beat_index == 0) return 0.14f + 0.16f * aux;
-                    if (fill_bar && beat_index >= 2 && (beat_start || late_sub)) return 0.10f + 0.26f * fill * aux;
+                    if (beat_start && beat_index == 0) return 0.14f + 0.16f * metal;
+                    if (fill_bar && beat_index >= 2 && (beat_start || late_sub)) return 0.10f + 0.26f * fill * metal;
                     if (late_sub && beat_index == 3) return 0.08f + 0.14f * controls.variation;
                     break;
                 case GENRE_MOTORIK:
-                    if (beat_start && beat_index == 0) return 0.12f + 0.18f * aux;
-                    if (fill_bar && beat_index == 3 && beat_start) return 0.10f + 0.22f * fill * aux;
+                    if (beat_start && beat_index == 0) return 0.12f + 0.18f * metal;
+                    if (fill_bar && beat_index == 3 && beat_start) return 0.10f + 0.22f * fill * metal;
                     break;
                 case GENRE_DUB:
-                    if ((offbeat && beat_index == 3) || (late_sub && beat_index == 2)) return 0.10f + 0.18f * aux;
-                    if (fill_bar && beat_index == 3) return 0.10f + 0.18f * fill * aux;
+                    if ((offbeat && beat_index == 3) || (late_sub && beat_index == 2)) return 0.10f + 0.18f * metal;
+                    if (fill_bar && beat_index == 3) return 0.10f + 0.18f * fill * metal;
                     break;
                 default:
-                    if (fill_bar && beat_index >= 3 && (offbeat || late_sub)) return 0.06f + 0.18f * fill * aux;
+                    if (fill_bar && beat_index >= 3 && (offbeat || late_sub)) return 0.06f + 0.18f * fill * metal;
                     break;
             }
             break;
@@ -539,22 +569,22 @@ static float anchor_probability(const ControlSnapshot& controls,
         case LANE_COWBELL:
             switch (controls.genre) {
                 case GENRE_DISCO:
-                    if (offbeat) return 0.16f + 0.24f * aux;
-                    if (beat_start && (beat_index == 1 || beat_index == 3)) return 0.08f + 0.14f * aux;
+                    if (offbeat) return 0.16f + 0.24f * perc;
+                    if (beat_start && (beat_index == 1 || beat_index == 3)) return 0.08f + 0.14f * perc;
                     break;
                 case GENRE_MOTORIK:
-                    if (beat_start && (beat_index == 0 || beat_index == 2)) return 0.10f + 0.18f * aux;
-                    if (offbeat) return 0.10f + 0.16f * aux;
+                    if (beat_start && (beat_index == 0 || beat_index == 2)) return 0.10f + 0.18f * perc;
+                    if (offbeat) return 0.10f + 0.16f * perc;
                     break;
                 case GENRE_BOSSA:
-                    if ((beat_index == 0 || beat_index == 2) && late_sub) return 0.16f + 0.18f * aux;
-                    if ((beat_index == 1 || beat_index == 3) && offbeat) return 0.16f + 0.20f * aux;
+                    if ((beat_index == 0 || beat_index == 2) && late_sub) return 0.16f + 0.18f * perc;
+                    if ((beat_index == 1 || beat_index == 3) && offbeat) return 0.16f + 0.20f * perc;
                     break;
                 case GENRE_AFRO:
-                    if (offbeat || late_sub) return 0.14f + 0.20f * aux;
+                    if (offbeat || late_sub) return 0.14f + 0.20f * perc;
                     break;
                 default:
-                    if (fill_bar && beat_index >= 2 && offbeat) return 0.06f + 0.16f * fill * aux;
+                    if (fill_bar && beat_index >= 2 && offbeat) return 0.06f + 0.16f * fill * perc;
                     break;
             }
             break;
@@ -562,23 +592,23 @@ static float anchor_probability(const ControlSnapshot& controls,
         case LANE_CLAVE:
             switch (controls.genre) {
                 case GENRE_BOSSA:
-                    if (beat_index == 0 && beat_start) return 0.26f + 0.16f * aux;
-                    if (beat_index == 1 && offbeat) return 0.22f + 0.16f * aux;
-                    if (beat_index == 2 && late_sub) return 0.22f + 0.16f * aux;
-                    if (beat_index == 3 && beat_start) return 0.24f + 0.16f * aux;
+                    if (beat_index == 0 && beat_start) return 0.26f + 0.16f * perc;
+                    if (beat_index == 1 && offbeat) return 0.22f + 0.16f * perc;
+                    if (beat_index == 2 && late_sub) return 0.22f + 0.16f * perc;
+                    if (beat_index == 3 && beat_start) return 0.24f + 0.16f * perc;
                     break;
                 case GENRE_AFRO:
-                    if (beat_index == 0 && beat_start) return 0.20f + 0.18f * aux;
-                    if (beat_index == 1 && late_sub) return 0.18f + 0.18f * aux;
-                    if (beat_index == 2 && offbeat) return 0.22f + 0.18f * aux;
-                    if (beat_index == 3 && beat_start) return 0.18f + 0.16f * aux;
+                    if (beat_index == 0 && beat_start) return 0.20f + 0.18f * perc;
+                    if (beat_index == 1 && late_sub) return 0.18f + 0.18f * perc;
+                    if (beat_index == 2 && offbeat) return 0.22f + 0.18f * perc;
+                    if (beat_index == 3 && beat_start) return 0.18f + 0.16f * perc;
                     break;
                 case GENRE_SHUFFLE:
-                    if (beat_index == 1 && late_sub) return 0.10f + 0.14f * aux;
-                    if (beat_index == 3 && offbeat) return 0.10f + 0.14f * aux;
+                    if (beat_index == 1 && late_sub) return 0.10f + 0.14f * perc;
+                    if (beat_index == 3 && offbeat) return 0.10f + 0.14f * perc;
                     break;
                 default:
-                    if (fill_bar && beat_index == 3 && !beat_start) return 0.06f + 0.14f * fill * aux;
+                    if (fill_bar && beat_index == 3 && !beat_start) return 0.06f + 0.14f * fill * perc;
                     break;
             }
             break;
@@ -665,16 +695,16 @@ static float euclid_influence_for_lane(const ControlSnapshot& controls, int lane
         case LANE_SNARE:
             return 0.10f + 0.32f * controls.variation * controls.backbeat_amt;
         case LANE_CRASH:
-            return 0.10f + 0.28f * controls.variation * controls.aux_amt + (fill_bar ? 0.16f : 0.0f);
+            return 0.10f + 0.28f * controls.variation * controls.metal_amt + (fill_bar ? 0.16f : 0.0f);
         case LANE_CLOSED_HAT:
             return 0.24f + 0.52f * controls.variation * controls.hat_amt;
         case LANE_OPEN_HAT:
             return 0.16f + 0.42f * controls.variation * controls.hat_amt;
         case LANE_LOW_TOM:
         case LANE_HIGH_TOM:
-            return 0.10f + 0.44f * controls.variation * controls.aux_amt + (fill_bar ? 0.24f : 0.0f);
+            return 0.10f + 0.44f * controls.variation * controls.tom_amt + (fill_bar ? 0.24f : 0.0f);
         case LANE_BASH:
-            return 0.10f + 0.36f * controls.variation * controls.aux_amt + (fill_bar ? 0.28f : 0.0f);
+            return 0.10f + 0.36f * controls.variation * controls.metal_amt + (fill_bar ? 0.28f : 0.0f);
         case LANE_COWBELL:
             return 0.18f + 0.34f * controls.variation * controls.aux_amt;
         case LANE_CLAVE:
@@ -871,7 +901,7 @@ static void apply_fill_overlay(PatternStateBlob* pattern, const ControlSnapshot&
                 rise += 1;
             }
             set_step_hit(pattern, LANE_HIGH_TOM, clampi(bar_end - 2, zone_start, bar_end - 1), 108, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
-            if (controls.aux_amt > 0.20f) {
+            if (controls.metal_amt > 0.20f) {
                 set_step_hit(pattern, LANE_BASH, bar_end - 1, 116, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
             }
             break;
@@ -1186,6 +1216,8 @@ static ControlSnapshot read_controls(const DrumGen* self) {
     c.backbeat_amt = clampf(self->backbeat_amt_port ? *self->backbeat_amt_port : 0.76f, 0.0f, 1.0f);
     c.hat_amt = clampf(self->hat_amt_port ? *self->hat_amt_port : 0.82f, 0.0f, 1.0f);
     c.aux_amt = clampf(self->aux_amt_port ? *self->aux_amt_port : 0.28f, 0.0f, 1.0f);
+    c.tom_amt = clampf(self->tom_amt_port ? *self->tom_amt_port : 0.30f, 0.0f, 1.0f);
+    c.metal_amt = clampf(self->metal_amt_port ? *self->metal_amt_port : 0.26f, 0.0f, 1.0f);
     c.action_new = clampi((int)lroundf(self->action_new_port ? *self->action_new_port : 0.0f), 0, 1048576);
     c.action_mutate = clampi((int)lroundf(self->action_mutate_port ? *self->action_mutate_port : 0.0f), 0, 1048576);
     c.action_fill = clampi((int)lroundf(self->action_fill_port ? *self->action_fill_port : 0.0f), 0, 1048576);
@@ -1306,6 +1338,27 @@ static LV2_State_Status drumgen_state_restore(LV2_Handle instance,
     if (controls_data && size == sizeof(ControlSnapshot) && type == self->urids.atom_Chunk) {
         memcpy(&self->controls, controls_data, sizeof(ControlSnapshot));
         self->previous_controls = self->controls;
+    } else if (controls_data && size == sizeof(LegacyControlSnapshotV1) && type == self->urids.atom_Chunk) {
+        const LegacyControlSnapshotV1* legacy = (const LegacyControlSnapshotV1*)controls_data;
+        self->controls.genre = legacy->genre;
+        self->controls.channel = legacy->channel;
+        self->controls.kit_map = legacy->kit_map;
+        self->controls.bars = legacy->bars;
+        self->controls.resolution = legacy->resolution;
+        self->controls.density = legacy->density;
+        self->controls.variation = legacy->variation;
+        self->controls.fill = legacy->fill;
+        self->controls.seed = legacy->seed;
+        self->controls.kick_amt = legacy->kick_amt;
+        self->controls.backbeat_amt = legacy->backbeat_amt;
+        self->controls.hat_amt = legacy->hat_amt;
+        self->controls.aux_amt = legacy->aux_amt;
+        self->controls.tom_amt = legacy->aux_amt;
+        self->controls.metal_amt = legacy->aux_amt;
+        self->controls.action_new = legacy->action_new;
+        self->controls.action_mutate = legacy->action_mutate;
+        self->controls.action_fill = legacy->action_fill;
+        self->previous_controls = self->controls;
     }
 
     const void* pattern_data = retrieve(handle, self->urids.state_pattern, &size, &type, &flags);
@@ -1389,6 +1442,8 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_ACTION_NEW: self->action_new_port = (const float*)data; break;
         case PORT_ACTION_MUTATE: self->action_mutate_port = (const float*)data; break;
         case PORT_ACTION_FILL: self->action_fill_port = (const float*)data; break;
+        case PORT_TOM_AMT: self->tom_amt_port = (const float*)data; break;
+        case PORT_METAL_AMT: self->metal_amt_port = (const float*)data; break;
         default: break;
     }
 }
