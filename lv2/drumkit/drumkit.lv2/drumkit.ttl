@@ -93,7 +93,7 @@
         lv2:default 0.5 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Body/shell resonator mix and Q (4-20)"
+        rdfs:comment "Body-shell balance with resonator retuning and crack emphasis"
     ] , [
         # Port 8: Snare Snap
         a lv2:InputPort , lv2:ControlPort ;
@@ -103,14 +103,14 @@
         lv2:default 0.6 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Noise level and HPF cutoff (500Hz-4kHz)"
+        rdfs:comment "Noise level and HPF cutoff (700Hz-6.5kHz)"
     ] , [
         # Port 9: Snare Level
         a lv2:InputPort , lv2:ControlPort ;
         lv2:index 9 ;
         lv2:symbol "snare_level" ;
         lv2:name "Snare Level" ;
-        lv2:default 1.0 ;
+        lv2:default 1.05 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.5 ;
         rdfs:comment "Per-voice output level"
@@ -170,7 +170,7 @@
         lv2:index 15 ;
         lv2:symbol "tom1_level" ;
         lv2:name "Tom 1 Level" ;
-        lv2:default 1.0 ;
+        lv2:default 0.74 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.5 ;
         rdfs:comment "Per-voice output level"
@@ -200,7 +200,7 @@
         lv2:index 18 ;
         lv2:symbol "tom2_level" ;
         lv2:name "Tom 2 Level" ;
-        lv2:default 1.0 ;
+        lv2:default 0.72 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.5 ;
         rdfs:comment "Per-voice output level"
@@ -213,7 +213,7 @@
         lv2:default 0.6 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Closed hat HPF cutoff (4kHz-12kHz exponential)"
+        rdfs:comment "Closed hat brightness lift (5.5kHz-14.5kHz exponential)"
     ] , [
         # Port 20: Closed HH Decay
         a lv2:InputPort , lv2:ControlPort ;
@@ -230,7 +230,7 @@
         lv2:index 21 ;
         lv2:symbol "hh_closed_level" ;
         lv2:name "Closed HH Level" ;
-        lv2:default 1.0 ;
+        lv2:default 1.05 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.5 ;
         rdfs:comment "Per-voice output level"
@@ -243,7 +243,7 @@
         lv2:default 0.7 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
-        rdfs:comment "Open hat HPF cutoff (4kHz-12kHz exponential)"
+        rdfs:comment "Open hat brightness lift (5.5kHz-14.5kHz exponential)"
     ] , [
         # Port 23: Open HH Decay
         a lv2:InputPort , lv2:ControlPort ;
@@ -260,7 +260,7 @@
         lv2:index 24 ;
         lv2:symbol "hh_open_level" ;
         lv2:name "Open HH Level" ;
-        lv2:default 1.0 ;
+        lv2:default 1.02 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.5 ;
         rdfs:comment "Per-voice output level"

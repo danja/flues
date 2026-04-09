@@ -20,6 +20,7 @@ private:
     float sampleRate;
     NoiseGenerator noise;
     BiquadFilter hpf;
+    BiquadFilter sizzleBand;
     ADEnvelope env;
 
     // 6 square wave oscillators (inharmonic ratios)
@@ -31,6 +32,7 @@ private:
     float decayTime;
     bool isClosed;
     float level;
+    float velocity;
 
     static float expoMap(float value, float min, float max) {
         return min * std::pow(max / min, std::clamp(value, 0.0f, 1.0f));
@@ -41,18 +43,21 @@ public:
         : sampleRate(sampleRate)
         , noise(123123123u)
         , hpf(sampleRate, BiquadFilter::Type::Highpass)
+        , sizzleBand(sampleRate, BiquadFilter::Type::Bandpass)
         , env(sampleRate)
         , brightnessParam(0.6f)
         , decayTime(0.1f)
         , isClosed(closed)
         , level(1.0f)
+        , velocity(1.0f)
     {
         for (int i = 0; i < 6; ++i) {
             phases[i] = 0.0f;
         }
 
-        hpf.setParameters(6000.0f, 0.707f);
-        env.setAttackTime(0.0003f);
+        hpf.setParameters(7000.0f, 0.85f);
+        sizzleBand.setParameters(9000.0f, 1.3f);
+        env.setAttackTime(0.0001f);
         env.setDecayTime(closed ? 0.1f : 0.5f);
     }
 
@@ -64,8 +69,9 @@ public:
 
     void setBrightness(float value) {
         brightnessParam = std::clamp(value, 0.0f, 1.0f);
-        const float cutoff = expoMap(brightnessParam, 4000.0f, 12000.0f);
-        hpf.setFrequency(cutoff);
+        const float cutoff = expoMap(brightnessParam, 5500.0f, 14500.0f);
+        hpf.setParameters(cutoff, 0.85f + brightnessParam * 0.35f);
+        sizzleBand.setParameters(std::min(cutoff * 1.12f, sampleRate * 0.42f), 1.15f + brightnessParam * 0.9f);
     }
 
     void setDecay(float value) {
@@ -80,11 +86,13 @@ public:
     }
 
     void trigger(float vel = 1.0f) {
+        velocity = std::clamp(vel, 0.0f, 1.0f);
         for (int i = 0; i < 6; ++i) {
             phases[i] = 0.0f;
         }
         env.trigger();
         hpf.reset();
+        sizzleBand.reset();
     }
 
     float process() {
@@ -92,31 +100,32 @@ public:
             return 0.0f;
         }
 
-        // Generate 6 inharmonic square waves
+        // Build a more metallic source than a plain summed square stack.
         float oscSum = 0.0f;
+        float ring = 0.0f;
+        float previous = 0.0f;
         for (int i = 0; i < 6; ++i) {
-            const float freq = baseFreq * ratios[i];
+            const float freq = (baseFreq * 1.35f) * ratios[i];
             phases[i] += freq / sampleRate;
             if (phases[i] >= 1.0f) phases[i] -= 1.0f;
 
-            // Square wave
             const float square = (phases[i] < 0.5f) ? 1.0f : -1.0f;
-            oscSum += square * (1.0f / (i + 1));  // Decay amplitude with harmonic
+            oscSum += square * (0.85f / (i + 1));
+            if (i > 0) {
+                ring += square * previous * (0.34f / (float)i);
+            }
+            previous = square;
         }
 
-        // Ring modulation (multiply oscillators)
-        float sample = oscSum * 0.25f;
-
-        // Add noise
-        sample += noise.process() * 0.7f;
-
-        // High-pass filter
-        sample = hpf.process(sample);
-
-        // Envelope
+        const float noiseSample = noise.process();
+        float sample = oscSum * 0.19f + ring * 0.42f + noiseSample * 0.95f;
+        const float filtered = hpf.process(sample);
+        const float sizzle = sizzleBand.process(noise.process() * 0.75f + ring * 0.28f);
+        sample = filtered * 0.92f + sizzle * 0.48f;
+        sample = std::tanh(sample * (1.08f + 0.45f * brightnessParam));
         sample *= env.process();
 
-        return sample * 0.5f * level;
+        return sample * (isClosed ? 0.66f : 0.74f) * level * (0.9f + 0.1f * velocity);
     }
 
     bool isActive() const { return env.isActive(); }
@@ -124,6 +133,7 @@ public:
     void reset() {
         env.reset();
         hpf.reset();
+        sizzleBand.reset();
         for (int i = 0; i < 6; ++i) {
             phases[i] = 0.0f;
         }

@@ -164,7 +164,7 @@ static const ControlDesc kControls[] = {
     // Snare (2 params)
     { GROUP_SNARE, "TONE", PORT_SNARE_TONE, 0.0f, 1.0f, 0.5f },
     { GROUP_SNARE, "SNAP", PORT_SNARE_SNAP, 0.0f, 1.0f, 0.6f },
-    { GROUP_SNARE, "LEVEL", PORT_SNARE_LEVEL, 0.0f, 1.5f, 1.0f },
+    { GROUP_SNARE, "LEVEL", PORT_SNARE_LEVEL, 0.0f, 1.5f, 1.05f },
 
     // Clap (2 params)
     { GROUP_CLAP, "DENSITY", PORT_CLAP_DENSITY, 0.0f, 1.0f, 0.55f },
@@ -189,18 +189,18 @@ static const ControlDesc kControls[] = {
     // Toms (independent)
     { GROUP_TOM1, "LO PITCH", PORT_TOM1_PITCH, 0.0f, 1.0f, 0.40f },
     { GROUP_TOM1, "LO DECAY", PORT_TOM1_DECAY, 0.0f, 1.0f, 0.45f },
-    { GROUP_TOM1, "LO LVL", PORT_TOM1_LEVEL, 0.0f, 1.5f, 1.0f },
+    { GROUP_TOM1, "LO LVL", PORT_TOM1_LEVEL, 0.0f, 1.5f, 0.74f },
     { GROUP_TOM2, "HI PITCH", PORT_TOM2_PITCH, 0.0f, 1.0f, 0.55f },
     { GROUP_TOM2, "HI DECAY", PORT_TOM2_DECAY, 0.0f, 1.0f, 0.45f },
-    { GROUP_TOM2, "HI LVL", PORT_TOM2_LEVEL, 0.0f, 1.5f, 1.0f },
+    { GROUP_TOM2, "HI LVL", PORT_TOM2_LEVEL, 0.0f, 1.5f, 0.72f },
 
     // Hi-Hats (independent)
     { GROUP_HH_CLOSED, "C BRIGHT", PORT_HH_CLOSED_BRIGHTNESS, 0.0f, 1.0f, 0.60f },
     { GROUP_HH_CLOSED, "C DECAY", PORT_HH_CLOSED_DECAY, 0.0f, 1.0f, 0.30f },
-    { GROUP_HH_CLOSED, "C LEVEL", PORT_HH_CLOSED_LEVEL, 0.0f, 1.5f, 1.0f },
+    { GROUP_HH_CLOSED, "C LEVEL", PORT_HH_CLOSED_LEVEL, 0.0f, 1.5f, 1.05f },
     { GROUP_HH_OPEN, "O BRIGHT", PORT_HH_OPEN_BRIGHTNESS, 0.0f, 1.0f, 0.70f },
     { GROUP_HH_OPEN, "O DECAY", PORT_HH_OPEN_DECAY, 0.0f, 1.0f, 0.55f },
-    { GROUP_HH_OPEN, "O LEVEL", PORT_HH_OPEN_LEVEL, 0.0f, 1.5f, 1.0f },
+    { GROUP_HH_OPEN, "O LEVEL", PORT_HH_OPEN_LEVEL, 0.0f, 1.5f, 1.02f },
 
     // Bash (6 params)
     { GROUP_BASH, "SIZE", PORT_BASH_SIZE, 0.0f, 1.0f, 0.45f },
@@ -278,6 +278,23 @@ static float clamp_value(const Knob* knob, float value) {
 static void notify_host(DrumkitUI* ui, uint32_t port, float value) {
     if (ui->write) {
         ui->write(ui->controller, port, sizeof(float), 0, &value);
+    }
+}
+
+static void init_controls(DrumkitUI* ui) {
+    memset(ui->knob_used, 0, sizeof(ui->knob_used));
+    memset(ui->knobs, 0, sizeof(ui->knobs));
+
+    for (int i = 0; i < kControlCount; ++i) {
+        const ControlDesc* desc = &kControls[i];
+        Knob* knob = &ui->knobs[desc->port];
+        knob->port = desc->port;
+        knob->label = desc->label;
+        knob->min = desc->min;
+        knob->max = desc->max;
+        knob->def = desc->def;
+        knob->value = desc->def;
+        ui->knob_used[desc->port] = true;
     }
 }
 
@@ -401,18 +418,15 @@ static void draw_ui(DrumkitUI* ui) {
     }
 
     cairo_destroy(cr);
-
-    // Force redraw - don't clear window
-    XSync(ui->display, False);
-
-    pthread_mutex_lock(&ui->mutex);
-    ui->needs_redraw = false;
-    pthread_mutex_unlock(&ui->mutex);
 }
 
 // ===== Layout Calculation =====
 
 static void setup_layout(DrumkitUI* ui, int available_width) {
+    for (int g = 0; g < GROUP_COUNT; ++g) {
+        ui->groups[g] = (GroupState){0};
+    }
+
     // Count controls per group
     for (int i = 0; i < kControlCount; ++i) {
         ui->groups[kControls[i].group].count++;
@@ -468,7 +482,7 @@ static void setup_layout(DrumkitUI* ui, int available_width) {
         }
 
         // Center row
-        int start_x = (available_width - row_width) / 2;
+        int start_x = (available_width > row_width) ? (available_width - row_width) / 2 : 10;
         int current_x = start_x;
 
         // Position groups in row
@@ -489,14 +503,7 @@ static void setup_layout(DrumkitUI* ui, int available_width) {
     for (int i = 0; i < kControlCount; ++i) {
         const ControlDesc* desc = &kControls[i];
         GroupState* group = &ui->groups[desc->group];
-
         Knob* knob = &ui->knobs[desc->port];
-        knob->port = desc->port;
-        knob->label = desc->label;
-        knob->min = desc->min;
-        knob->max = desc->max;
-        knob->def = desc->def;
-        knob->value = desc->def;
 
         int col = group->assigned % group->columns;
         int row = group->assigned / group->columns;
@@ -506,13 +513,12 @@ static void setup_layout(DrumkitUI* ui, int available_width) {
         knob->width = KNOB_SIZE;
         knob->height = KNOB_HEIGHT;
 
-        ui->knob_used[desc->port] = true;
         group->assigned++;
     }
 
     // Calculate content size
     ui->content_width = available_width;
-    ui->content_height = current_y;
+    ui->content_height = current_y - GROUP_GAP_Y + 12;
 }
 
 // ===== Event Handling =====
@@ -531,28 +537,20 @@ static int find_knob_at(DrumkitUI* ui, int x, int y) {
 }
 
 static void handle_button_press(DrumkitUI* ui, const XButtonEvent* event) {
-    pthread_mutex_lock(&ui->mutex);
-
     int knob_index = find_knob_at(ui, event->x, event->y);
     if (knob_index >= 0) {
         ui->active_knob = knob_index;
         ui->drag_start_y = event->y;
         ui->drag_start_value = ui->knobs[knob_index].value;
     }
-
-    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void handle_button_release(DrumkitUI* ui, const XButtonEvent* event) {
     (void)event;
-    pthread_mutex_lock(&ui->mutex);
     ui->active_knob = -1;
-    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void handle_motion(DrumkitUI* ui, const XMotionEvent* event) {
-    pthread_mutex_lock(&ui->mutex);
-
     if (ui->active_knob >= 0) {
         Knob* knob = &ui->knobs[ui->active_knob];
         double delta = ui->drag_start_y - event->y;
@@ -565,15 +563,11 @@ static void handle_motion(DrumkitUI* ui, const XMotionEvent* event) {
             notify_host(ui, knob->port, knob->value);
         }
     }
-
-    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void handle_scroll(DrumkitUI* ui, const XButtonEvent* event) {
     int knob_index = find_knob_at(ui, event->x, event->y);
     if (knob_index < 0) return;
-
-    pthread_mutex_lock(&ui->mutex);
 
     Knob* knob = &ui->knobs[knob_index];
     float step = (knob->max - knob->min) / 100.0f;
@@ -591,26 +585,25 @@ static void handle_scroll(DrumkitUI* ui, const XButtonEvent* event) {
         ui->needs_redraw = true;
         notify_host(ui, knob->port, value);
     }
-
-    pthread_mutex_unlock(&ui->mutex);
 }
 
 static void process_x_event(DrumkitUI* ui, const XEvent* event) {
     switch (event->type) {
         case Expose:
             if (event->xexpose.count == 0) {
-                draw_ui(ui);
+                ui->needs_redraw = true;
             }
             break;
 
         case ConfigureNotify:
+            ui->width = event->xconfigure.width;
+            ui->height = event->xconfigure.height;
             if (ui->surface) {
                 cairo_xlib_surface_set_size(ui->surface,
                     event->xconfigure.width, event->xconfigure.height);
             }
-            pthread_mutex_lock(&ui->mutex);
+            setup_layout(ui, ui->width);
             ui->needs_redraw = true;
-            pthread_mutex_unlock(&ui->mutex);
             break;
 
         case ButtonPress:
@@ -636,27 +629,23 @@ static void process_x_event(DrumkitUI* ui, const XEvent* event) {
 static void* event_thread_main(void* data) {
     DrumkitUI* ui = (DrumkitUI*)data;
 
-    // Force initial draw
-    draw_ui(ui);
-
     while (ui->running) {
-        // Process X events
         while (XPending(ui->display) > 0) {
             XEvent event;
             XNextEvent(ui->display, &event);
+            pthread_mutex_lock(&ui->mutex);
             process_x_event(ui, &event);
+            pthread_mutex_unlock(&ui->mutex);
         }
 
-        // Redraw if needed
-        pthread_mutex_lock(&ui->mutex);
-        bool need_draw = ui->needs_redraw;
-        pthread_mutex_unlock(&ui->mutex);
-
-        if (need_draw) {
+        if (ui->needs_redraw) {
+            pthread_mutex_lock(&ui->mutex);
             draw_ui(ui);
+            ui->needs_redraw = false;
+            pthread_mutex_unlock(&ui->mutex);
         }
 
-        usleep(16000);  // ~60 FPS
+        usleep(16000);
     }
 
     return NULL;
@@ -676,6 +665,9 @@ static LV2UI_Handle ui_instantiate(
     ensure_xlib_threads();
 
     DrumkitUI* ui = (DrumkitUI*)calloc(1, sizeof(DrumkitUI));
+    if (!ui) {
+        return NULL;
+    }
     pthread_mutex_init(&ui->mutex, NULL);
     ui->write = write_function;
     ui->controller = controller;
@@ -684,6 +676,7 @@ static LV2UI_Handle ui_instantiate(
     // Open display
     ui->display = XOpenDisplay(NULL);
     if (!ui->display) {
+        pthread_mutex_destroy(&ui->mutex);
         free(ui);
         return NULL;
     }
@@ -699,6 +692,7 @@ static LV2UI_Handle ui_instantiate(
 
     // Setup layout
     const int default_width = 820;
+    init_controls(ui);
     setup_layout(ui, default_width);
     ui->width = default_width;
     ui->height = ui->content_height + 20;
@@ -725,6 +719,7 @@ static LV2UI_Handle ui_instantiate(
 
     // Start event thread
     ui->running = true;
+    ui->needs_redraw = true;
     pthread_create(&ui->thread, NULL, event_thread_main, ui);
 
     *widget = (LV2UI_Widget)(uintptr_t)ui->window;

@@ -1,5 +1,5 @@
 // TomVoice.hpp
-// Tom synthesis with resonant bandpass and pitch envelope
+// Tom synthesis with resonant body + attack knock and pitch envelope
 // Parameters: Pitch (note-dependent), Decay
 
 #ifndef TOM_VOICE_HPP
@@ -21,7 +21,9 @@ private:
     float sampleRate;
     PitchEnvelope pitchEnv;
     ADEnvelope ampEnv;
-    BiquadFilter resonator;
+    ADEnvelope attackEnv;
+    BiquadFilter bodyResonator;
+    BiquadFilter knockResonator;
     NoiseGenerator noise;
 
     float phase;
@@ -38,16 +40,21 @@ public:
         : sampleRate(sampleRate)
         , pitchEnv(sampleRate)
         , ampEnv(sampleRate)
-        , resonator(sampleRate, BiquadFilter::Type::Bandpass)
+        , attackEnv(sampleRate)
+        , bodyResonator(sampleRate, BiquadFilter::Type::Bandpass)
+        , knockResonator(sampleRate, BiquadFilter::Type::Bandpass)
         , noise(777888999u)
         , phase(0.0f)
         , basePitch(baseFreq)
         , velocity(1.0f)
         , level(1.0f)
     {
-        resonator.setQ(20.0f);  // High Q for metallic ring
-        ampEnv.setAttackTime(0.0005f);
-        ampEnv.setDecayTime(0.3f);
+        bodyResonator.setParameters(baseFreq, 10.0f);
+        knockResonator.setParameters(2200.0f, 2.4f);
+        ampEnv.setAttackTime(0.0003f);
+        ampEnv.setDecayTime(0.24f);
+        attackEnv.setAttackTime(0.0001f);
+        attackEnv.setDecayTime(0.022f);
     }
 
     void setBasePitch(float freq) {
@@ -55,9 +62,9 @@ public:
     }
 
     void setPitch(float value) {
-        const float startFreq = basePitch * (1.0f + value * 0.5f);
-        const float endFreq = basePitch * 0.8f;
-        pitchEnv.setParameters(startFreq, endFreq, 0.15f);
+        const float startFreq = basePitch * (1.55f + value * 0.65f);
+        const float endFreq = basePitch * (0.86f + value * 0.12f);
+        pitchEnv.setParameters(startFreq, endFreq, 0.09f);
     }
 
     void setDecay(float value) {
@@ -74,7 +81,9 @@ public:
         phase = 0.0f;
         pitchEnv.trigger();
         ampEnv.trigger();
-        resonator.reset();
+        attackEnv.trigger();
+        bodyResonator.reset();
+        knockResonator.reset();
     }
 
     float process() {
@@ -83,28 +92,39 @@ public:
         }
 
         const float freq = pitchEnv.process();
+        const float amp = ampEnv.process();
+        const float attack = attackEnv.process();
 
-        // Triangle wave oscillator
+        // Mixed sine/triangle body keeps the pitch center but avoids a hollow pure ring.
         phase += freq / sampleRate;
         if (phase >= 1.0f) phase -= 1.0f;
+        const float sine = std::sin(TWO_PI * phase);
+        const float triangle = (phase < 0.5f) ? (4.0f * phase - 1.0f) : (3.0f - 4.0f * phase);
+        const float bodyExcite = sine * 0.78f + triangle * 0.22f + noise.process() * 0.04f;
 
-        float sample = (phase < 0.5f) ? (4.0f * phase - 1.0f) : (3.0f - 4.0f * phase);
+        bodyResonator.setParameters(freq, 8.0f + velocity * 5.0f);
+        const float body = bodyResonator.process(bodyExcite);
 
-        // Add initial noise burst
-        if (ampEnv.getValue() > 0.8f) {
-            sample += noise.process() * 0.2f;
-        }
+        const float knockFreq = std::clamp(freq * 8.5f, 1400.0f, 4200.0f);
+        knockResonator.setParameters(knockFreq, 1.7f + velocity * 1.4f);
+        const float knockExcite = noise.process() * (0.55f + 0.35f * velocity) + triangle * 0.25f;
+        const float knock = knockResonator.process(knockExcite) * attack;
 
-        // Resonant filter
-        resonator.setFrequency(freq);
-        sample = resonator.process(sample);
-
-        sample *= ampEnv.process() * velocity;
-        return sample * 0.7f * level;
+        float sample = body * (0.95f + 0.12f * velocity) + knock * 0.44f;
+        sample = std::tanh(sample * 1.45f);
+        sample *= amp * velocity;
+        return sample * 0.52f * level;
     }
 
     bool isActive() const { return ampEnv.isActive(); }
-    void reset() { ampEnv.reset(); pitchEnv.reset(); resonator.reset(); phase = 0.0f; }
+    void reset() {
+        ampEnv.reset();
+        attackEnv.reset();
+        pitchEnv.reset();
+        bodyResonator.reset();
+        knockResonator.reset();
+        phase = 0.0f;
+    }
 };
 
 } // namespace flues::drumkit

@@ -41,11 +41,11 @@ A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the
 **Synthesis**: Pitch envelope → Sine oscillator → Distortion → HPF noise burst → DC blocker
 
 ### Snare Drum (3 Parameters)
-- **Tone**: Body/shell resonator mix + Q factor (4-20) - 0=body, 1=shell
-- **Snap**: Noise level + HPF cutoff 500Hz-4kHz
+- **Tone**: Body/shell balance with resonator retuning and upper-mid crack emphasis
+- **Snap**: Noise level + HPF cutoff 700Hz-6.5kHz
 - **Level**: Per-voice output gain
 
-**Synthesis**: Dual bandpass resonators (180Hz + 330Hz) + filtered noise burst
+**Synthesis**: Dual body/shell resonators + filtered noise burst + short crack resonator
 
 ### Clap (3 Parameters)
 - **Density**: Impulse count (3-7) + spacing tightness (25-10ms) + burst length (3-7ms)
@@ -58,13 +58,13 @@ A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the
 - **Tom 1 Pitch/Decay/Level**: Lo tom 60-150Hz, 80-800ms
 - **Tom 2 Pitch/Decay/Level**: Hi tom 150-400Hz, 80-800ms
 
-**Synthesis**: Pitch envelope → Triangle wave → Resonant bandpass (Q=20)
+**Synthesis**: Pitch envelope → mixed sine/triangle body → resonant knock transient → soft clipping
 
 ### Hi-Hats (6 Parameters, Split)
-- **Closed Brightness/Decay/Level**: HPF 4-12kHz, 50-200ms
-- **Open Brightness/Decay/Level**: HPF 4-12kHz, 200-1200ms
+- **Closed Brightness/Decay/Level**: Brightness lift 5.5-14.5kHz, 50-200ms
+- **Open Brightness/Decay/Level**: Brightness lift 5.5-14.5kHz, 200-1200ms
 
-**Synthesis**: 6× inharmonic square wave oscillators → Ring modulation → Noise mix → HPF
+**Synthesis**: 6× inharmonic square wave oscillators → metallic cross-ring mix → noise/sizzle bands → saturation
 
 ### Crash (3 Parameters)
 - **Brightness**: Bandpass center shift 1.5kHz-10kHz
