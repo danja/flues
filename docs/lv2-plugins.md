@@ -34,6 +34,11 @@ BassGen is a monophonic MIDI bassline generator that builds phrases from root, s
 
 *This is aimed at the gap between a utility sequencer and a phrase generator. The current implementation now includes broader harmonic support and more characterful style presets, including `Funk` and `Sabbath` biases for distinctly different bass behavior.*
 
+### drumgen
+DrumGen is a transport-synced multi-lane MIDI drum generator designed as a companion to `drumkit`. It combines genre-shaped anchor patterns with Euclidean variation, follows host transport, defaults to MIDI channel 10, and uses the `drumkit` lane mapping by default.
+
+*This sits between an old preset drum machine and a more algorithmic rhythm generator. The useful part is that it can produce recognisable patterns quickly, then be pushed around with density, fill, and lane-family controls without needing to program every hit.*
+
 ### midi-flip
 MIDI Flip mirrors note events around a user-defined pivot note. It is a compact utility for inversion-like transformations in melodic material.
 
@@ -198,9 +203,9 @@ MetaLV is an LV2 host plugin that can load and route other LV2 plugins in multip
 3. After the install step, verify the plugin is registered by running `lv2ls | grep flues`.
 
 ### Helper scripts
-`./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `gremlin`, `gremlin-driver`, `chatterbox`, `chatgen`, `drumkit`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
+`./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `chatterbox`, `chatgen`, `drumkit`, `drumgen`, `gremlin`, `gremlin-driver`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
 
-Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-gremlin.sh`, `install-gremlin-driver.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
+Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-disyn.sh`, `install-drumgen.sh`, `install-drumkit.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-gremlin.sh`, `install-gremlin-driver.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
 
 For Meson-based builds such as `grid-seq`, the scripts wrap `meson setup`, `meson compile`, and `meson install`, so those commands can also be run manually if you prefer. If you want fine-grained control, open `lv2/<plugin>/README.md` for plugin-specific notes and repeat the manual CMake/Meson commands outlined in this section.
 

@@ -150,11 +150,13 @@ Based on Victor Lazzarini's [Distortion Synthesis tutorial](https://csoundjourna
   - 29 MIDI programs (0-28) switching signal chain configurations
   - 29 MIDI CCs + 6 control notes for live tweaking
 
-### 5. **Drum Synthesis** → Drumkit
+### 5. **Drum Synthesis** → Drumkit + DrumGen
 
 **Concept**: Synthesized drum voices inspired by TR-909 but pushed into hardcore industrial territory.
 
 11 synthesized voices (kick, snare, clap, toms, hi-hats, crash, bash, cowbell, clave) using pitch envelopes, resonant filters, noise bursts, and inharmonic oscillators. The Euclid companion generates Euclidean/stochastic rhythms for Drumkit. Master FX chain includes bit crushing, distortion, and reverb for aggressive, metallic tones.
+
+**DrumGen** is the newer pattern-side companion: a host-synced MIDI drum generator that blends genre templates with Euclidean variation and targets Drumkit's note mapping by default. It is intended as the quick way to get a playable groove running before reshaping it with lane controls and fills.
 
 The Euclidean Gate experiment applies those rhythm concepts to any audio source by opening or muting audio with an AD envelope.
 
