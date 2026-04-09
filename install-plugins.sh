@@ -9,6 +9,7 @@ PLUGINS=(
   chatterbox
   chatgen
   drumkit
+  drumgen
   gremlin
   gremlin-driver
   euclid

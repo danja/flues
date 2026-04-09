@@ -32,6 +32,7 @@ If you are browsing the repo as a user rather than a contributor, treat the docu
 - **[Floozy](lv2/floozy/)** — Hybrid Disyn + physical modeling instrument.
 - **[Floozy Poly](lv2/floozy-poly/)** — 8-voice hybrid instrument.
 - **[Drumkit](lv2/drumkit/)** — Industrial drum synth with master FX.
+- **[DrumGen](lv2/drumgen/)** — Host-synced drum-pattern generator targeting Drumkit by default.
 - **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
 - **[EuclidMono](lv2/euclid-mono/)** — Two-pattern Euclidean generator with logic operators and single-note output.
 - **[BassGen](lv2/bassgen/)** — Host-synced monophonic bassline MIDI generator with genre-biased phrase generation.
@@ -159,6 +160,7 @@ The Euclidean Gate experiment applies those rhythm concepts to any audio source 
 
 **Available as:**
 - 🔌 **LV2 plugin** - 11 voices, 43 parameters, drum synth mapping ([lv2/drumkit/](lv2/drumkit/))
+- 🔌 **LV2 plugin** - Host-synced drum-pattern generator with genre templates and Drumkit-compatible mapping ([lv2/drumgen/](lv2/drumgen/))
 - 🔌 **LV2 plugin** - Euclidean rhythm generator for Drumkit ([lv2/euclid/](lv2/euclid/))
 - 🔌 **LV2 plugin** - Logic-combined two-pattern Euclidean single-note generator ([lv2/euclid-mono/](lv2/euclid-mono/))
 - 🔌 **LV2 plugin** - Euclidean gate (audio effect) for rhythmic chopping ([lv2/euclidean-gate/](lv2/euclidean-gate/))
@@ -244,6 +246,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/floozy/README.md](lv2/floozy/README.md) - Hybrid mono
 - [lv2/floozy-poly/README.md](lv2/floozy-poly/README.md) - Hybrid poly
 - [lv2/drumkit/README.md](lv2/drumkit/README.md) - Drum synthesizer
+- [lv2/drumgen/README.md](lv2/drumgen/README.md) - Drum-pattern MIDI generator
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
 - [lv2/euclid-mono/README.md](lv2/euclid-mono/README.md) - Two-pattern Euclidean logic generator
 - [lv2/bassgen/README.md](lv2/bassgen/README.md) - Monophonic bassline MIDI generator
