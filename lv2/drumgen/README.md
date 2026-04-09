@@ -7,6 +7,7 @@ Current implementation status:
 - host `time:Position` sync
 - polyphonic MIDI drum note generation
 - genre-biased lane templates with Euclidean variation
+- explicit fill motifs layered onto the last bar
 - exact pattern persistence through LV2 State
 - X11/Cairo UI with core controls, action buttons, and grid preview
 - `Flues Drumkit` and `GM` note-map presets
@@ -46,5 +47,6 @@ From the repo root:
 - Low Tom `45`
 - Open Hat `46`
 - High Tom `50`
-
-Accessory `drumkit` voices (`51` bash, `52` cowbell, `53` clave) are not generated yet.
+- Bash `51`
+- Cowbell `52`
+- Clave `53`

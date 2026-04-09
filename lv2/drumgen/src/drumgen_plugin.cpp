@@ -14,9 +14,9 @@
 
 static constexpr int kMinBars = 1;
 static constexpr int kMaxBars = 4;
-static constexpr int kLaneCount = 8;
+static constexpr int kLaneCount = 11;
 static constexpr int kMaxPatternSteps = 64;
-static constexpr int kMaxPendingNoteOffs = 64;
+static constexpr int kMaxPendingNoteOffs = 96;
 static constexpr int kSafetyGapSamples = 1;
 
 enum PortIndex {
@@ -74,7 +74,10 @@ enum LaneId {
     LANE_CLOSED_HAT,
     LANE_LOW_TOM,
     LANE_OPEN_HAT,
-    LANE_HIGH_TOM
+    LANE_HIGH_TOM,
+    LANE_BASH,
+    LANE_COWBELL,
+    LANE_CLAVE
 };
 
 enum StepFlags {
@@ -217,8 +220,8 @@ struct DrumGen {
     bool was_playing = false;
 };
 
-static const int kFluesDrumkitNotes[kLaneCount] = {36, 39, 40, 41, 42, 45, 46, 50};
-static const int kGMNotes[kLaneCount] = {36, 39, 38, 49, 42, 45, 46, 50};
+static const int kFluesDrumkitNotes[kLaneCount] = {36, 39, 40, 41, 42, 45, 46, 50, 51, 52, 53};
+static const int kGMNotes[kLaneCount] = {36, 39, 38, 49, 42, 45, 46, 50, 57, 56, 75};
 
 static inline float clampf(float value, float min_value, float max_value) {
     if (value < min_value) return min_value;
@@ -356,6 +359,9 @@ static float lane_macro(const ControlSnapshot& controls, int lane) {
         case LANE_CRASH:
         case LANE_LOW_TOM:
         case LANE_HIGH_TOM:
+        case LANE_BASH:
+        case LANE_COWBELL:
+        case LANE_CLAVE:
         default: return controls.aux_amt;
     }
 }
@@ -368,6 +374,12 @@ static bool is_offbeat_step(int step_in_bar, int steps_per_beat) {
         return (step_in_bar % steps_per_beat) == 2;
     }
     return (step_in_bar % steps_per_beat) == (steps_per_beat / 2);
+}
+
+static bool is_fill_zone_step(int step_in_bar, int steps_per_bar, int steps_per_beat, float fill) {
+    const int fill_beats = fill > 0.62f ? 2 : 1;
+    const int fill_steps = clampi(fill_beats * steps_per_beat, steps_per_beat, steps_per_bar);
+    return step_in_bar >= steps_per_bar - fill_steps;
 }
 
 static float anchor_probability(const ControlSnapshot& controls,
@@ -440,6 +452,7 @@ static float anchor_probability(const ControlSnapshot& controls,
                     default: return 0.84f + 0.12f * backbeat;
                 }
             }
+            if (fill_bar && beat_index >= 2 && late_sub) return 0.08f + 0.24f * fill * backbeat;
             if (controls.genre == GENRE_AFRO && offbeat) return 0.08f + 0.10f * controls.variation;
             if (controls.genre == GENRE_SHUFFLE && late_sub) return 0.06f + 0.10f * controls.variation;
             break;
@@ -454,6 +467,7 @@ static float anchor_probability(const ControlSnapshot& controls,
                 }
             }
             if (controls.genre == GENRE_DISCO && offbeat) return 0.08f + 0.14f * controls.variation;
+            if (fill_bar && beat_index == 3 && !beat_start) return 0.06f + 0.18f * fill * backbeat;
             break;
 
         case LANE_CRASH:
@@ -501,6 +515,74 @@ static float anchor_probability(const ControlSnapshot& controls,
             }
             break;
 
+        case LANE_BASH:
+            switch (controls.genre) {
+                case GENRE_ELECTRO:
+                    if (beat_start && beat_index == 0) return 0.14f + 0.16f * aux;
+                    if (fill_bar && beat_index >= 2 && (beat_start || late_sub)) return 0.10f + 0.26f * fill * aux;
+                    if (late_sub && beat_index == 3) return 0.08f + 0.14f * controls.variation;
+                    break;
+                case GENRE_MOTORIK:
+                    if (beat_start && beat_index == 0) return 0.12f + 0.18f * aux;
+                    if (fill_bar && beat_index == 3 && beat_start) return 0.10f + 0.22f * fill * aux;
+                    break;
+                case GENRE_DUB:
+                    if ((offbeat && beat_index == 3) || (late_sub && beat_index == 2)) return 0.10f + 0.18f * aux;
+                    if (fill_bar && beat_index == 3) return 0.10f + 0.18f * fill * aux;
+                    break;
+                default:
+                    if (fill_bar && beat_index >= 3 && (offbeat || late_sub)) return 0.06f + 0.18f * fill * aux;
+                    break;
+            }
+            break;
+
+        case LANE_COWBELL:
+            switch (controls.genre) {
+                case GENRE_DISCO:
+                    if (offbeat) return 0.16f + 0.24f * aux;
+                    if (beat_start && (beat_index == 1 || beat_index == 3)) return 0.08f + 0.14f * aux;
+                    break;
+                case GENRE_MOTORIK:
+                    if (beat_start && (beat_index == 0 || beat_index == 2)) return 0.10f + 0.18f * aux;
+                    if (offbeat) return 0.10f + 0.16f * aux;
+                    break;
+                case GENRE_BOSSA:
+                    if ((beat_index == 0 || beat_index == 2) && late_sub) return 0.16f + 0.18f * aux;
+                    if ((beat_index == 1 || beat_index == 3) && offbeat) return 0.16f + 0.20f * aux;
+                    break;
+                case GENRE_AFRO:
+                    if (offbeat || late_sub) return 0.14f + 0.20f * aux;
+                    break;
+                default:
+                    if (fill_bar && beat_index >= 2 && offbeat) return 0.06f + 0.16f * fill * aux;
+                    break;
+            }
+            break;
+
+        case LANE_CLAVE:
+            switch (controls.genre) {
+                case GENRE_BOSSA:
+                    if (beat_index == 0 && beat_start) return 0.26f + 0.16f * aux;
+                    if (beat_index == 1 && offbeat) return 0.22f + 0.16f * aux;
+                    if (beat_index == 2 && late_sub) return 0.22f + 0.16f * aux;
+                    if (beat_index == 3 && beat_start) return 0.24f + 0.16f * aux;
+                    break;
+                case GENRE_AFRO:
+                    if (beat_index == 0 && beat_start) return 0.20f + 0.18f * aux;
+                    if (beat_index == 1 && late_sub) return 0.18f + 0.18f * aux;
+                    if (beat_index == 2 && offbeat) return 0.22f + 0.18f * aux;
+                    if (beat_index == 3 && beat_start) return 0.18f + 0.16f * aux;
+                    break;
+                case GENRE_SHUFFLE:
+                    if (beat_index == 1 && late_sub) return 0.10f + 0.14f * aux;
+                    if (beat_index == 3 && offbeat) return 0.10f + 0.14f * aux;
+                    break;
+                default:
+                    if (fill_bar && beat_index == 3 && !beat_start) return 0.06f + 0.14f * fill * aux;
+                    break;
+            }
+            break;
+
         default:
             break;
     }
@@ -542,6 +624,31 @@ static int euclid_pulses_for_lane(const ControlSnapshot& controls,
         case LANE_HIGH_TOM:
             desired_hits = fill_bar ? (0.4f + 2.4f * fill * macro) : 0.0f;
             break;
+        case LANE_BASH:
+            desired_hits = fill_bar
+                ? (0.2f + 1.4f * fill * macro)
+                : (((controls.genre == GENRE_ELECTRO) || (controls.genre == GENRE_MOTORIK) || (controls.genre == GENRE_DUB))
+                    ? (0.15f + 0.75f * variation * macro)
+                    : (0.05f + 0.35f * variation * macro));
+            break;
+        case LANE_COWBELL:
+            if (controls.genre == GENRE_DISCO || controls.genre == GENRE_MOTORIK) {
+                desired_hits = 0.8f + 3.0f * density * macro;
+            } else if (controls.genre == GENRE_BOSSA || controls.genre == GENRE_AFRO) {
+                desired_hits = 0.8f + 2.4f * density * macro;
+            } else {
+                desired_hits = 0.2f + 1.0f * density * variation * macro;
+            }
+            break;
+        case LANE_CLAVE:
+            if (controls.genre == GENRE_BOSSA || controls.genre == GENRE_AFRO) {
+                desired_hits = 0.8f + 2.0f * density * macro;
+            } else if (controls.genre == GENRE_SHUFFLE) {
+                desired_hits = 0.4f + 1.4f * density * macro;
+            } else {
+                desired_hits = 0.15f + 0.8f * variation * macro;
+            }
+            break;
         default:
             break;
     }
@@ -566,6 +673,12 @@ static float euclid_influence_for_lane(const ControlSnapshot& controls, int lane
         case LANE_LOW_TOM:
         case LANE_HIGH_TOM:
             return 0.10f + 0.44f * controls.variation * controls.aux_amt + (fill_bar ? 0.24f : 0.0f);
+        case LANE_BASH:
+            return 0.10f + 0.36f * controls.variation * controls.aux_amt + (fill_bar ? 0.28f : 0.0f);
+        case LANE_COWBELL:
+            return 0.18f + 0.34f * controls.variation * controls.aux_amt;
+        case LANE_CLAVE:
+            return 0.16f + 0.32f * controls.variation * controls.aux_amt + (fill_bar ? 0.10f : 0.0f);
         default:
             return 0.20f;
     }
@@ -591,6 +704,9 @@ static int step_velocity(const ControlSnapshot& controls,
         case LANE_OPEN_HAT: velocity = 76; break;
         case LANE_LOW_TOM: velocity = 92; break;
         case LANE_HIGH_TOM: velocity = 94; break;
+        case LANE_BASH: velocity = 110; break;
+        case LANE_COWBELL: velocity = 88; break;
+        case LANE_CLAVE: velocity = 90; break;
         default: break;
     }
 
@@ -608,8 +724,19 @@ static int step_velocity(const ControlSnapshot& controls,
         velocity += 8;
         flags |= STEP_FLAG_ACCENT;
     }
+    if ((lane == LANE_COWBELL || lane == LANE_CLAVE) && sub_index != 0) {
+        velocity += 4;
+    }
+    if (lane == LANE_BASH && (beat_index == 0 || fill_bar)) {
+        velocity += 6;
+        flags |= STEP_FLAG_ACCENT;
+    }
     if (fill_bar && (lane == LANE_CRASH || lane == LANE_LOW_TOM || lane == LANE_HIGH_TOM)) {
         velocity += 6;
+        flags |= STEP_FLAG_FILL;
+    }
+    if (fill_bar && (lane == LANE_BASH || lane == LANE_COWBELL || lane == LANE_CLAVE)) {
+        velocity += 4;
         flags |= STEP_FLAG_FILL;
     }
 
@@ -640,6 +767,144 @@ static void copy_pattern_prefix(PatternStateBlob* target, const PatternStateBlob
     }
     for (int lane = 0; lane < kLaneCount; ++lane) {
         memcpy(target->lanes[lane].steps, source->lanes[lane].steps, (size_t)prefix_steps * sizeof(DrumStepCell));
+    }
+}
+
+static void clear_step_hit(PatternStateBlob* pattern, int lane, int step) {
+    if (!pattern || lane < 0 || lane >= kLaneCount || step < 0 || step >= pattern->total_steps) {
+        return;
+    }
+    pattern->lanes[lane].steps[step].velocity = 0;
+    pattern->lanes[lane].steps[step].flags = 0;
+}
+
+static void set_step_hit(PatternStateBlob* pattern, int lane, int step, int velocity, uint8_t flags) {
+    DrumStepCell* cell;
+    if (!pattern || lane < 0 || lane >= kLaneCount || step < 0 || step >= pattern->total_steps) {
+        return;
+    }
+    cell = &pattern->lanes[lane].steps[step];
+    if (velocity > cell->velocity) {
+        cell->velocity = (uint8_t)clampi(velocity, 1, 127);
+    }
+    cell->flags |= flags;
+}
+
+static void apply_fill_overlay(PatternStateBlob* pattern, const ControlSnapshot& controls, uint32_t seed_value) {
+    Rng rng;
+    const int steps_per_bar = pattern->steps_per_bar;
+    const int steps_per_beat = pattern->steps_per_beat;
+    const int last_bar = pattern->bars - 1;
+    const int bar_start = last_bar * steps_per_bar;
+    const int bar_end = clampi(bar_start + steps_per_bar, 0, pattern->total_steps);
+    const int fill_beats = controls.fill > 0.62f ? 2 : 1;
+    const int fill_steps = clampi(fill_beats * steps_per_beat, steps_per_beat, steps_per_bar);
+    const int zone_start = clampi(bar_end - fill_steps, bar_start, bar_end);
+    int motif = 0;
+
+    if (!pattern || pattern->bars <= 0 || pattern->total_steps <= 0 || controls.fill < 0.08f) {
+        return;
+    }
+
+    rng.seed(seed_value ^ 0xC001D00Du);
+
+    switch (controls.genre) {
+        case GENRE_ROCK:
+        case GENRE_SHUFFLE:
+            motif = rng.next_int(0, 1);
+            break;
+        case GENRE_DISCO:
+        case GENRE_MOTORIK:
+            motif = 2 + rng.next_int(0, 1);
+            break;
+        case GENRE_ELECTRO:
+        case GENRE_DUB:
+            motif = 1 + rng.next_int(0, 2);
+            break;
+        case GENRE_BOSSA:
+        case GENRE_AFRO:
+            motif = (rng.next_float() < 0.65f) ? 2 : 3;
+            break;
+        default:
+            motif = rng.next_int(0, 3);
+            break;
+    }
+
+    for (int step = zone_start; step < bar_end; ++step) {
+        clear_step_hit(pattern, LANE_OPEN_HAT, step);
+        clear_step_hit(pattern, LANE_CRASH, step);
+        clear_step_hit(pattern, LANE_BASH, step);
+        if (controls.fill > 0.45f) {
+            if ((step - zone_start) % 2 == 1) {
+                clear_step_hit(pattern, LANE_CLOSED_HAT, step);
+            }
+            if ((step % steps_per_beat) != 0 && controls.fill > 0.60f) {
+                clear_step_hit(pattern, LANE_KICK, step);
+            }
+        }
+    }
+
+    switch (motif) {
+        case 0: {
+            int index = 0;
+            const int stride = controls.fill > 0.65f ? 1 : 2;
+            for (int step = zone_start; step < bar_end; step += stride) {
+                const int lane = (index % 2 == 0) ? LANE_LOW_TOM : LANE_HIGH_TOM;
+                set_step_hit(pattern, lane, step, 92 + index * 5, STEP_FLAG_FILL | (index > 1 ? STEP_FLAG_ACCENT : 0));
+                index += 1;
+            }
+            set_step_hit(pattern,
+                         (controls.genre == GENRE_ELECTRO || controls.genre == GENRE_MOTORIK) ? LANE_BASH : LANE_CRASH,
+                         bar_end - 1,
+                         114,
+                         STEP_FLAG_FILL | STEP_FLAG_ACCENT);
+            break;
+        }
+
+        case 1: {
+            int rise = 0;
+            for (int step = zone_start; step < bar_end; ++step) {
+                set_step_hit(pattern, LANE_SNARE, step, 88 + rise * 4, STEP_FLAG_FILL);
+                if ((step - zone_start) % 2 == 1) {
+                    set_step_hit(pattern, LANE_CLAP, step, 84 + rise * 3, STEP_FLAG_FILL);
+                }
+                rise += 1;
+            }
+            set_step_hit(pattern, LANE_HIGH_TOM, clampi(bar_end - 2, zone_start, bar_end - 1), 108, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
+            if (controls.aux_amt > 0.20f) {
+                set_step_hit(pattern, LANE_BASH, bar_end - 1, 116, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
+            }
+            break;
+        }
+
+        case 2: {
+            int toggle = 0;
+            for (int step = zone_start; step < bar_end; ++step) {
+                const int step_in_bar = step - bar_start;
+                if (is_offbeat_step(step_in_bar, steps_per_beat) || ((step - zone_start) % 2 == 0)) {
+                    set_step_hit(pattern, toggle % 2 == 0 ? LANE_COWBELL : LANE_CLAVE, step, 90 + toggle * 2, STEP_FLAG_FILL);
+                    toggle += 1;
+                }
+            }
+            set_step_hit(pattern, LANE_LOW_TOM, zone_start, 96, STEP_FLAG_FILL);
+            set_step_hit(pattern, LANE_HIGH_TOM, clampi(bar_end - 2, zone_start, bar_end - 1), 104, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
+            break;
+        }
+
+        case 3:
+        default: {
+            const int bash_step = clampi(zone_start + fill_steps / 2, zone_start, bar_end - 1);
+            int index = 0;
+            set_step_hit(pattern, LANE_BASH, bash_step, 114, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
+            for (int step = zone_start; step < bar_end; step += 2) {
+                const int lane = (index % 3 == 0) ? LANE_HIGH_TOM : ((index % 3 == 1) ? LANE_COWBELL : LANE_CLAVE);
+                set_step_hit(pattern, lane, step, 92 + index * 4, STEP_FLAG_FILL);
+                index += 1;
+            }
+            set_step_hit(pattern, LANE_CLAVE, clampi(bar_end - 2, zone_start, bar_end - 1), 98, STEP_FLAG_FILL);
+            set_step_hit(pattern, LANE_HIGH_TOM, bar_end - 1, 108, STEP_FLAG_FILL | STEP_FLAG_ACCENT);
+            break;
+        }
     }
 }
 
@@ -702,6 +967,10 @@ static void cleanup_pattern(PatternStateBlob* pattern, const ControlSnapshot& co
     for (int step = 0; step < pattern->total_steps; ++step) {
         DrumStepCell& closed = pattern->lanes[LANE_CLOSED_HAT].steps[step];
         DrumStepCell& open = pattern->lanes[LANE_OPEN_HAT].steps[step];
+        DrumStepCell& cowbell = pattern->lanes[LANE_COWBELL].steps[step];
+        DrumStepCell& clave = pattern->lanes[LANE_CLAVE].steps[step];
+        DrumStepCell& clap = pattern->lanes[LANE_CLAP].steps[step];
+        DrumStepCell& snare = pattern->lanes[LANE_SNARE].steps[step];
         if (closed.velocity > 0 && open.velocity > 0) {
             if (is_offbeat_step(step % steps_per_bar, steps_per_beat)) {
                 closed.velocity = 0;
@@ -711,18 +980,56 @@ static void cleanup_pattern(PatternStateBlob* pattern, const ControlSnapshot& co
                 open.flags = 0;
             }
         }
+        if (cowbell.velocity > 0 && clave.velocity > 0) {
+            if (controls.genre == GENRE_BOSSA || controls.genre == GENRE_AFRO) {
+                cowbell.velocity = 0;
+                cowbell.flags = 0;
+            } else {
+                clave.velocity = 0;
+                clave.flags = 0;
+            }
+        }
+        if (snare.velocity > 0 && clap.velocity > 0 && controls.genre != GENRE_DISCO && controls.genre != GENRE_ELECTRO) {
+            clap.velocity = 0;
+            clap.flags = 0;
+        }
     }
 
     for (int bar = 0; bar < pattern->bars; ++bar) {
         const int bar_start = bar * steps_per_bar;
         int crash_hits = 0;
+        int bash_hits = 0;
         for (int step = 0; step < steps_per_bar && (bar_start + step) < pattern->total_steps; ++step) {
             DrumStepCell& crash = pattern->lanes[LANE_CRASH].steps[bar_start + step];
+            DrumStepCell& bash = pattern->lanes[LANE_BASH].steps[bar_start + step];
             if (crash.velocity > 0) {
                 crash_hits += 1;
                 if (crash_hits > 2) {
                     crash.velocity = 0;
                     crash.flags = 0;
+                }
+            }
+            if (bash.velocity > 0) {
+                bash_hits += 1;
+                if (bash_hits > 2) {
+                    bash.velocity = 0;
+                    bash.flags = 0;
+                }
+            }
+
+            if (is_fill_zone_step(step, steps_per_bar, steps_per_beat, controls.fill)) {
+                const bool fill_activity =
+                    pattern->lanes[LANE_LOW_TOM].steps[bar_start + step].velocity > 0 ||
+                    pattern->lanes[LANE_HIGH_TOM].steps[bar_start + step].velocity > 0 ||
+                    pattern->lanes[LANE_BASH].steps[bar_start + step].velocity > 0 ||
+                    pattern->lanes[LANE_COWBELL].steps[bar_start + step].velocity > 0 ||
+                    pattern->lanes[LANE_CLAVE].steps[bar_start + step].velocity > 0;
+
+                if (fill_activity) {
+                    clear_step_hit(pattern, LANE_OPEN_HAT, bar_start + step);
+                    if ((step - (steps_per_bar - steps_per_beat)) % 2 != 0) {
+                        clear_step_hit(pattern, LANE_CLOSED_HAT, bar_start + step);
+                    }
                 }
             }
         }
@@ -786,6 +1093,7 @@ static void regenerate_pattern(DrumGen* self,
         }
     }
 
+    apply_fill_overlay(&next_pattern, controls, base_seed ^ fill_seed ^ 0x6D2B79F5u);
     cleanup_pattern(&next_pattern, controls);
     self->pattern = next_pattern;
     self->pattern_valid = true;
