@@ -9,6 +9,7 @@ A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the
 - **Velocity Sensitivity** on kick, snare, and toms
 - **Hi-Hat Choke Group** (closed kills open)
 - **Master FX Chain**: Bit Crusher, Distortion, Reverb
+- **Stereo Output** with fixed per-voice placement across the panorama
 - **MIDI Channel Omni** (responds to all channels)
 
 ## MIDI Note Mapping
@@ -107,19 +108,19 @@ A hardcore industrial drum synthesizer LV2 plugin with 11 voices inspired by the
 ## Signal Flow
 
 ```
-MIDI Note → Voice Synthesis → Voice Mixer
+MIDI Note → Voice Synthesis → Stereo Voice Panner
     ↓
-Bit Crusher (global)
+Bit Crusher (dual mono master bus)
     ↓
-Master Distortion (tanh)
+Master Distortion (dual mono tanh)
     ↓
-Reverb (Schroeder, shared)
+Reverb (left/right tanks)
     ↓
-DC Blocker (R=0.999)
+DC Blocker (per channel, R=0.999)
     ↓
 Master Gain
     ↓
-Audio Out
+Audio Out L/R
 ```
 
 ## Installation

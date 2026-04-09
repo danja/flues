@@ -20,11 +20,32 @@
 #include "modules/DCBlocker.hpp"
 #include <memory>
 #include <cmath>
+#include <algorithm>
 
 namespace flues::drumkit {
 
+struct StereoFrame {
+    float left = 0.0f;
+    float right = 0.0f;
+};
+
 class DrumKitEngine {
 private:
+    static constexpr float kPi = 3.14159265359f;
+    static constexpr float kVoicePan[11] = {
+        0.00f,   // kick
+        0.16f,   // clap
+        -0.08f,  // snare
+        -0.44f,  // crash
+        -0.52f,  // closed hat
+        0.22f,   // low tom
+        0.32f,   // open hat
+        -0.16f,  // high tom
+        0.42f,   // bash
+        0.14f,   // cowbell
+        -0.24f   // clave
+    };
+
     float sampleRate;
 
     // 11 Voice instances
@@ -41,13 +62,24 @@ private:
     std::unique_ptr<ClaveVoice> clave;
 
     // Master FX
-    Bitcrusher bitcrusher;
-    Distortion distortion;
-    flues::pm::ReverbModule reverb;  // From pm-synth namespace
-    DCBlocker dcBlocker;
+    Bitcrusher bitcrusherL;
+    Bitcrusher bitcrusherR;
+    Distortion distortionL;
+    Distortion distortionR;
+    flues::pm::ReverbModule reverbL;  // From pm-synth namespace
+    flues::pm::ReverbModule reverbR;
+    DCBlocker dcBlockerL;
+    DCBlocker dcBlockerR;
 
     // Master parameters
     float masterGain;
+
+    static void add_panned(float sample, float pan, float& left, float& right) {
+        const float clamped = std::clamp(pan, -1.0f, 1.0f);
+        const float angle = (clamped + 1.0f) * (kPi * 0.25f);
+        left += sample * std::cos(angle);
+        right += sample * std::sin(angle);
+    }
 
 public:
     explicit DrumKitEngine(float sampleRate = 48000.0f)
@@ -63,15 +95,21 @@ public:
         , bash(std::make_unique<BashVoice>(sampleRate))
         , cowbell(std::make_unique<CowbellVoice>(sampleRate))
         , clave(std::make_unique<ClaveVoice>(sampleRate))
-        , bitcrusher()
-        , distortion()
-        , reverb(sampleRate)
-        , dcBlocker(0.999f)
+        , bitcrusherL()
+        , bitcrusherR()
+        , distortionL()
+        , distortionR()
+        , reverbL(sampleRate)
+        , reverbR(sampleRate)
+        , dcBlockerL(0.999f)
+        , dcBlockerR(0.999f)
         , masterGain(0.7f)
     {
-        // Initialize reverb
-        reverb.setSize(0.6f);      // Fixed room size
-        reverb.setLevel(0.2f);     // 20% wet by default
+        // Slightly offset the two reverb tanks so the stereo field does not collapse.
+        reverbL.setSize(0.58f);
+        reverbR.setSize(0.64f);
+        reverbL.setLevel(0.2f);
+        reverbR.setLevel(0.2f);
     }
 
     /**
@@ -134,34 +172,35 @@ public:
         }
     }
 
-    /**
-     * Process one sample through all voices and master FX
-     */
-    float process() {
-        // Sum all voice outputs
-        float sum = 0.0f;
-        sum += kick->process();
-        sum += snare->process();
-        sum += clap->process();
-        sum += loTom->process();
-        sum += hiTom->process();
-        sum += closedHH->process();
-        sum += openHH->process();
-        sum += crash->process();
-        sum += bash->process();
-        sum += cowbell->process();
-        sum += clave->process();
+    StereoFrame processStereo() {
+        StereoFrame frame;
 
-        // Master FX chain
-        sum = bitcrusher.process(sum);
-        sum = distortion.process(sum);
-        sum = reverb.process(sum);
-        sum = dcBlocker.process(sum);
+        add_panned(kick->process(), kVoicePan[0], frame.left, frame.right);
+        add_panned(clap->process(), kVoicePan[1], frame.left, frame.right);
+        add_panned(snare->process(), kVoicePan[2], frame.left, frame.right);
+        add_panned(crash->process(), kVoicePan[3], frame.left, frame.right);
+        add_panned(closedHH->process(), kVoicePan[4], frame.left, frame.right);
+        add_panned(loTom->process(), kVoicePan[5], frame.left, frame.right);
+        add_panned(openHH->process(), kVoicePan[6], frame.left, frame.right);
+        add_panned(hiTom->process(), kVoicePan[7], frame.left, frame.right);
+        add_panned(bash->process(), kVoicePan[8], frame.left, frame.right);
+        add_panned(cowbell->process(), kVoicePan[9], frame.left, frame.right);
+        add_panned(clave->process(), kVoicePan[10], frame.left, frame.right);
 
-        // Master gain
-        sum *= masterGain;
+        frame.left = bitcrusherL.process(frame.left);
+        frame.right = bitcrusherR.process(frame.right);
+        frame.left = distortionL.process(frame.left);
+        frame.right = distortionR.process(frame.right);
+        frame.left = reverbL.process(frame.left);
+        frame.right = reverbR.process(frame.right);
+        frame.left = dcBlockerL.process(frame.left);
+        frame.right = dcBlockerR.process(frame.right);
 
-        return std::clamp(sum, -1.0f, 1.0f);
+        frame.left *= masterGain;
+        frame.right *= masterGain;
+        frame.left = std::clamp(frame.left, -1.0f, 1.0f);
+        frame.right = std::clamp(frame.right, -1.0f, 1.0f);
+        return frame;
     }
 
     // === Parameter Setters ===
@@ -215,18 +254,23 @@ public:
     void setClaveLevel(float value) { clave->setLevel(value); }
 
     // Master (4 params)
-    void setBitCrush(float value) { bitcrusher.setAmount(value); }
+    void setBitCrush(float value) {
+        bitcrusherL.setAmount(value);
+        bitcrusherR.setAmount(value);
+    }
 
     void setMasterDrive(float value) {
         // Map 0-1 to 1.0-5.0 linear
         const float drive = 1.0f + value * 4.0f;
-        distortion.setDrive(drive);
+        distortionL.setDrive(drive);
+        distortionR.setDrive(drive);
     }
 
     void setMasterReverb(float value) {
         // Map 0-1 to 0-60% wet level
         const float level = value * 0.6f;
-        reverb.setLevel(level);
+        reverbL.setLevel(level);
+        reverbR.setLevel(level);
     }
 
     void setMasterGain(float value) {
@@ -258,8 +302,10 @@ public:
         cowbell->reset();
         clave->reset();
 
-        reverb.reset();
-        dcBlocker.reset();
+        reverbL.reset();
+        reverbR.reset();
+        dcBlockerL.reset();
+        dcBlockerR.reset();
     }
 };
 

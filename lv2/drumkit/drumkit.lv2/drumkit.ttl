@@ -10,7 +10,7 @@
 <https://danja.github.io/flues/plugins/drumkit>
     a lv2:InstrumentPlugin ;
     doap:name "Flues Drumkit" ;
-    doap:description "Hardcore industrial TR-909 drum synthesizer with 11 voices (kick, snare, clap, dual toms, split hi-hats, crash, bash, cowbell, clave). MIDI channel 10." ;
+    doap:description "Hardcore industrial TR-909 drum synthesizer with 11 voices (kick, snare, clap, dual toms, split hi-hats, crash, bash, cowbell, clave) and a fixed stereo stage. MIDI channel 10." ;
     doap:license <https://opensource.org/licenses/MIT> ;
     doap:maintainer [
         foaf:name "Danny Ayers" ;
@@ -19,12 +19,12 @@
     lv2:requiredFeature <http://lv2plug.in/ns/ext/urid#map> ;
     ui:ui <https://danja.github.io/flues/plugins/drumkit#ui> ;
 
-    # Port 0: Audio Output
+    # Port 0: Audio Output Left
     lv2:port [
         a lv2:OutputPort , lv2:AudioPort ;
         lv2:index 0 ;
         lv2:symbol "audio_out" ;
-        lv2:name "Audio Out"
+        lv2:name "Audio Out L"
     ] , [
         # Port 1: MIDI Input
         a lv2:InputPort , atom:AtomPort ;
@@ -464,6 +464,13 @@
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
         rdfs:comment "Final output level (0-100%)"
+    ] , [
+        # Port 45: Audio Output Right
+        a lv2:OutputPort , lv2:AudioPort ;
+        lv2:index 45 ;
+        lv2:symbol "audio_out_r" ;
+        lv2:name "Audio Out R" ;
+        rdfs:comment "Stereo right output"
     ] .
 
 <https://danja.github.io/flues/plugins/drumkit#ui>

@@ -66,6 +66,7 @@ typedef enum {
     PORT_MASTER_DRIVE,
     PORT_MASTER_REVERB,
     PORT_MASTER_GAIN,
+    PORT_AUDIO_OUT_RIGHT,
     PORT_TOTAL_COUNT
 } PortIndex;
 

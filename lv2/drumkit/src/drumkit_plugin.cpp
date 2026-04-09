@@ -64,6 +64,7 @@ enum PortIndex : uint32_t {
     PORT_MASTER_DRIVE,
     PORT_MASTER_REVERB,
     PORT_MASTER_GAIN,
+    PORT_AUDIO_OUT_RIGHT,
     PORT_TOTAL_COUNT
 };
 
@@ -75,6 +76,7 @@ struct DrumkitLV2 {
     // Port pointers
     const LV2_Atom_Sequence* midiIn;
     float* audioOut;
+    float* audioOutRight;
 
     // Parameter port pointers (43 params)
     const float* kickPitch;
@@ -242,6 +244,7 @@ static LV2_Handle instantiate(
     // Initialize port pointers to nullptr
     self->midiIn = nullptr;
     self->audioOut = nullptr;
+    self->audioOutRight = nullptr;
     self->kickPitch = nullptr;
     self->kickDecay = nullptr;
     self->kickDrive = nullptr;
@@ -355,6 +358,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_MASTER_DRIVE: self->masterDrive = static_cast<const float*>(data); break;
         case PORT_MASTER_REVERB: self->masterReverb = static_cast<const float*>(data); break;
         case PORT_MASTER_GAIN: self->masterGain = static_cast<const float*>(data); break;
+        case PORT_AUDIO_OUT_RIGHT: self->audioOutRight = static_cast<float*>(data); break;
         default: break;
     }
 }
@@ -366,14 +370,18 @@ static void activate(LV2_Handle instance) {
 
 static void run(LV2_Handle instance, uint32_t n_samples) {
     auto* self = static_cast<DrumkitLV2*>(instance);
-    if (!self || !self->audioOut || !self->engine) return;
+    if (!self || (!self->audioOut && !self->audioOutRight) || !self->engine) return;
 
     // Apply all parameters once per block
     apply_parameters(self);
 
     // Clear output buffer
-    float* out = self->audioOut;
-    std::memset(out, 0, n_samples * sizeof(float));
+    if (self->audioOut) {
+        std::memset(self->audioOut, 0, n_samples * sizeof(float));
+    }
+    if (self->audioOutRight) {
+        std::memset(self->audioOutRight, 0, n_samples * sizeof(float));
+    }
 
     // Process MIDI events (sample-accurate)
     if (self->midiIn && self->midiIn->atom.type == self->atomSequenceUrid) {
@@ -387,7 +395,13 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
 
     // Generate audio samples
     for (uint32_t i = 0; i < n_samples; ++i) {
-        out[i] = self->engine->process();
+        const StereoFrame frame = self->engine->processStereo();
+        if (self->audioOut) {
+            self->audioOut[i] = frame.left;
+        }
+        if (self->audioOutRight) {
+            self->audioOutRight[i] = frame.right;
+        }
     }
 }
 
