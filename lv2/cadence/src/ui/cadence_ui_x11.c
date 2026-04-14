@@ -17,20 +17,22 @@
 #define CADENCE_URI "https://danja.github.io/flues/plugins/cadence"
 #define CADENCE_UI_URI CADENCE_URI "#ui"
 
-#define WINDOW_WIDTH 920
-#define WINDOW_HEIGHT 620
+#define WINDOW_WIDTH 1080
+#define WINDOW_HEIGHT 660
 
 #define MARGIN 20
 #define TITLE_HEIGHT 26
 #define SLIDER_WIDTH 26
 #define SLIDER_HEIGHT 132
 #define KNOB_HEIGHT 16
-#define COLUMN_WIDTH 164
-#define ROW_GAP 104
+#define COLUMN_WIDTH 168
+#define ROW_GAP 116
 #define BUTTON_WIDTH 150
 #define BUTTON_HEIGHT 38
 #define LED_WIDTH 150
 #define LED_HEIGHT 38
+#define CONTROL_COUNT 12
+#define CONTROLS_PER_ROW 6
 
 enum PortIndex {
     PORT_CONTROL = 0,
@@ -41,7 +43,9 @@ enum PortIndex {
     PORT_CYCLE_BARS,
     PORT_GRANULARITY,
     PORT_COMPLEXITY,
+    PORT_MOVEMENT,
     PORT_CHORD_SIZE,
+    PORT_NOTE_LENGTH,
     PORT_REGISTER,
     PORT_SPREAD,
     PORT_PASS_INPUT,
@@ -76,7 +80,7 @@ typedef struct {
     int width;
     int height;
 
-    float values[10];
+    float values[CONTROL_COUNT];
     float learn_counter;
     float ready_value;
     int active_control;
@@ -112,13 +116,15 @@ static const char* kToggleNames[] = {
     "Off", "On"
 };
 
-static const ControlDef kControls[10] = {
+static const ControlDef kControls[CONTROL_COUNT] = {
     {PORT_KEY, "KEY", 0.0f, 11.0f, 0.0f, true},
     {PORT_SCALE, "SCALE", 0.0f, 11.0f, 2.0f, true},
     {PORT_CYCLE_BARS, "BARS", 1.0f, 8.0f, 2.0f, true},
     {PORT_GRANULARITY, "GRID", 0.0f, 2.0f, 1.0f, true},
-    {PORT_COMPLEXITY, "CMPX", 0.0f, 1.0f, 0.45f, false},
+    {PORT_COMPLEXITY, "COMPLEXITY", 0.0f, 1.0f, 0.45f, false},
+    {PORT_MOVEMENT, "MOVE", 0.0f, 1.0f, 0.65f, false},
     {PORT_CHORD_SIZE, "SIZE", 0.0f, 1.0f, 0.0f, true},
+    {PORT_NOTE_LENGTH, "LENGTH", 0.10f, 1.0f, 1.0f, false},
     {PORT_REGISTER, "REG", 0.0f, 2.0f, 1.0f, true},
     {PORT_SPREAD, "VOICE", 0.0f, 2.0f, 0.0f, true},
     {PORT_PASS_INPUT, "PASS", 0.0f, 1.0f, 1.0f, true},
@@ -144,11 +150,11 @@ static float clamp_value(float value, float min_value, float max_value) {
 }
 
 static int row_y(int row) {
-    return MARGIN + TITLE_HEIGHT + 58 + row * (SLIDER_HEIGHT + ROW_GAP);
+    return MARGIN + TITLE_HEIGHT + 74 + row * (SLIDER_HEIGHT + ROW_GAP);
 }
 
 static int controls_group_width(void) {
-    return (5 * COLUMN_WIDTH);
+    return (CONTROLS_PER_ROW * COLUMN_WIDTH);
 }
 
 static int column_x(int col, int width) {
@@ -169,7 +175,7 @@ static int led_x(int width) {
 }
 
 static int footer_y(int height) {
-    return height - MARGIN - BUTTON_HEIGHT - 4;
+    return height - MARGIN - BUTTON_HEIGHT - 10;
 }
 
 static void send_value(CadenceUI* ui, uint32_t port, float value) {
@@ -218,18 +224,24 @@ static void format_value_label(int control_index, float value, char* out, size_t
             snprintf(out, out_size, "%.2f", value);
             break;
         case 5:
-            snprintf(out, out_size, "%s", label_from_index(kChordSizeNames, 2, (int)lroundf(value)));
+            snprintf(out, out_size, "%.2f", value);
             break;
         case 6:
-            snprintf(out, out_size, "%s", label_from_index(kRegisterNames, 3, (int)lroundf(value)));
+            snprintf(out, out_size, "%s", label_from_index(kChordSizeNames, 2, (int)lroundf(value)));
             break;
         case 7:
-            snprintf(out, out_size, "%s", label_from_index(kSpreadNames, 3, (int)lroundf(value)));
+            snprintf(out, out_size, "%d%%", (int)lroundf(value * 100.0f));
             break;
         case 8:
-            snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
+            snprintf(out, out_size, "%s", label_from_index(kRegisterNames, 3, (int)lroundf(value)));
             break;
         case 9:
+            snprintf(out, out_size, "%s", label_from_index(kSpreadNames, 3, (int)lroundf(value)));
+            break;
+        case 10:
+            snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
+            break;
+        case 11:
             if ((int)lroundf(value) <= 0) {
                 snprintf(out, out_size, "Input");
             } else {
@@ -271,13 +283,13 @@ static void draw_ui(CadenceUI* ui) {
     draw_centered_text(cr, ui->width * 0.5, MARGIN + 42, "Cycle-Learned MIDI Harmonizer", 11.0, false, 0.78, 0.80, 0.85);
 
     for (int row = 0; row < 2; ++row) {
-        const int gy = row_y(row) - 34;
+        const int gy = row_y(row) - 58;
         cairo_set_source_rgb(cr, 0.11, 0.12, 0.15);
-        cairo_rectangle(cr, column_x(0, ui->width) - 12, gy, controls_group_width() + 24, SLIDER_HEIGHT + 76);
+        cairo_rectangle(cr, column_x(0, ui->width) - 12, gy, controls_group_width() + 24, SLIDER_HEIGHT + 98);
         cairo_fill(cr);
         cairo_set_source_rgb(cr, 0.23, 0.24, 0.28);
         cairo_set_line_width(cr, 1.0);
-        cairo_rectangle(cr, column_x(0, ui->width) - 11.5, gy + 0.5, controls_group_width() + 23, SLIDER_HEIGHT + 75);
+        cairo_rectangle(cr, column_x(0, ui->width) - 11.5, gy + 0.5, controls_group_width() + 23, SLIDER_HEIGHT + 97);
         cairo_stroke(cr);
         draw_centered_text(cr,
                            ui->width * 0.5,
@@ -288,16 +300,16 @@ static void draw_ui(CadenceUI* ui) {
                            0.72, 0.75, 0.80);
     }
 
-    for (int i = 0; i < 10; ++i) {
-        int row = i / 5;
-        int col = i % 5;
+    for (int i = 0; i < CONTROL_COUNT; ++i) {
+        int row = i / CONTROLS_PER_ROW;
+        int col = i % CONTROLS_PER_ROW;
         int sx = slider_x(col, ui->width);
         int sy = row_y(row);
         int cx = column_x(col, ui->width) + COLUMN_WIDTH / 2;
         char value_label[32];
 
         draw_slider(cr, sx, sy, ui->values[i], kControls[i].min_value, kControls[i].max_value);
-        draw_centered_text(cr, cx, sy - 8, kControls[i].label, 11.0, true, 0.83, 0.85, 0.90);
+        draw_centered_text(cr, cx, sy - 18, kControls[i].label, 11.0, true, 0.83, 0.85, 0.90);
 
         format_value_label(i, ui->values[i], value_label, sizeof(value_label));
         draw_centered_text(cr, cx, sy + SLIDER_HEIGHT + 26, value_label, 11.0, false, 0.84, 0.86, 0.92);
@@ -347,7 +359,7 @@ static float value_from_y(int y, int sy, float min_value, float max_value) {
 }
 
 static void update_control_from_y(CadenceUI* ui, int control_index, int y) {
-    const int row = control_index / 5;
+    const int row = control_index / CONTROLS_PER_ROW;
     const int sy = row_y(row);
     float value = value_from_y(y, sy, kControls[control_index].min_value, kControls[control_index].max_value);
     if (kControls[control_index].is_integer) {
@@ -369,9 +381,9 @@ static void handle_button_press(CadenceUI* ui, XButtonEvent* ev) {
     pthread_mutex_lock(&ui->mutex);
 
     ui->active_control = -1;
-    for (int i = 0; i < 10; ++i) {
-        const int row = i / 5;
-        const int col = i % 5;
+    for (int i = 0; i < CONTROL_COUNT; ++i) {
+        const int row = i / CONTROLS_PER_ROW;
+        const int col = i % CONTROLS_PER_ROW;
         if (slider_hit(ev->x, ev->y, slider_x(col, ui->width), row_y(row))) {
             ui->active_control = i;
             update_control_from_y(ui, i, ev->y);
@@ -474,7 +486,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor* /*descriptor*/,
     ui->width = WINDOW_WIDTH;
     ui->height = WINDOW_HEIGHT;
     ui->active_control = -1;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < CONTROL_COUNT; ++i) {
         ui->values[i] = kControls[i].default_value;
     }
 
@@ -584,7 +596,7 @@ static void ui_port_event(LV2UI_Handle handle,
     pthread_mutex_lock(&ui->mutex);
     float value = *(const float*)buffer;
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < CONTROL_COUNT; ++i) {
         if (port_index == kControls[i].port) {
             ui->values[i] = clamp_value(value, kControls[i].min_value, kControls[i].max_value);
             if (kControls[i].is_integer) {

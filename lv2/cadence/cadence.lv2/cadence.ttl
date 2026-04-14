@@ -121,6 +121,14 @@
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
         lv2:index 8 ;
+        lv2:symbol "movement" ;
+        lv2:name "Movement" ;
+        lv2:default 0.65 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
         lv2:symbol "chord_size" ;
         lv2:name "Chord Size" ;
         lv2:default 0 ;
@@ -131,7 +139,15 @@
         lv2:scalePoint [ rdfs:label "Sevenths" ; rdf:value 1 ] ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 9 ;
+        lv2:index 10 ;
+        lv2:symbol "note_length" ;
+        lv2:name "Note Length" ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.10 ;
+        lv2:maximum 1.0 ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 11 ;
         lv2:symbol "register" ;
         lv2:name "Register" ;
         lv2:default 1 ;
@@ -143,7 +159,7 @@
         lv2:scalePoint [ rdfs:label "High" ; rdf:value 2 ] ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 10 ;
+        lv2:index 12 ;
         lv2:symbol "spread" ;
         lv2:name "Spread" ;
         lv2:default 0 ;
@@ -155,7 +171,7 @@
         lv2:scalePoint [ rdfs:label "Drop-2" ; rdf:value 2 ] ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 11 ;
+        lv2:index 13 ;
         lv2:symbol "pass_input" ;
         lv2:name "Pass Input" ;
         lv2:default 1 ;
@@ -164,7 +180,7 @@
         lv2:portProperty lv2:integer , lv2:toggled ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 12 ;
+        lv2:index 14 ;
         lv2:symbol "output_channel" ;
         lv2:name "Output Channel" ;
         lv2:default 0 ;
@@ -190,7 +206,7 @@
         lv2:scalePoint [ rdfs:label "16" ; rdf:value 16 ] ;
     ] , [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 13 ;
+        lv2:index 15 ;
         lv2:symbol "action_learn" ;
         lv2:name "Learn" ;
         lv2:default 0 ;
@@ -199,7 +215,7 @@
         lv2:portProperty lv2:integer ;
     ] , [
         a lv2:OutputPort, lv2:ControlPort ;
-        lv2:index 14 ;
+        lv2:index 16 ;
         lv2:symbol "status_ready" ;
         lv2:name "Ready" ;
         lv2:default 0 ;

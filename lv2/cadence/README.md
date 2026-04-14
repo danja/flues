@@ -21,7 +21,9 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - `Cycle Bars`: loop length used for capture and playback.
 - `Granularity`: chord decision rate (`Beat`, `Half Bar`, `Bar`).
 - `Complexity`: low values prefer plain triads; high values allow more suspended, borrowed, and seventh-like choices.
+- `Movement`: low values prefer steadier harmony; high values push chord roots to follow the segment's strongest notes more aggressively.
 - `Chord Size`: triads or sevenths.
+- `Note Length`: generated chord duration as a fraction of the current segment.
 - `Register`: overall voicing height.
 - `Spread`: close, open, or drop-2 voicing.
 - `Pass Input`: forwards the source notes alongside the harmony.
@@ -35,7 +37,7 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - Every segment scores a bank of chord candidates across all roots and common chord qualities.
 - A dynamic-programming pass chooses the full progression, preferring good local note fit plus smoother harmonic movement.
 - The chosen chords are voiced with inversion search and light voice-leading against the previous chord.
-- Chords are re-triggered at segment boundaries so short-envelope synth patches still articulate the harmony.
+- Chords are re-triggered at segment boundaries and can be shortened within the segment with `Note Length`.
 
 ## Build
 
@@ -50,4 +52,5 @@ cmake --install build --prefix ~/.lv2
 
 - Cadence currently expects host transport. Without `time:Position`, it falls back to MIDI pass-through and does not learn.
 - Non-note MIDI messages always pass through unchanged.
+- On transport stop, Cadence now sends note-offs plus channel panic for its own harmony output.
 - Learned chord progressions are persisted via LV2 state.

@@ -30,7 +30,9 @@ enum PortIndex {
     PORT_CYCLE_BARS,
     PORT_GRANULARITY,
     PORT_COMPLEXITY,
+    PORT_MOVEMENT,
     PORT_CHORD_SIZE,
+    PORT_NOTE_LENGTH,
     PORT_REGISTER,
     PORT_SPREAD,
     PORT_PASS_INPUT,
@@ -110,7 +112,9 @@ struct ControlSnapshot {
     int cycle_bars = 2;
     int granularity = GRANULARITY_HALF_BAR;
     float complexity = 0.45f;
+    float movement = 0.65f;
     int chord_size = CHORD_SIZE_TRIADS;
+    float note_length = 1.0f;
     int reg = REGISTER_MID;
     int spread = SPREAD_CLOSE;
     bool pass_input = true;
@@ -185,7 +189,9 @@ struct Cadence {
     const float* cycle_bars_port = nullptr;
     const float* granularity_port = nullptr;
     const float* complexity_port = nullptr;
+    const float* movement_port = nullptr;
     const float* chord_size_port = nullptr;
+    const float* note_length_port = nullptr;
     const float* register_port = nullptr;
     const float* spread_port = nullptr;
     const float* pass_input_port = nullptr;
@@ -214,6 +220,8 @@ struct Cadence {
     uint8_t active_harmony_count = 0;
     int active_harmony_channel = 1;
     int last_input_channel = 1;
+    bool harmony_off_pending = false;
+    double pending_harmony_off_beat = 0.0;
 
     bool was_playing = false;
     double last_abs_beats_start = 0.0;
@@ -410,6 +418,73 @@ static void emit_note_off(Cadence* self, uint32_t frame, int note) {
     emit_note_off_on_channel(self, frame, note, self->active_harmony_channel);
 }
 
+static void emit_cc_on_channel(Cadence* self,
+                               uint32_t frame,
+                               int controller,
+                               int value,
+                               int output_channel) {
+    const uint8_t channel = (uint8_t)(clampi(output_channel, 1, 16) - 1);
+    const uint8_t msg[3] = {
+        (uint8_t)(0xB0 | channel),
+        (uint8_t)clampi(controller, 0, 127),
+        (uint8_t)clampi(value, 0, 127)
+    };
+    append_midi(self->midi_out, self->urids.midi_Event, frame, msg, 3);
+}
+
+static void clear_pending_harmony_off(Cadence* self) {
+    self->harmony_off_pending = false;
+    self->pending_harmony_off_beat = 0.0;
+}
+
+static double note_length_fraction(const ControlSnapshot& controls) {
+    return clampd((double)controls.note_length, 0.10, 1.0);
+}
+
+static void schedule_harmony_off_at(Cadence* self, double abs_off_beat) {
+    clear_pending_harmony_off(self);
+    if (self->active_harmony_count == 0 || abs_off_beat <= 0.0) {
+        return;
+    }
+
+    if (note_length_fraction(self->controls) >= 0.995) {
+        return;
+    }
+
+    self->harmony_off_pending = true;
+    self->pending_harmony_off_beat = abs_off_beat;
+}
+
+static void schedule_harmony_off_for_segment(Cadence* self,
+                                             double segment_start_beat,
+                                             double segment_beats) {
+    const double fraction = note_length_fraction(self->controls);
+    if (fraction >= 0.995) {
+        clear_pending_harmony_off(self);
+        return;
+    }
+    schedule_harmony_off_at(self, segment_start_beat + segment_beats * fraction);
+}
+
+static void panic_harmony(Cadence* self, uint32_t frame) {
+    for (uint8_t i = 0; i < self->active_harmony_count; ++i) {
+        emit_note_off(self, frame, self->active_harmony_notes[i]);
+    }
+
+    const int current_channel = clampi(self->active_harmony_channel, 1, 16);
+    emit_cc_on_channel(self, frame, 123, 0, current_channel);
+    emit_cc_on_channel(self, frame, 120, 0, current_channel);
+
+    const int configured_channel = resolve_output_channel(self, self->controls.output_channel);
+    if (configured_channel != current_channel) {
+        emit_cc_on_channel(self, frame, 123, 0, configured_channel);
+        emit_cc_on_channel(self, frame, 120, 0, configured_channel);
+    }
+
+    self->active_harmony_count = 0;
+    clear_pending_harmony_off(self);
+}
+
 static double cycle_beats_for_controls(const ControlSnapshot& controls, double beats_per_bar) {
     return clampd((double)controls.cycle_bars * beats_per_bar, 1.0, (double)kMaxSegments * beats_per_bar);
 }
@@ -533,6 +608,7 @@ static void transition_to_slot(Cadence* self, uint32_t frame, const ChordSlot* s
 }
 
 static void silence_harmony(Cadence* self, uint32_t frame) {
+    clear_pending_harmony_off(self);
     transition_to_slot(self, frame, nullptr, false);
 }
 
@@ -808,11 +884,10 @@ static bool controls_match(const ControlSnapshot& a, const ControlSnapshot& b) {
            a.cycle_bars == b.cycle_bars &&
            a.granularity == b.granularity &&
            std::fabs(a.complexity - b.complexity) < 0.0001f &&
+           std::fabs(a.movement - b.movement) < 0.0001f &&
            a.chord_size == b.chord_size &&
            a.reg == b.reg &&
-           a.spread == b.spread &&
-           a.pass_input == b.pass_input &&
-           a.output_channel == b.output_channel;
+           a.spread == b.spread;
 }
 
 static ControlSnapshot read_controls(Cadence* self) {
@@ -822,7 +897,9 @@ static ControlSnapshot read_controls(Cadence* self) {
     controls.cycle_bars = clampi((int)lroundf(self->cycle_bars_port ? *self->cycle_bars_port : 2.0f), 1, 8);
     controls.granularity = clampi((int)lroundf(self->granularity_port ? *self->granularity_port : (float)GRANULARITY_HALF_BAR), 0, 2);
     controls.complexity = clampf(self->complexity_port ? *self->complexity_port : 0.45f, 0.0f, 1.0f);
+    controls.movement = clampf(self->movement_port ? *self->movement_port : 0.65f, 0.0f, 1.0f);
     controls.chord_size = clampi((int)lroundf(self->chord_size_port ? *self->chord_size_port : (float)CHORD_SIZE_TRIADS), 0, 1);
+    controls.note_length = clampf(self->note_length_port ? *self->note_length_port : 1.0f, 0.10f, 1.0f);
     controls.reg = clampi((int)lroundf(self->register_port ? *self->register_port : (float)REGISTER_MID), 0, 2);
     controls.spread = clampi((int)lroundf(self->spread_port ? *self->spread_port : (float)SPREAD_CLOSE), 0, 2);
     controls.pass_input = (self->pass_input_port ? *self->pass_input_port : 1.0f) >= 0.5f;
@@ -835,6 +912,7 @@ static void reset_learning(Cadence* self) {
     clear_capture(self);
     clear_playback(self);
     clear_held_notes(self);
+    clear_pending_harmony_off(self);
 }
 
 static bool quality_uses_seventh(uint8_t quality) {
@@ -877,6 +955,7 @@ static int build_candidates(const ControlSnapshot& controls, Candidate* out) {
 static double score_candidate(const SegmentCapture& segment,
                               const Candidate& candidate,
                               const ControlSnapshot& controls) {
+    const double movement = clampd((double)controls.movement, 0.0, 1.0);
     double weights[12]{};
     double total = 0.0;
     for (int pc = 0; pc < 12; ++pc) {
@@ -926,19 +1005,19 @@ static double score_candidate(const SegmentCapture& segment,
     score += segment.duration[candidate.root_pc] * 0.45;
 
     if (candidate.root_pc == root_pref.primary_pc) {
-        score += 0.95 + root_pref.primary_ratio * 0.95;
+        score += 0.38 + movement * 0.96 + root_pref.primary_ratio * (0.28 + movement * 0.96);
     } else if (root_pref.mask & (uint16_t)(1u << candidate.root_pc)) {
-        score += 0.22;
+        score += 0.10 + movement * 0.28;
     } else {
-        score -= 0.95 + root_pref.primary_ratio * 0.70;
+        score -= 0.24 + movement * 1.12 + root_pref.primary_ratio * (0.14 + movement * 0.82);
     }
 
     if (candidate.root_pc == dominant_pc) {
-        score += 0.48 + dominant_ratio * 0.72;
+        score += 0.10 + movement * 0.76 + dominant_ratio * (0.14 + movement * 0.58);
     } else if (chord_pcs[dominant_pc]) {
-        score += 0.12 + dominant_ratio * 0.20;
+        score += 0.05 + movement * 0.12 + dominant_ratio * (0.06 + movement * 0.18);
     } else {
-        score -= 0.24 + dominant_ratio * 0.42;
+        score -= 0.06 + movement * 0.34 + dominant_ratio * (0.12 + movement * 0.38);
     }
 
     if (scale_contains_pc(controls.scale, controls.key, candidate.root_pc)) {
@@ -1008,33 +1087,34 @@ static double transition_score(const Candidate& previous,
                                const ControlSnapshot& controls,
                                int segment_index,
                                int segment_count) {
+    const double movement = clampd((double)controls.movement, 0.0, 1.0);
     const int interval = wrap12((int)next.root_pc - (int)previous.root_pc);
     const int step = std::min(interval, 12 - interval);
 
     double score = 0.0;
     if (interval == 0 && previous.quality == next.quality) {
-        score -= 0.34;
+        score -= 0.10 + movement * 0.54;
     } else if (interval == 0) {
-        score -= 0.16;
+        score -= 0.04 + movement * 0.22;
     } else if (interval == 5 || interval == 7) {
-        score += 0.24;
+        score += 0.18 + movement * 0.10;
     } else if (interval == 2 || interval == 10) {
-        score += 0.12;
+        score += 0.08 + movement * 0.06;
     } else if (step == 1) {
-        score += 0.04;
+        score += 0.03 + movement * 0.06;
     } else if (step == 6) {
-        score -= 0.16;
+        score -= 0.08 + movement * 0.12;
     } else {
         score += 0.02;
     }
 
-    score += (double)popcount16(previous.mask & next.mask) * 0.09;
+    score += (double)popcount16(previous.mask & next.mask) * (0.14 - movement * 0.08);
 
     if (segment_index == segment_count - 1 && next.root_pc == controls.key) {
-        score += 0.22;
+        score += 0.18 + (1.0 - movement) * 0.08;
     }
     if (segment_index == 0 && next.root_pc == controls.key) {
-        score += 0.12;
+        score += 0.08 + (1.0 - movement) * 0.08;
     }
     if (next.quality == QUALITY_DIM) {
         score -= 0.08;
@@ -1066,10 +1146,9 @@ static bool infer_progression(Cadence* self, int segment_count) {
     for (int s = 0; s < segment_count; ++s) {
         root_prefs[s] = preferred_roots_for_segment(self->capture[s]);
         for (int c = 0; c < candidate_count; ++c) {
+            local_scores[s][c] = score_candidate(self->capture[s], candidates[c], self->controls);
             if (!(root_prefs[s].mask & (uint16_t)(1u << candidates[c].root_pc))) {
-                local_scores[s][c] = kScoreFloor * 0.5;
-            } else {
-                local_scores[s][c] = score_candidate(self->capture[s], candidates[c], self->controls);
+                local_scores[s][c] -= 0.18 + (double)self->controls.movement * 0.86;
             }
             dp[s][c] = kScoreFloor;
             trace[s][c] = -1;
@@ -1191,6 +1270,7 @@ static void handle_boundary(Cadence* self,
     if (self->ready && self->playback_segment_count == segment_count) {
         const int segment = segment_index_for_time(self->controls, beats_per_bar, segment_count, abs_boundary_beat + kBeatEpsilon);
         transition_to_slot(self, frame, &self->playback[segment], true);
+        schedule_harmony_off_for_segment(self, abs_boundary_beat, segment_beats);
     } else {
         silence_harmony(self, frame);
     }
@@ -1219,9 +1299,73 @@ static void sync_harmony_to_position(Cadence* self,
                                      int segment_count) {
     if (self->ready && self->playback_segment_count == segment_count) {
         const int segment = segment_index_for_time(self->controls, beats_per_bar, segment_count, abs_beats + kBeatEpsilon);
+        const double segment_beats = segment_beats_for_controls(self->controls, beats_per_bar);
+        const double segment_start = std::floor((abs_beats + kBeatEpsilon) / segment_beats) * segment_beats;
+        const double off_beat = segment_start + segment_beats * note_length_fraction(self->controls);
+
+        if (note_length_fraction(self->controls) < 0.995 && off_beat <= abs_beats + kBeatEpsilon) {
+            silence_harmony(self, frame);
+            return;
+        }
+
         transition_to_slot(self, frame, &self->playback[segment], false);
+        schedule_harmony_off_at(self, off_beat);
     } else {
         silence_harmony(self, frame);
+    }
+}
+
+static void process_timeline_until(Cadence* self,
+                                   uint32_t nframes,
+                                   double abs_beats_start,
+                                   double abs_beats_end,
+                                   double target_beat,
+                                   double beats_per_bar,
+                                   int segment_count,
+                                   double* cursor_beats,
+                                   int64_t* boundary_index,
+                                   double* next_boundary) {
+    if (target_beat < *cursor_beats) {
+        target_beat = *cursor_beats;
+    }
+
+    const double segment_beats = segment_beats_for_controls(self->controls, beats_per_bar);
+
+    while (true) {
+        const bool boundary_due = (*next_boundary <= target_beat + kBeatEpsilon);
+        const bool off_due = self->harmony_off_pending &&
+                             (self->pending_harmony_off_beat <= target_beat + kBeatEpsilon);
+        if (!boundary_due && !off_due) {
+            break;
+        }
+
+        double marker_beat = target_beat;
+        bool process_boundary = false;
+        if (boundary_due && (!off_due || *next_boundary <= self->pending_harmony_off_beat + kBeatEpsilon)) {
+            marker_beat = *next_boundary;
+            process_boundary = true;
+        } else {
+            marker_beat = self->pending_harmony_off_beat;
+        }
+
+        if (marker_beat > *cursor_beats + 1e-12) {
+            capture_interval(self, beats_per_bar, segment_count, *cursor_beats, marker_beat);
+        }
+
+        const uint32_t frame = frame_for_beat(abs_beats_start, abs_beats_end, nframes, marker_beat);
+        if (process_boundary) {
+            handle_boundary(self, frame, marker_beat, beats_per_bar, segment_count);
+            *boundary_index += 1;
+            *next_boundary = (double)(*boundary_index) * segment_beats;
+        } else {
+            silence_harmony(self, frame);
+        }
+        *cursor_beats = marker_beat;
+    }
+
+    if (target_beat > *cursor_beats + 1e-12) {
+        capture_interval(self, beats_per_bar, segment_count, *cursor_beats, target_beat);
+        *cursor_beats = target_beat;
     }
 }
 
@@ -1374,7 +1518,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_CYCLE_BARS: self->cycle_bars_port = (const float*)data; break;
         case PORT_GRANULARITY: self->granularity_port = (const float*)data; break;
         case PORT_COMPLEXITY: self->complexity_port = (const float*)data; break;
+        case PORT_MOVEMENT: self->movement_port = (const float*)data; break;
         case PORT_CHORD_SIZE: self->chord_size_port = (const float*)data; break;
+        case PORT_NOTE_LENGTH: self->note_length_port = (const float*)data; break;
         case PORT_REGISTER: self->register_port = (const float*)data; break;
         case PORT_SPREAD: self->spread_port = (const float*)data; break;
         case PORT_PASS_INPUT: self->pass_input_port = (const float*)data; break;
@@ -1396,6 +1542,7 @@ static void activate(LV2_Handle instance) {
     self->active_harmony_count = 0;
     self->active_harmony_channel = 1;
     self->last_input_channel = 1;
+    clear_pending_harmony_off(self);
     self->was_playing = false;
     self->last_abs_beats_start = 0.0;
     self->controls_initialized = false;
@@ -1431,7 +1578,12 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     const TimeInfo info = read_time_info(self->control, self->urids);
 
     if (!info.valid || !info.playing) {
-        silence_harmony(self, 0);
+        if (self->was_playing || self->active_harmony_count > 0 || self->harmony_off_pending) {
+            panic_harmony(self, 0);
+        } else {
+            clear_pending_harmony_off(self);
+            silence_harmony(self, 0);
+        }
         clear_held_notes(self);
         self->was_playing = false;
 
@@ -1490,17 +1642,16 @@ static void run(LV2_Handle instance, uint32_t nframes) {
             }
 
             const double event_beats = abs_beats_start + ((double)ev->time.frames / (double)std::max(1u, nframes)) * abs_beats_step;
-            while (next_boundary <= event_beats + kBeatEpsilon && next_boundary <= abs_beats_end + kBeatEpsilon) {
-                capture_interval(self, info.beatsPerBar, segment_count, cursor_beats, next_boundary);
-                const uint32_t frame = frame_for_beat(abs_beats_start, abs_beats_end, nframes, next_boundary);
-                handle_boundary(self, frame, next_boundary, info.beatsPerBar, segment_count);
-                cursor_beats = next_boundary;
-                boundary_index += 1;
-                next_boundary = (double)boundary_index * segment_beats;
-            }
-
-            capture_interval(self, info.beatsPerBar, segment_count, cursor_beats, event_beats);
-            cursor_beats = event_beats;
+            process_timeline_until(self,
+                                   nframes,
+                                   abs_beats_start,
+                                   abs_beats_end,
+                                   event_beats,
+                                   info.beatsPerBar,
+                                   segment_count,
+                                   &cursor_beats,
+                                   &boundary_index,
+                                   &next_boundary);
 
             forward_input_event(self, ev, msg, size);
 
@@ -1521,16 +1672,16 @@ static void run(LV2_Handle instance, uint32_t nframes) {
         }
     }
 
-    while (next_boundary <= abs_beats_end + kBeatEpsilon) {
-        capture_interval(self, info.beatsPerBar, segment_count, cursor_beats, next_boundary);
-        const uint32_t frame = frame_for_beat(abs_beats_start, abs_beats_end, nframes, next_boundary);
-        handle_boundary(self, frame, next_boundary, info.beatsPerBar, segment_count);
-        cursor_beats = next_boundary;
-        boundary_index += 1;
-        next_boundary = (double)boundary_index * segment_beats;
-    }
-
-    capture_interval(self, info.beatsPerBar, segment_count, cursor_beats, abs_beats_end);
+    process_timeline_until(self,
+                           nframes,
+                           abs_beats_start,
+                           abs_beats_end,
+                           abs_beats_end,
+                           info.beatsPerBar,
+                           segment_count,
+                           &cursor_beats,
+                           &boundary_index,
+                           &next_boundary);
 
     self->was_playing = true;
     self->last_abs_beats_start = abs_beats_start;
@@ -1548,6 +1699,7 @@ static void deactivate(LV2_Handle instance) {
     clear_held_notes(self);
     self->active_harmony_count = 0;
     self->active_harmony_channel = 1;
+    clear_pending_harmony_off(self);
     self->was_playing = false;
 }
 
