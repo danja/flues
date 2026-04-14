@@ -36,6 +36,7 @@ If you are browsing the repo as a user rather than a contributor, treat the docu
 - **[Euclid](lv2/euclid/)** — Euclidean rhythm generator for Drumkit.
 - **[EuclidMono](lv2/euclid-mono/)** — Two-pattern Euclidean generator with logic operators and single-note output.
 - **[BassGen](lv2/bassgen/)** — Host-synced monophonic bassline MIDI generator with genre-biased phrase generation.
+- **[Cadence](lv2/cadence/)** — Cycle-learned MIDI harmonizer that turns monophonic lines into voiced chord progressions.
 - **[Shifty](lv2/shifty/)** — Transport-synced audio pitch-shift pattern effect.
 - **[Euclidean Gate](lv2/euclidean-gate/)** — Audio gate for rhythmic chopping.
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).

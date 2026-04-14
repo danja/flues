@@ -34,6 +34,11 @@ BassGen is a monophonic MIDI bassline generator that builds phrases from root, s
 
 *This is aimed at the gap between a utility sequencer and a phrase generator. The current implementation now includes broader harmonic support and more characterful style presets, including `Funk` and `Sabbath` biases for distinctly different bass behavior.*
 
+### cadence
+Cadence is a transport-synced MIDI harmonizer for monophonic lines. It learns one cycle of incoming notes, infers a chord progression per segment, then emits voiced harmony on later passes with control over harmonic movement, note length, register, spread, and output channel.
+
+*This is intended as a practical companion to `bassgen`, but it also works after other monophonic melody or bass generators if the host provides transport and bar position.*
+
 ### drumgen
 DrumGen is a transport-synced multi-lane MIDI drum generator designed as a companion to `drumkit`. It combines genre-shaped anchor patterns with Euclidean variation, follows host transport, defaults to MIDI channel 10, and uses the `drumkit` lane mapping by default.
 
