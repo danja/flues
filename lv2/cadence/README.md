@@ -25,7 +25,7 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - `Register`: overall voicing height.
 - `Spread`: close, open, or drop-2 voicing.
 - `Pass Input`: forwards the source notes alongside the harmony.
-- `Output Channel`: MIDI channel used for generated chords.
+- `Output Channel`: `Input` follows the source channel; `1-16` forces a fixed MIDI channel for generated chords.
 - `Learn`: bump this value to clear the learned progression and recapture.
 - `Ready`: output status, `1` when a learned progression is available.
 
@@ -35,6 +35,7 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - Every segment scores a bank of chord candidates across all roots and common chord qualities.
 - A dynamic-programming pass chooses the full progression, preferring good local note fit plus smoother harmonic movement.
 - The chosen chords are voiced with inversion search and light voice-leading against the previous chord.
+- Chords are re-triggered at segment boundaries so short-envelope synth patches still articulate the harmony.
 
 ## Build
 

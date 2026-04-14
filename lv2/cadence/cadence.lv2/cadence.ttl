@@ -167,10 +167,11 @@
         lv2:index 12 ;
         lv2:symbol "output_channel" ;
         lv2:name "Output Channel" ;
-        lv2:default 2 ;
-        lv2:minimum 1 ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
         lv2:maximum 16 ;
         lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Input" ; rdf:value 0 ] ;
         lv2:scalePoint [ rdfs:label "1" ; rdf:value 1 ] ;
         lv2:scalePoint [ rdfs:label "2" ; rdf:value 2 ] ;
         lv2:scalePoint [ rdfs:label "3" ; rdf:value 3 ] ;

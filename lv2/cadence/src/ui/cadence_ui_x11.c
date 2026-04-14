@@ -17,20 +17,20 @@
 #define CADENCE_URI "https://danja.github.io/flues/plugins/cadence"
 #define CADENCE_UI_URI CADENCE_URI "#ui"
 
-#define WINDOW_WIDTH 760
-#define WINDOW_HEIGHT 380
+#define WINDOW_WIDTH 920
+#define WINDOW_HEIGHT 620
 
 #define MARGIN 20
-#define TITLE_HEIGHT 18
+#define TITLE_HEIGHT 26
 #define SLIDER_WIDTH 26
-#define SLIDER_HEIGHT 126
+#define SLIDER_HEIGHT 132
 #define KNOB_HEIGHT 16
-#define COLUMN_WIDTH 124
-#define ROW_GAP 58
-#define BUTTON_WIDTH 116
-#define BUTTON_HEIGHT 32
-#define LED_WIDTH 116
-#define LED_HEIGHT 32
+#define COLUMN_WIDTH 164
+#define ROW_GAP 104
+#define BUTTON_WIDTH 150
+#define BUTTON_HEIGHT 38
+#define LED_WIDTH 150
+#define LED_HEIGHT 38
 
 enum PortIndex {
     PORT_CONTROL = 0,
@@ -122,7 +122,7 @@ static const ControlDef kControls[10] = {
     {PORT_REGISTER, "REG", 0.0f, 2.0f, 1.0f, true},
     {PORT_SPREAD, "VOICE", 0.0f, 2.0f, 0.0f, true},
     {PORT_PASS_INPUT, "PASS", 0.0f, 1.0f, 1.0f, true},
-    {PORT_OUTPUT_CHANNEL, "CHAN", 1.0f, 16.0f, 2.0f, true}
+    {PORT_OUTPUT_CHANNEL, "CHAN", 0.0f, 16.0f, 0.0f, true}
 };
 
 static pthread_mutex_t g_xlib_init_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -144,7 +144,7 @@ static float clamp_value(float value, float min_value, float max_value) {
 }
 
 static int row_y(int row) {
-    return MARGIN + TITLE_HEIGHT + 24 + row * (SLIDER_HEIGHT + ROW_GAP);
+    return MARGIN + TITLE_HEIGHT + 58 + row * (SLIDER_HEIGHT + ROW_GAP);
 }
 
 static int controls_group_width(void) {
@@ -169,7 +169,7 @@ static int led_x(int width) {
 }
 
 static int footer_y(int height) {
-    return height - MARGIN - BUTTON_HEIGHT;
+    return height - MARGIN - BUTTON_HEIGHT - 4;
 }
 
 static void send_value(CadenceUI* ui, uint32_t port, float value) {
@@ -230,7 +230,11 @@ static void format_value_label(int control_index, float value, char* out, size_t
             snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
             break;
         case 9:
-            snprintf(out, out_size, "%d", (int)lroundf(value));
+            if ((int)lroundf(value) <= 0) {
+                snprintf(out, out_size, "Input");
+            } else {
+                snprintf(out, out_size, "%d", (int)lroundf(value));
+            }
             break;
         default:
             snprintf(out, out_size, "%.2f", value);
@@ -265,6 +269,24 @@ static void draw_ui(CadenceUI* ui) {
 
     draw_centered_text(cr, ui->width * 0.5, MARGIN + 22, "CADENCE", 18.0, true, 0.94, 0.73, 0.28);
     draw_centered_text(cr, ui->width * 0.5, MARGIN + 42, "Cycle-Learned MIDI Harmonizer", 11.0, false, 0.78, 0.80, 0.85);
+
+    for (int row = 0; row < 2; ++row) {
+        const int gy = row_y(row) - 34;
+        cairo_set_source_rgb(cr, 0.11, 0.12, 0.15);
+        cairo_rectangle(cr, column_x(0, ui->width) - 12, gy, controls_group_width() + 24, SLIDER_HEIGHT + 76);
+        cairo_fill(cr);
+        cairo_set_source_rgb(cr, 0.23, 0.24, 0.28);
+        cairo_set_line_width(cr, 1.0);
+        cairo_rectangle(cr, column_x(0, ui->width) - 11.5, gy + 0.5, controls_group_width() + 23, SLIDER_HEIGHT + 75);
+        cairo_stroke(cr);
+        draw_centered_text(cr,
+                           ui->width * 0.5,
+                           gy + 18,
+                           row == 0 ? "CONTEXT" : "VOICING AND ROUTING",
+                           11.0,
+                           true,
+                           0.72, 0.75, 0.80);
+    }
 
     for (int i = 0; i < 10; ++i) {
         int row = i / 5;
@@ -305,7 +327,7 @@ static void draw_ui(CadenceUI* ui) {
     draw_centered_text(cr, lx + (LED_WIDTH * 0.5), by + 21, ready ? "READY" : "LEARNING", 12.0, true,
                        ready ? 0.88 : 0.70, ready ? 0.96 : 0.72, ready ? 0.90 : 0.76);
 
-    draw_centered_text(cr, ui->width * 0.5, ui->height - 10, "Route after a monophonic MIDI line and let one cycle play",
+    draw_centered_text(cr, ui->width * 0.5, ui->height - 12, "Generated chords retrigger at each segment boundary; CHAN=Input follows the source channel",
                        10.0, false, 0.66, 0.69, 0.74);
 
     cairo_destroy(cr);
