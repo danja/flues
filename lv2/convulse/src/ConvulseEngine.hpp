@@ -11,6 +11,7 @@ namespace flues::convulse {
 
 static constexpr uint32_t kMaxKernelSize = 1024;
 static constexpr uint32_t kKernelCrossfadeSamples = 128;
+static constexpr float kHalfPi = 1.57079632679489661923f;
 static constexpr float kTwoPi = 6.28318530717958647692f;
 
 enum class KernelMode : int {
@@ -32,6 +33,7 @@ struct Params {
     float refresh = 0.5f;
     float stereoWidth = 0.3f;
     float feedback = 10.0f;
+    float drive = 0.35f;
 };
 
 class Engine {
@@ -74,6 +76,7 @@ public:
         clamped.refresh = clampf(clamped.refresh, 0.0f, 8.0f);
         clamped.stereoWidth = clampf(clamped.stereoWidth, 0.0f, 1.0f);
         clamped.feedback = clampf(clamped.feedback, 0.0f, 95.0f);
+        clamped.drive = clampf(clamped.drive, 0.0f, 2.0f);
 
         const bool kernelChanged =
             std::fabs(clamped.kernelSize - params_.kernelSize) > 0.5f ||
@@ -112,8 +115,11 @@ public:
         }
 
         const float dryWet = params_.dryWet;
-        const float dryMix = 1.0f - dryWet;
-        const float feedbackGain = params_.feedback * 0.01f * 0.92f;
+        const float drive = params_.drive;
+        const float dryMix = std::cos(dryWet * kHalfPi);
+        const float wetMix = std::sin(dryWet * kHalfPi);
+        const float wetGain = 1.25f + drive * 1.55f;
+        const float feedbackGain = params_.feedback * 0.01f * 0.92f * (1.0f + drive * 0.35f);
 
         for (uint32_t i = 0; i < nframes; ++i) {
             maybeRefreshKernel(transportRunning, tempoValid, bpm);
@@ -149,16 +155,16 @@ public:
                 }
             }
 
-            wetL = softClip(wetL);
-            wetR = softClip(wetR);
+            wetL = softClip(wetL * wetGain);
+            wetR = softClip(wetR * wetGain);
             prevWetL_ = wetL;
             prevWetR_ = wetR;
 
             if (outL) {
-                outL[i] = (dryL * dryMix) + (wetL * dryWet);
+                outL[i] = (dryL * dryMix) + (wetL * wetMix);
             }
             if (outR) {
-                outR[i] = (dryR * dryMix) + (wetR * dryWet);
+                outR[i] = (dryR * dryMix) + (wetR * wetMix);
             }
 
             writeIndex_ = (writeIndex_ + 1u) % kMaxKernelSize;
@@ -267,7 +273,7 @@ private:
             absSum += std::fabs(kernel[i]);
         }
 
-        const float scale = (absSum > 1.0e-6f) ? (0.9f / absSum) : 1.0f;
+        const float scale = (absSum > 1.0e-6f) ? (1.25f / absSum) : 1.0f;
         for (uint32_t i = 0; i < size; ++i) {
             kernel[i] *= scale;
         }

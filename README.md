@@ -42,6 +42,7 @@ If you are browsing the repo as a user rather than a contributor, treat the docu
 - **[P-Mix](lv2/p-mix/)** — Probabilistic mixer for bar-based dropouts ([manual](docs/p-mix--manual.md)).
 - **[E-Mix](lv2/e-mix/)** — Euclidean mixer with bar-block gating and offset/fade controls.
 - **[Chordant](lv2/chordant/)** — Euclidean capture mixer with silence-then-stab playback.
+- **[Convulse](lv2/convulse/)** — Experimental stereo convolver with synth-generated FIR kernels and a built-in drive stage.
 - **[MIDI Flip](lv2/midi-flip/)** — MIDI note mirror around a pivot.
 - **[Quantico](lv2/quantico/)** — MIDI scale quantizer (key + scale).
 - **[Slimmer](lv2/slimmer/)** — Monophonic MIDI filter with note selection modes.
@@ -253,6 +254,7 @@ Plugins install to `~/.lv2/` and appear in any LV2 host (Ardour, Reaper, Carla, 
 - [lv2/euclid/README.md](lv2/euclid/README.md) - Euclidean rhythm generator
 - [lv2/euclid-mono/README.md](lv2/euclid-mono/README.md) - Two-pattern Euclidean logic generator
 - [lv2/bassgen/README.md](lv2/bassgen/README.md) - Monophonic bassline MIDI generator
+- [lv2/convulse/README.md](lv2/convulse/README.md) - Synth-kernel convolution effect
 - [lv2/shifty/README.md](lv2/shifty/README.md) - Transport-synced pitch-shift effect
 - [lv2/euclidean-gate/README.md](lv2/euclidean-gate/README.md) - Euclidean gate effect
 - [lv2/e-mix/README.md](lv2/e-mix/README.md) - Euclidean mixer effect

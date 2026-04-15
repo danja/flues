@@ -144,4 +144,13 @@
         lv2:maximum 95 ;
         lv2:portProperty lv2:integer ;
         rdfs:comment "Feeds part of the wet output back into the convolver input." ;
+    ] , [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "drive" ;
+        lv2:name "Drive" ;
+        lv2:default 0.35 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+        rdfs:comment "Wet-path boost and saturation amount for a more extreme convolved tone." ;
     ] .

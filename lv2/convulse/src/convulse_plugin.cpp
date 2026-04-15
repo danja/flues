@@ -31,6 +31,7 @@ enum PortIndex {
     PORT_REFRESH,
     PORT_STEREO_WIDTH,
     PORT_FEEDBACK,
+    PORT_DRIVE,
     PORT_TOTAL_COUNT
 };
 
@@ -55,6 +56,7 @@ struct ConvulseURIDs {
     LV2_URID state_refresh = 0;
     LV2_URID state_stereo_width = 0;
     LV2_URID state_feedback = 0;
+    LV2_URID state_drive = 0;
 };
 
 struct TimeInfo {
@@ -77,6 +79,7 @@ struct Convulse {
     const float* refresh_port = nullptr;
     const float* stereo_width_port = nullptr;
     const float* feedback_port = nullptr;
+    const float* drive_port = nullptr;
 
     LV2_URID_Map* map = nullptr;
     ConvulseURIDs urids{};
@@ -92,6 +95,7 @@ struct Convulse {
     float cached_refresh = 0.5f;
     float cached_stereo_width = 0.3f;
     float cached_feedback = 10.0f;
+    float cached_drive = 0.35f;
 };
 
 static inline float clampf(float value, float minValue, float maxValue) {
@@ -179,6 +183,7 @@ static void update_cached_params(Convulse* self) {
     if (self->refresh_port) self->cached_refresh = *self->refresh_port;
     if (self->stereo_width_port) self->cached_stereo_width = *self->stereo_width_port;
     if (self->feedback_port) self->cached_feedback = *self->feedback_port;
+    if (self->drive_port) self->cached_drive = *self->drive_port;
 }
 
 static LV2_State_Status convulse_state_save(
@@ -213,6 +218,8 @@ static LV2_State_Status convulse_state_save(
           &self->cached_stereo_width, sizeof(float), self->urids.atom_Float, flags);
     store(handle, self->urids.state_feedback,
           &self->cached_feedback, sizeof(float), self->urids.atom_Float, flags);
+    store(handle, self->urids.state_drive,
+          &self->cached_drive, sizeof(float), self->urids.atom_Float, flags);
 
     return LV2_STATE_SUCCESS;
 }
@@ -248,6 +255,7 @@ static LV2_State_Status convulse_state_restore(
     restore_value(self->urids.state_refresh, &self->cached_refresh);
     restore_value(self->urids.state_stereo_width, &self->cached_stereo_width);
     restore_value(self->urids.state_feedback, &self->cached_feedback);
+    restore_value(self->urids.state_drive, &self->cached_drive);
 
     return LV2_STATE_SUCCESS;
 }
@@ -300,6 +308,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*,
     self->urids.state_refresh = self->map->map(self->map->handle, CONVULSE_URI "#refresh");
     self->urids.state_stereo_width = self->map->map(self->map->handle, CONVULSE_URI "#stereo_width");
     self->urids.state_feedback = self->map->map(self->map->handle, CONVULSE_URI "#feedback");
+    self->urids.state_drive = self->map->map(self->map->handle, CONVULSE_URI "#drive");
 
     return self;
 }
@@ -353,6 +362,9 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_FEEDBACK:
             self->feedback_port = static_cast<const float*>(data);
             break;
+        case PORT_DRIVE:
+            self->drive_port = static_cast<const float*>(data);
+            break;
         default:
             break;
     }
@@ -384,6 +396,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     params.refresh = clampf(self->cached_refresh, 0.0f, 8.0f);
     params.stereoWidth = clampf(self->cached_stereo_width, 0.0f, 1.0f);
     params.feedback = clampf(self->cached_feedback, 0.0f, 95.0f);
+    params.drive = clampf(self->cached_drive, 0.0f, 2.0f);
 
     TimeInfo timeInfo;
     read_time_info(self->control, self->urids, &timeInfo);

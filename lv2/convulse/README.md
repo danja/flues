@@ -31,6 +31,7 @@ The result sits somewhere between resonator, spectral filter, smearer, and weird
 - `Refresh`: zero freezes the current kernel; otherwise the kernel is periodically regenerated
 - `Stereo Width`: phase and detune difference between left and right kernels
 - `Feedback`: wet signal fed back into the convolver input
+- `Drive`: wet-path boost and saturation for more obvious, more unstable textures
 
 When host tempo is available and transport is running, `Refresh` is interpreted as regenerations per quarter note. Without tempo information it falls back to Hz.
 

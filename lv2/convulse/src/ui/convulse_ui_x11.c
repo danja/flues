@@ -45,6 +45,7 @@ typedef enum {
     PORT_REFRESH,
     PORT_STEREO_WIDTH,
     PORT_FEEDBACK,
+    PORT_DRIVE,
     PORT_TOTAL_COUNT
 } PortIndex;
 
@@ -84,6 +85,7 @@ typedef struct {
     int screen;
     Window window;
     cairo_surface_t* surface;
+    cairo_surface_t* backbuffer;
 
     pthread_t thread;
     pthread_mutex_t mutex;
@@ -125,10 +127,22 @@ static const ControlDesc kControls[] = {
     { "DECAY", PORT_DECAY, 0.0f, 1.0f, 0.6f, false },
     { "REFRESH", PORT_REFRESH, 0.0f, 8.0f, 0.5f, false },
     { "WIDTH", PORT_STEREO_WIDTH, 0.0f, 1.0f, 0.3f, false },
-    { "FB", PORT_FEEDBACK, 0.0f, 95.0f, 10.0f, true }
+    { "FB", PORT_FEEDBACK, 0.0f, 95.0f, 10.0f, true },
+    { "DRV", PORT_DRIVE, 0.0f, 2.0f, 0.35f, false }
 };
 
 static void send_value(ConvulseUI* ui, const Knob* knob);
+
+static void recreate_backbuffer(ConvulseUI* ui) {
+    if (!ui) {
+        return;
+    }
+    if (ui->backbuffer) {
+        cairo_surface_destroy(ui->backbuffer);
+        ui->backbuffer = NULL;
+    }
+    ui->backbuffer = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ui->width, ui->height);
+}
 
 static const char* mode_name_from_value(float value) {
     switch ((int)lroundf(value)) {
@@ -257,7 +271,11 @@ static void draw_knob(cairo_t* cr, const Knob* knob, bool active, bool editing) 
 }
 
 static void draw_ui(ConvulseUI* ui) {
-    cairo_t* cr = cairo_create(ui->surface);
+    if (!ui->surface || !ui->backbuffer) {
+        return;
+    }
+
+    cairo_t* cr = cairo_create(ui->backbuffer);
 
     cairo_set_source_rgb(cr, 0.08, 0.09, 0.11);
     cairo_paint(cr);
@@ -273,6 +291,12 @@ static void draw_ui(ConvulseUI* ui) {
     }
 
     cairo_destroy(cr);
+
+    cairo_t* window_cr = cairo_create(ui->surface);
+    cairo_set_source_surface(window_cr, ui->backbuffer, 0.0, 0.0);
+    cairo_paint(window_cr);
+    cairo_destroy(window_cr);
+
     cairo_surface_flush(ui->surface);
     XFlush(ui->display);
 }
@@ -412,7 +436,9 @@ static void handle_key(ConvulseUI* ui, XKeyEvent* ev) {
         return;
     }
 
-    if ((buf[0] >= '0' && buf[0] <= '9') || buf[0] == '.' || buf[0] == '-') {
+    if ((buf[0] >= '0' && buf[0] <= '9') || buf[0] == '.' || buf[0] == '-' ||
+        (knob->port == PORT_MODE &&
+         ((buf[0] >= 'a' && buf[0] <= 'z') || (buf[0] >= 'A' && buf[0] <= 'Z')))) {
         const size_t lenText = strlen(knob->edit_text);
         if (lenText + 1 < sizeof(knob->edit_text)) {
             knob->edit_text[lenText] = buf[0];
@@ -440,6 +466,7 @@ static void* event_thread_main(void* arg) {
                         ui->width = ev.xconfigure.width;
                         ui->height = ev.xconfigure.height;
                         cairo_xlib_surface_set_size(ui->surface, ui->width, ui->height);
+                        recreate_backbuffer(ui);
                         ui->needs_redraw = true;
                     }
                     pthread_mutex_unlock(&ui->mutex);
@@ -551,6 +578,7 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor*,
                                             ui->width,
                                             ui->height);
     cairo_xlib_surface_set_size(ui->surface, ui->width, ui->height);
+    recreate_backbuffer(ui);
 
     const int knob_y = MARGIN + TITLE_HEIGHT;
     for (int i = 0; i < ui->knob_count; ++i) {
@@ -580,6 +608,9 @@ static LV2UI_Handle ui_instantiate(const LV2UI_Descriptor*,
     ui->needs_redraw = true;
 
     if (pthread_create(&ui->thread, NULL, event_thread_main, ui) != 0) {
+        if (ui->backbuffer) {
+            cairo_surface_destroy(ui->backbuffer);
+        }
         cairo_surface_destroy(ui->surface);
         XDestroyWindow(ui->display, ui->window);
         XCloseDisplay(ui->display);
@@ -602,6 +633,9 @@ static void ui_cleanup(LV2UI_Handle handle) {
 
     if (ui->surface) {
         cairo_surface_destroy(ui->surface);
+    }
+    if (ui->backbuffer) {
+        cairo_surface_destroy(ui->backbuffer);
     }
     if (ui->window) {
         XDestroyWindow(ui->display, ui->window);
