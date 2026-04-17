@@ -17,10 +17,10 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 ## Controls
 
 - `Key`: tonic pitch class.
-- `Scale`: used as a harmonic bias, not a hard quantizer.
+- `Scale`: strong harmonic guide. At normal settings Cadence stays inside the selected mode; at higher `Complexity` it can borrow outside tones.
 - `Cycle Bars`: loop length used for capture and playback.
 - `Granularity`: chord decision rate (`Beat`, `Half Bar`, `Bar`).
-- `Complexity`: low values prefer plain triads; high values allow more suspended, borrowed, and seventh-like choices.
+- `Complexity`: low values prefer plain diatonic triads; high values allow more suspended, borrowed, and seventh-like choices.
 - `Movement`: low values prefer steadier harmony; high values push chord roots to follow the segment's strongest notes more aggressively.
 - `Vary`: loop-aware evolution. Low values mainly change voicings and inversions every few cycles; higher values introduce alternate reharmonizations from the same learned material; `100%` regenerates a fresh harmonic choice every cycle.
 - `Comp`: loop-aware comping intensity. At `0%` Cadence behaves like held chords; higher values learn onset shape from the input line and turn segments into shorter, more syncopated chord answers.

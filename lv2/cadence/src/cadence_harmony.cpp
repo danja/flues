@@ -235,6 +235,34 @@ bool scale_contains_pc(int scale_index, int key, int note_pc) {
     return false;
 }
 
+int candidate_out_of_scale_count(const Candidate& candidate, const ControlSnapshot& controls) {
+    if (controls.scale == SCALE_CHROMATIC) {
+        return 0;
+    }
+
+    int count = 0;
+    for (uint8_t i = 0; i < candidate.note_count; ++i) {
+        const int pc = wrap12(candidate.root_pc + candidate.intervals[i]);
+        if (!scale_contains_pc(controls.scale, controls.key, pc)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+bool candidate_allowed_by_scale(const Candidate& candidate, const ControlSnapshot& controls) {
+    if (controls.scale == SCALE_CHROMATIC) {
+        return true;
+    }
+
+    const float complexity = clampf(controls.complexity, 0.0f, 1.0f);
+    if (complexity >= 0.78f) {
+        return true;
+    }
+
+    return candidate_out_of_scale_count(candidate, controls) == 0;
+}
+
 int dominant_pc_for_segment(const SegmentCapture& segment, double* out_weight, double* out_total) {
     int best_pc = 0;
     double best_weight = -1.0;
@@ -464,6 +492,9 @@ int build_candidates(const ControlSnapshot& controls, Candidate* out) {
             for (uint8_t i = 0; i < candidate.note_count; ++i) {
                 candidate.mask |= (uint16_t)(1u << wrap12(root + candidate.intervals[i]));
             }
+            if (!candidate_allowed_by_scale(candidate, controls)) {
+                continue;
+            }
             out[count++] = candidate;
         }
     }
@@ -474,6 +505,7 @@ double score_candidate(const SegmentCapture& segment,
                        const Candidate& candidate,
                        const ControlSnapshot& controls) {
     const double movement = clampd((double)controls.movement, 0.0, 1.0);
+    const double complexity = clampd((double)controls.complexity, 0.0, 1.0);
     double weights[12]{};
     double total = 0.0;
     for (int pc = 0; pc < 12; ++pc) {
@@ -509,7 +541,7 @@ double score_candidate(const SegmentCapture& segment,
 
         score += weights[pc] * role_weight;
         if (!scale_contains_pc(controls.scale, controls.key, pc)) {
-            score -= 0.30 + (1.0 - controls.complexity) * 0.22;
+            score -= 0.72 + (1.0 - complexity) * 0.90;
         }
     }
 
@@ -539,20 +571,20 @@ double score_candidate(const SegmentCapture& segment,
     }
 
     if (scale_contains_pc(controls.scale, controls.key, candidate.root_pc)) {
-        score += 0.18;
+        score += 0.22 + (1.0 - complexity) * 0.06;
     } else {
-        score -= 0.55 - controls.complexity * 0.18;
+        score -= 1.10 - complexity * 0.28;
     }
 
     switch (candidate.quality) {
         case QUALITY_POWER:
-            score -= 0.42 + controls.complexity * 0.28;
+            score -= 0.58 + (1.0 - complexity) * 0.72;
             break;
         case QUALITY_SUS2: {
             const double sus_weight = weights[wrap12(candidate.root_pc + 2)];
             const double major_third = weights[wrap12(candidate.root_pc + 4)];
             const double minor_third = weights[wrap12(candidate.root_pc + 3)];
-            score -= 0.18;
+            score -= 0.28 + (1.0 - complexity) * 0.34;
             score += sus_weight / (total + 1e-9) * 0.50;
             score += (major_third + minor_third < total * 0.18) ? 0.14 : -0.08;
             break;
@@ -561,20 +593,20 @@ double score_candidate(const SegmentCapture& segment,
             const double sus_weight = weights[wrap12(candidate.root_pc + 5)];
             const double major_third = weights[wrap12(candidate.root_pc + 4)];
             const double minor_third = weights[wrap12(candidate.root_pc + 3)];
-            score -= 0.18;
+            score -= 0.28 + (1.0 - complexity) * 0.34;
             score += sus_weight / (total + 1e-9) * 0.50;
             score += (major_third + minor_third < total * 0.18) ? 0.14 : -0.08;
             break;
         }
         case QUALITY_DIM:
-            score -= 0.30;
+            score -= 0.24 + (1.0 - complexity) * 0.16;
             score += weights[wrap12(candidate.root_pc + 6)] / (total + 1e-9) * 0.32;
             break;
         case QUALITY_DOM7:
         case QUALITY_MAJ7:
         case QUALITY_MIN7: {
             const int seventh_pc = wrap12(candidate.root_pc + candidate.intervals[3]);
-            score -= 0.12 + (1.0 - controls.complexity) * 0.24;
+            score -= 0.12 + (1.0 - complexity) * 0.24;
             score += weights[seventh_pc] / (total + 1e-9) * 0.36;
             break;
         }
