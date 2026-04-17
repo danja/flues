@@ -12,6 +12,7 @@ pkg_check_modules(CAIRO REQUIRED cairo)
 
 add_library(cadence MODULE
     src/cadence_plugin.cpp
+    src/cadence_comping.cpp
     src/cadence_harmony.cpp
     src/cadence_transport.cpp
     src/cadence_variation.cpp

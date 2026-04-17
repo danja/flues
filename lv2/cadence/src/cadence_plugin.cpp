@@ -6,6 +6,7 @@
 #include <lv2/time/time.h>
 #include <lv2/urid/urid.h>
 
+#include "cadence_comping.hpp"
 #include "cadence_harmony.hpp"
 #include "cadence_schema.h"
 #include "cadence_state.hpp"
@@ -42,6 +43,7 @@ struct Cadence {
     const float* action_learn_port = nullptr;
     float* status_ready_port = nullptr;
     const float* vary_port = nullptr;
+    const float* comp_port = nullptr;
 
     LV2_URID_Map* map = nullptr;
     CadenceURIDs urids{};
@@ -72,6 +74,7 @@ struct Cadence {
     int last_input_channel = 1;
     bool harmony_off_pending = false;
     double pending_harmony_off_beat = 0.0;
+    CompPlaybackState comp_state{};
 
     VariationStateBlob variation = cadence_default_variation_state();
     bool was_playing = false;
@@ -151,6 +154,7 @@ void emit_cc_on_channel(Cadence* self,
 void clear_pending_harmony_off(Cadence* self) {
     self->harmony_off_pending = false;
     self->pending_harmony_off_beat = 0.0;
+    cadence_clear_comp_release(&self->comp_state);
 }
 
 void schedule_harmony_off_at(Cadence* self, double abs_off_beat) {
@@ -165,6 +169,7 @@ void schedule_harmony_off_at(Cadence* self, double abs_off_beat) {
 
     self->harmony_off_pending = true;
     self->pending_harmony_off_beat = abs_off_beat;
+    cadence_set_comp_release(&self->comp_state, abs_off_beat);
 }
 
 void schedule_harmony_off_for_segment(Cadence* self,
@@ -287,6 +292,7 @@ ControlSnapshot read_controls(Cadence* self) {
     controls.output_channel = clampi((int)lroundf(self->output_channel_port ? *self->output_channel_port : 0.0f), 0, 16);
     controls.action_learn = clampi((int)lroundf(self->action_learn_port ? *self->action_learn_port : 0.0f), 0, 1048576);
     controls.vary = (self->vary_port ? *self->vary_port : 0.0f) / 100.0f;
+    controls.comp = (self->comp_port ? *self->comp_port : 0.0f) / 100.0f;
     return controls;
 }
 
@@ -307,6 +313,7 @@ void clear_learning_state(Cadence* self) {
     self->active_harmony_count = 0;
     self->active_harmony_channel = 1;
     self->last_input_channel = 1;
+    cadence_reset_comp_playback(&self->comp_state);
     cadence_reset_variation_progress(&self->variation);
 }
 
@@ -316,6 +323,36 @@ void adopt_base_progression(Cadence* self) {
         cadence_copy_progression(self->playback, self->base_progression, self->base_segment_count);
     }
     self->playback_segment_count = self->base_segment_count;
+}
+
+void plan_current_segment_comp(Cadence* self,
+                               int segment_index,
+                               double segment_start_beat,
+                               double segment_beats) {
+    if (!self || segment_index < 0 || segment_index >= self->playback_segment_count) {
+        cadence_reset_comp_playback(&self->comp_state);
+        return;
+    }
+
+    const SegmentCapture* learned_segment =
+        (self->have_learned_capture && segment_index < self->learned_segment_count)
+            ? &self->learned_capture[segment_index]
+            : nullptr;
+    const ChordSlot* slot = &self->playback[segment_index];
+    const uint32_t seed = (uint32_t)(self->variation.completed_cycles & 0xFFFFFFFFu) ^
+                          ((uint32_t)(self->variation.mutation_serial & 0x7FFFFFFF) * 2246822519u) ^
+                          ((uint32_t)segment_index * 3266489917u) ^
+                          ((uint32_t)slot->root_pc << 10) ^
+                          ((uint32_t)slot->quality << 18) ^
+                          (uint32_t)lroundf(self->controls.comp * 1000.0f);
+    cadence_plan_segment_comp(learned_segment,
+                              self->controls,
+                              slot,
+                              segment_index,
+                              segment_start_beat,
+                              segment_beats,
+                              seed,
+                              &self->comp_state);
 }
 
 bool update_base_from_capture(Cadence* self, int segment_count) {
@@ -388,6 +425,7 @@ void capture_onset(Cadence* self,
     }
 
     self->capture[segment].onset[note % 12] += bonus;
+    cadence_capture_timing_onset(&self->capture[segment], segment_pos, segment_beats, bonus);
 }
 
 void handle_boundary(Cadence* self,
@@ -430,9 +468,10 @@ void handle_boundary(Cadence* self,
                                                            beats_per_bar,
                                                            segment_count,
                                                            abs_boundary_beat + CADENCE_BEAT_EPSILON);
-        transition_to_slot(self, frame, &self->playback[segment], true);
-        schedule_harmony_off_for_segment(self, abs_boundary_beat, segment_beats);
+        silence_harmony(self, frame);
+        plan_current_segment_comp(self, segment, abs_boundary_beat, segment_beats);
     } else {
+        cadence_reset_comp_playback(&self->comp_state);
         silence_harmony(self, frame);
     }
 }
@@ -465,17 +504,20 @@ void sync_harmony_to_position(Cadence* self,
                                                            abs_beats + CADENCE_BEAT_EPSILON);
         const double segment_beats = cadence_segment_beats_for_controls(self->controls, beats_per_bar);
         const double segment_start = std::floor((abs_beats + CADENCE_BEAT_EPSILON) / segment_beats) * segment_beats;
-        const double off_beat = segment_start + segment_beats * cadence_note_length_fraction(self->controls);
+        bool should_sound = false;
+        double off_beat = 0.0;
 
-        if (cadence_note_length_fraction(self->controls) < 0.995 &&
-            off_beat <= abs_beats + CADENCE_BEAT_EPSILON) {
+        plan_current_segment_comp(self, segment, segment_start, segment_beats);
+        cadence_sync_comp_to_position(&self->comp_state, abs_beats, &should_sound, &off_beat);
+
+        if (should_sound) {
+            transition_to_slot(self, frame, &self->playback[segment], false);
+            schedule_harmony_off_at(self, off_beat);
+        } else {
             silence_harmony(self, frame);
-            return;
         }
-
-        transition_to_slot(self, frame, &self->playback[segment], false);
-        schedule_harmony_off_at(self, off_beat);
     } else {
+        cadence_reset_comp_playback(&self->comp_state);
         silence_harmony(self, frame);
     }
 }
@@ -498,17 +540,25 @@ void process_timeline_until(Cadence* self,
 
     while (true) {
         const bool boundary_due = (*next_boundary <= target_beat + CADENCE_BEAT_EPSILON);
+        const double next_hit_beat = cadence_next_comp_hit_beat(&self->comp_state);
+        const bool hit_due = next_hit_beat <= target_beat + CADENCE_BEAT_EPSILON;
         const bool off_due = self->harmony_off_pending &&
                              (self->pending_harmony_off_beat <= target_beat + CADENCE_BEAT_EPSILON);
-        if (!boundary_due && !off_due) {
+        if (!boundary_due && !off_due && !hit_due) {
             break;
         }
 
         double marker_beat = target_beat;
         bool process_boundary_event = false;
-        if (boundary_due && (!off_due || *next_boundary <= self->pending_harmony_off_beat + CADENCE_BEAT_EPSILON)) {
+        bool process_hit_event = false;
+        if (boundary_due &&
+            (!hit_due || *next_boundary <= next_hit_beat + CADENCE_BEAT_EPSILON) &&
+            (!off_due || *next_boundary <= self->pending_harmony_off_beat + CADENCE_BEAT_EPSILON)) {
             marker_beat = *next_boundary;
             process_boundary_event = true;
+        } else if (hit_due && (!off_due || next_hit_beat <= self->pending_harmony_off_beat + CADENCE_BEAT_EPSILON)) {
+            marker_beat = next_hit_beat;
+            process_hit_event = true;
         } else {
             marker_beat = self->pending_harmony_off_beat;
         }
@@ -522,6 +572,16 @@ void process_timeline_until(Cadence* self,
             handle_boundary(self, frame, marker_beat, beats_per_bar, segment_count);
             *boundary_index += 1;
             *next_boundary = (double)(*boundary_index) * segment_beats;
+        } else if (process_hit_event) {
+            ScheduledCompHit hit{};
+            if (cadence_take_due_comp_hit(&self->comp_state, marker_beat, &hit) &&
+                self->comp_state.segment_index >= 0 &&
+                self->comp_state.segment_index < self->playback_segment_count) {
+                ChordSlot slot = self->playback[self->comp_state.segment_index];
+                slot.velocity = hit.velocity;
+                transition_to_slot(self, frame, &slot, true);
+                schedule_harmony_off_at(self, hit.off_beat);
+            }
         } else {
             silence_harmony(self, frame);
         }
@@ -671,6 +731,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
         case PORT_ACTION_LEARN: self->action_learn_port = (const float*)data; break;
         case PORT_STATUS_READY: self->status_ready_port = (float*)data; break;
         case PORT_VARY: self->vary_port = (const float*)data; break;
+        case PORT_COMP: self->comp_port = (const float*)data; break;
         default: break;
     }
 }
@@ -687,6 +748,7 @@ static void activate(LV2_Handle instance) {
     self->active_harmony_channel = 1;
     self->last_input_channel = 1;
     clear_pending_harmony_off(self);
+    cadence_reset_comp_playback(&self->comp_state);
     self->was_playing = false;
     self->last_abs_beats_start = 0.0;
     self->controls_initialized = false;
@@ -707,12 +769,16 @@ static void run(LV2_Handle instance, uint32_t nframes) {
     const bool learn_triggered = self->controls.action_learn != self->previous_controls.action_learn;
     const bool params_changed = !controls_match(self->controls, self->previous_controls);
     const bool vary_changed = std::fabs(self->controls.vary - self->previous_controls.vary) >= 0.0001f;
+    const bool comp_changed = std::fabs(self->controls.comp - self->previous_controls.comp) >= 0.0001f;
 
     if (learn_triggered || params_changed) {
         silence_harmony(self, 0);
         clear_learning_state(self);
     } else if (vary_changed) {
         cadence_reset_variation_progress(&self->variation);
+    } else if (comp_changed) {
+        silence_harmony(self, 0);
+        cadence_reset_comp_playback(&self->comp_state);
     }
     self->previous_controls = self->controls;
 
@@ -763,6 +829,7 @@ static void run(LV2_Handle instance, uint32_t nframes) {
         self->ready = false;
         self->have_learned_capture = false;
         self->learned_segment_count = 0;
+        cadence_reset_comp_playback(&self->comp_state);
         cadence_reset_variation_progress(&self->variation);
     }
 
@@ -859,6 +926,7 @@ static void deactivate(LV2_Handle instance) {
     self->active_harmony_count = 0;
     self->active_harmony_channel = 1;
     clear_pending_harmony_off(self);
+    cadence_reset_comp_playback(&self->comp_state);
     self->was_playing = false;
 }
 

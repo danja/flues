@@ -14,6 +14,8 @@ enum {
     CADENCE_MAX_SEGMENTS = 32,
     CADENCE_MAX_CHORD_NOTES = 4,
     CADENCE_MAX_CANDIDATES = 108,
+    CADENCE_TIMING_BINS = 8,
+    CADENCE_MAX_COMP_HITS = 4,
     CADENCE_PROGRESSION_STATE_VERSION = 1,
     CADENCE_VARIATION_STATE_VERSION = 1
 };
@@ -31,6 +33,7 @@ enum {
 #define CADENCE_DEFAULT_PASS_INPUT true
 #define CADENCE_DEFAULT_OUTPUT_CHANNEL 0
 #define CADENCE_DEFAULT_VARY 0.0f
+#define CADENCE_DEFAULT_COMP 0.0f
 
 typedef enum {
     PORT_CONTROL = 0,
@@ -50,7 +53,8 @@ typedef enum {
     PORT_OUTPUT_CHANNEL,
     PORT_ACTION_LEARN,
     PORT_STATUS_READY,
-    PORT_VARY
+    PORT_VARY,
+    PORT_COMP
 } PortIndex;
 
 typedef enum {
@@ -119,11 +123,14 @@ typedef struct {
     int output_channel;
     int action_learn;
     float vary;
+    float comp;
 } ControlSnapshot;
 
 typedef struct {
     double duration[12];
     double onset[12];
+    double timing_bins[CADENCE_TIMING_BINS];
+    double onset_total;
 } SegmentCapture;
 
 typedef struct {
@@ -174,6 +181,7 @@ static inline ControlSnapshot cadence_default_controls(void) {
     controls.output_channel = CADENCE_DEFAULT_OUTPUT_CHANNEL;
     controls.action_learn = 0;
     controls.vary = CADENCE_DEFAULT_VARY;
+    controls.comp = CADENCE_DEFAULT_COMP;
     return controls;
 }
 

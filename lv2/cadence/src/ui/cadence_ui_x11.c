@@ -33,7 +33,7 @@
 #define BUTTON_HEIGHT 38
 #define LED_WIDTH 150
 #define LED_HEIGHT 38
-#define CONTROL_COUNT 13
+#define CONTROL_COUNT 14
 #define CONTROLS_PER_ROW 7
 
 typedef struct {
@@ -106,6 +106,7 @@ static const ControlDef kControls[CONTROL_COUNT] = {
     {PORT_COMPLEXITY, "COMPLEXITY", 0.0f, 1.0f, CADENCE_DEFAULT_COMPLEXITY, false},
     {PORT_MOVEMENT, "MOVE", 0.0f, 1.0f, CADENCE_DEFAULT_MOVEMENT, false},
     {PORT_VARY, "VARY", 0.0f, 100.0f, 0.0f, true},
+    {PORT_COMP, "COMP", 0.0f, 100.0f, 0.0f, true},
     {PORT_CHORD_SIZE, "SIZE", 0.0f, 1.0f, (float)CADENCE_DEFAULT_CHORD_SIZE, true},
     {PORT_NOTE_LENGTH, "LENGTH", 0.10f, 1.0f, CADENCE_DEFAULT_NOTE_LENGTH, false},
     {PORT_REGISTER, "REG", 0.0f, 2.0f, (float)CADENCE_DEFAULT_REGISTER, true},
@@ -213,21 +214,24 @@ static void format_value_label(int control_index, float value, char* out, size_t
             snprintf(out, out_size, "%d%%", (int)lroundf(value));
             break;
         case 7:
-            snprintf(out, out_size, "%s", label_from_index(kChordSizeNames, 2, (int)lroundf(value)));
+            snprintf(out, out_size, "%d%%", (int)lroundf(value));
             break;
         case 8:
-            snprintf(out, out_size, "%d%%", (int)lroundf(value * 100.0f));
+            snprintf(out, out_size, "%s", label_from_index(kChordSizeNames, 2, (int)lroundf(value)));
             break;
         case 9:
-            snprintf(out, out_size, "%s", label_from_index(kRegisterNames, 3, (int)lroundf(value)));
+            snprintf(out, out_size, "%d%%", (int)lroundf(value * 100.0f));
             break;
         case 10:
-            snprintf(out, out_size, "%s", label_from_index(kSpreadNames, 3, (int)lroundf(value)));
+            snprintf(out, out_size, "%s", label_from_index(kRegisterNames, 3, (int)lroundf(value)));
             break;
         case 11:
-            snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
+            snprintf(out, out_size, "%s", label_from_index(kSpreadNames, 3, (int)lroundf(value)));
             break;
         case 12:
+            snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
+            break;
+        case 13:
             if ((int)lroundf(value) <= 0) {
                 snprintf(out, out_size, "Input");
             } else {
@@ -325,7 +329,7 @@ static void draw_ui(CadenceUI* ui) {
     draw_centered_text(cr, lx + (LED_WIDTH * 0.5), by + 21, ready ? "READY" : "LEARNING", 12.0, true,
                        ready ? 0.88 : 0.70, ready ? 0.96 : 0.72, ready ? 0.90 : 0.76);
 
-    draw_centered_text(cr, ui->width * 0.5, ui->height - 12, "Generated chords retrigger at each segment boundary; VARY evolves comping across cycles; CHAN=Input follows the source channel",
+    draw_centered_text(cr, ui->width * 0.5, ui->height - 12, "COMP learns rhythmic shape from the input line; VARY evolves harmony across cycles; CHAN=Input follows the source channel",
                        10.0, false, 0.66, 0.69, 0.74);
 
     cairo_destroy(cr);

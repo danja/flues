@@ -22,7 +22,8 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - `Granularity`: chord decision rate (`Beat`, `Half Bar`, `Bar`).
 - `Complexity`: low values prefer plain triads; high values allow more suspended, borrowed, and seventh-like choices.
 - `Movement`: low values prefer steadier harmony; high values push chord roots to follow the segment's strongest notes more aggressively.
-- `Vary`: loop-aware evolution. Low values mainly change voicings and inversions every few cycles; higher values introduce alternate reharmonizations from the same learned material; `100%` regenerates a fresh comping choice every cycle.
+- `Vary`: loop-aware evolution. Low values mainly change voicings and inversions every few cycles; higher values introduce alternate reharmonizations from the same learned material; `100%` regenerates a fresh harmonic choice every cycle.
+- `Comp`: loop-aware comping intensity. At `0%` Cadence behaves like held chords; higher values learn onset shape from the input line and turn segments into shorter, more syncopated chord answers.
 - `Chord Size`: triads or sevenths.
 - `Note Length`: generated chord duration as a fraction of the current segment.
 - `Register`: overall voicing height.
@@ -38,8 +39,9 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - Every segment scores a bank of chord candidates across all roots and common chord qualities.
 - A dynamic-programming pass chooses the full progression, preferring good local note fit plus smoother harmonic movement.
 - The chosen chords are voiced with inversion search and light voice-leading against the previous chord.
+- `Comp` learns timing bins from the source phrase and uses them to schedule short chord hits inside each segment instead of always holding from the boundary.
 - `Vary` acts after learning, at cycle seams, so key/scale and transport behavior stay fixed while the comping evolves.
-- Chords are re-triggered at segment boundaries and can be shortened within the segment with `Note Length`.
+- `Note Length` is now the maximum gate length for each comp hit inside the segment.
 
 ## Build
 
