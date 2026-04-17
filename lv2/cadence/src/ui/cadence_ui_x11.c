@@ -1,6 +1,8 @@
 #include <lv2/core/lv2.h>
 #include <lv2/ui/ui.h>
 
+#include "cadence_schema.h"
+
 #include <X11/Xlib.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xlib.h>
@@ -17,7 +19,7 @@
 #define CADENCE_URI "https://danja.github.io/flues/plugins/cadence"
 #define CADENCE_UI_URI CADENCE_URI "#ui"
 
-#define WINDOW_WIDTH 1080
+#define WINDOW_WIDTH 1160
 #define WINDOW_HEIGHT 660
 
 #define MARGIN 20
@@ -25,34 +27,14 @@
 #define SLIDER_WIDTH 26
 #define SLIDER_HEIGHT 132
 #define KNOB_HEIGHT 16
-#define COLUMN_WIDTH 168
+#define COLUMN_WIDTH 152
 #define ROW_GAP 116
 #define BUTTON_WIDTH 150
 #define BUTTON_HEIGHT 38
 #define LED_WIDTH 150
 #define LED_HEIGHT 38
-#define CONTROL_COUNT 12
-#define CONTROLS_PER_ROW 6
-
-enum PortIndex {
-    PORT_CONTROL = 0,
-    PORT_MIDI_IN,
-    PORT_MIDI_OUT,
-    PORT_KEY,
-    PORT_SCALE,
-    PORT_CYCLE_BARS,
-    PORT_GRANULARITY,
-    PORT_COMPLEXITY,
-    PORT_MOVEMENT,
-    PORT_CHORD_SIZE,
-    PORT_NOTE_LENGTH,
-    PORT_REGISTER,
-    PORT_SPREAD,
-    PORT_PASS_INPUT,
-    PORT_OUTPUT_CHANNEL,
-    PORT_ACTION_LEARN,
-    PORT_STATUS_READY
-};
+#define CONTROL_COUNT 13
+#define CONTROLS_PER_ROW 7
 
 typedef struct {
     uint32_t port;
@@ -117,17 +99,18 @@ static const char* kToggleNames[] = {
 };
 
 static const ControlDef kControls[CONTROL_COUNT] = {
-    {PORT_KEY, "KEY", 0.0f, 11.0f, 0.0f, true},
-    {PORT_SCALE, "SCALE", 0.0f, 11.0f, 2.0f, true},
-    {PORT_CYCLE_BARS, "BARS", 1.0f, 8.0f, 2.0f, true},
-    {PORT_GRANULARITY, "GRID", 0.0f, 2.0f, 1.0f, true},
-    {PORT_COMPLEXITY, "COMPLEXITY", 0.0f, 1.0f, 0.45f, false},
-    {PORT_MOVEMENT, "MOVE", 0.0f, 1.0f, 0.65f, false},
-    {PORT_CHORD_SIZE, "SIZE", 0.0f, 1.0f, 0.0f, true},
-    {PORT_NOTE_LENGTH, "LENGTH", 0.10f, 1.0f, 1.0f, false},
-    {PORT_REGISTER, "REG", 0.0f, 2.0f, 1.0f, true},
-    {PORT_SPREAD, "VOICE", 0.0f, 2.0f, 0.0f, true},
-    {PORT_PASS_INPUT, "PASS", 0.0f, 1.0f, 1.0f, true},
+    {PORT_KEY, "KEY", 0.0f, 11.0f, (float)CADENCE_DEFAULT_KEY, true},
+    {PORT_SCALE, "SCALE", 0.0f, 11.0f, (float)CADENCE_DEFAULT_SCALE, true},
+    {PORT_CYCLE_BARS, "BARS", 1.0f, 8.0f, (float)CADENCE_DEFAULT_CYCLE_BARS, true},
+    {PORT_GRANULARITY, "GRID", 0.0f, 2.0f, (float)CADENCE_DEFAULT_GRANULARITY, true},
+    {PORT_COMPLEXITY, "COMPLEXITY", 0.0f, 1.0f, CADENCE_DEFAULT_COMPLEXITY, false},
+    {PORT_MOVEMENT, "MOVE", 0.0f, 1.0f, CADENCE_DEFAULT_MOVEMENT, false},
+    {PORT_VARY, "VARY", 0.0f, 100.0f, 0.0f, true},
+    {PORT_CHORD_SIZE, "SIZE", 0.0f, 1.0f, (float)CADENCE_DEFAULT_CHORD_SIZE, true},
+    {PORT_NOTE_LENGTH, "LENGTH", 0.10f, 1.0f, CADENCE_DEFAULT_NOTE_LENGTH, false},
+    {PORT_REGISTER, "REG", 0.0f, 2.0f, (float)CADENCE_DEFAULT_REGISTER, true},
+    {PORT_SPREAD, "VOICE", 0.0f, 2.0f, (float)CADENCE_DEFAULT_SPREAD, true},
+    {PORT_PASS_INPUT, "PASS", 0.0f, 1.0f, CADENCE_DEFAULT_PASS_INPUT ? 1.0f : 0.0f, true},
     {PORT_OUTPUT_CHANNEL, "CHAN", 0.0f, 16.0f, 0.0f, true}
 };
 
@@ -227,21 +210,24 @@ static void format_value_label(int control_index, float value, char* out, size_t
             snprintf(out, out_size, "%.2f", value);
             break;
         case 6:
-            snprintf(out, out_size, "%s", label_from_index(kChordSizeNames, 2, (int)lroundf(value)));
+            snprintf(out, out_size, "%d%%", (int)lroundf(value));
             break;
         case 7:
-            snprintf(out, out_size, "%d%%", (int)lroundf(value * 100.0f));
+            snprintf(out, out_size, "%s", label_from_index(kChordSizeNames, 2, (int)lroundf(value)));
             break;
         case 8:
-            snprintf(out, out_size, "%s", label_from_index(kRegisterNames, 3, (int)lroundf(value)));
+            snprintf(out, out_size, "%d%%", (int)lroundf(value * 100.0f));
             break;
         case 9:
-            snprintf(out, out_size, "%s", label_from_index(kSpreadNames, 3, (int)lroundf(value)));
+            snprintf(out, out_size, "%s", label_from_index(kRegisterNames, 3, (int)lroundf(value)));
             break;
         case 10:
-            snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
+            snprintf(out, out_size, "%s", label_from_index(kSpreadNames, 3, (int)lroundf(value)));
             break;
         case 11:
+            snprintf(out, out_size, "%s", label_from_index(kToggleNames, 2, (int)lroundf(value)));
+            break;
+        case 12:
             if ((int)lroundf(value) <= 0) {
                 snprintf(out, out_size, "Input");
             } else {
@@ -339,7 +325,7 @@ static void draw_ui(CadenceUI* ui) {
     draw_centered_text(cr, lx + (LED_WIDTH * 0.5), by + 21, ready ? "READY" : "LEARNING", 12.0, true,
                        ready ? 0.88 : 0.70, ready ? 0.96 : 0.72, ready ? 0.90 : 0.76);
 
-    draw_centered_text(cr, ui->width * 0.5, ui->height - 12, "Generated chords retrigger at each segment boundary; CHAN=Input follows the source channel",
+    draw_centered_text(cr, ui->width * 0.5, ui->height - 12, "Generated chords retrigger at each segment boundary; VARY evolves comping across cycles; CHAN=Input follows the source channel",
                        10.0, false, 0.66, 0.69, 0.74);
 
     cairo_destroy(cr);

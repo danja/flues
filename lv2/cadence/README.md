@@ -4,7 +4,7 @@ Cadence is a transport-synced LV2 MIDI harmonizer for monophonic lines. It liste
 
 It is designed for loops such as `lv2/bassgen`, but it will also work with other MIDI bass or melody sources as long as the host provides `time:Position`.
 
-The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` trigger, and a `Ready` indicator.
+The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` trigger, and a `Ready` indicator. Internally the DSP is now split into transport, harmony, variation, and state modules so the reharmonization logic is easier to extend.
 
 ## Quick Start
 
@@ -22,6 +22,7 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - `Granularity`: chord decision rate (`Beat`, `Half Bar`, `Bar`).
 - `Complexity`: low values prefer plain triads; high values allow more suspended, borrowed, and seventh-like choices.
 - `Movement`: low values prefer steadier harmony; high values push chord roots to follow the segment's strongest notes more aggressively.
+- `Vary`: loop-aware evolution. Low values mainly change voicings and inversions every few cycles; higher values introduce alternate reharmonizations from the same learned material; `100%` regenerates a fresh comping choice every cycle.
 - `Chord Size`: triads or sevenths.
 - `Note Length`: generated chord duration as a fraction of the current segment.
 - `Register`: overall voicing height.
@@ -37,6 +38,7 @@ The bundle now includes a small X11/Cairo UI for the core controls, a `Learn` tr
 - Every segment scores a bank of chord candidates across all roots and common chord qualities.
 - A dynamic-programming pass chooses the full progression, preferring good local note fit plus smoother harmonic movement.
 - The chosen chords are voiced with inversion search and light voice-leading against the previous chord.
+- `Vary` acts after learning, at cycle seams, so key/scale and transport behavior stay fixed while the comping evolves.
 - Chords are re-triggered at segment boundaries and can be shortened within the segment with `Note Length`.
 
 ## Build

@@ -10,8 +10,17 @@ pkg_check_modules(LV2 REQUIRED lv2)
 pkg_check_modules(X11 REQUIRED x11)
 pkg_check_modules(CAIRO REQUIRED cairo)
 
-add_library(cadence MODULE src/cadence_plugin.cpp)
-target_include_directories(cadence PRIVATE ${LV2_INCLUDE_DIRS})
+add_library(cadence MODULE
+    src/cadence_plugin.cpp
+    src/cadence_harmony.cpp
+    src/cadence_transport.cpp
+    src/cadence_variation.cpp
+    src/cadence_state.cpp
+)
+target_include_directories(cadence PRIVATE
+    ${LV2_INCLUDE_DIRS}
+    src
+)
 target_compile_definitions(cadence PRIVATE LV2_EXPORT_SHARED)
 target_link_libraries(cadence PRIVATE ${LV2_LIBRARIES})
 set_target_properties(cadence PROPERTIES
@@ -24,6 +33,7 @@ target_include_directories(cadence_ui PRIVATE
     ${LV2_INCLUDE_DIRS}
     ${X11_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
+    src
 )
 target_link_libraries(cadence_ui PRIVATE
     ${LV2_LIBRARIES}
