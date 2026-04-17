@@ -30,19 +30,19 @@ EuclidMono is a two-pattern Euclidean generator for a single MIDI note. It combi
 *Same idea as `euclid` above but for a single instrument, with more versatile rhythm generation. The instrument may be selected, eg. MIDI note 36 is kick drum.*
 
 ### bassgen
-BassGen is a monophonic MIDI bassline generator that builds phrases from root, scale, genre, density, and timing controls. It follows host transport, restarts bar-relative, offers a compact phrase preview in the UI, and persists the generated pattern exactly through LV2 state.
+BassGen is a monophonic MIDI bassline generator that builds phrases from root, scale, genre, density, and timing controls. It follows host transport, restarts bar-relative, offers a compact phrase preview in the UI, persists the generated pattern exactly through LV2 state, and now includes a loop-aware `Vary` control for gradual phrase evolution across repeats.
 
-*This is aimed at the gap between a utility sequencer and a phrase generator. The current implementation now includes broader harmonic support and more characterful style presets, including `Funk` and `Sabbath` biases for distinctly different bass behavior.*
+*This is aimed at the gap between a utility sequencer and a phrase generator. The current implementation includes broader harmonic support, more characterful style presets such as `Funk` and `Sabbath`, and a useful middle ground between static loops and fully rerolled patterns.*
 
 ### cadence
-Cadence is a transport-synced MIDI harmonizer for monophonic lines. It learns one cycle of incoming notes, infers a chord progression per segment, then emits voiced harmony on later passes with control over harmonic movement, note length, register, spread, and output channel.
+Cadence is a transport-synced MIDI harmonizer for monophonic lines. It learns one cycle of incoming notes, infers a chord progression per segment, then emits voiced harmony on later passes with control over harmonic movement, note length, register, spread, output channel, loop evolution via `Vary`, and rhythmic comping via `Comp`.
 
-*This is intended as a practical companion to `bassgen`, but it also works after other monophonic melody or bass generators if the host provides transport and bar position.*
+*This is intended as a practical companion to `bassgen`, but it also works after other monophonic melody or bass generators if the host provides transport and bar position. `Scale` now acts as a strong harmonic guide at normal settings, so a Major input feeding a Major Cadence stays much more plausibly diatonic unless `Complexity` is pushed higher.*
 
 ### drumgen
-DrumGen is a transport-synced multi-lane MIDI drum generator designed as a companion to `drumkit`. It combines genre-shaped anchor patterns with Euclidean variation, follows host transport, defaults to MIDI channel 10, and uses the `drumkit` lane mapping by default.
+DrumGen is a transport-synced multi-lane MIDI drum generator designed as a companion to `drumkit`. It combines genre-shaped anchor patterns with Euclidean variation, follows host transport, defaults to MIDI channel 10, uses the `drumkit` lane mapping by default, and now includes a loop-aware `Vary` control for across-cycle evolution.
 
-*This sits between an old preset drum machine and a more algorithmic rhythm generator. The useful part is that it can produce recognisable patterns quickly, then be pushed around with density, fill, and lane-family controls without needing to program every hit.*
+*This sits between an old preset drum machine and a more algorithmic rhythm generator. The useful part is that it can produce recognisable patterns quickly, then be pushed around with density, fill, lane-family controls, and the distinction between within-pattern `Variation` and across-loop `Vary` without needing to program every hit.*
 
 ### midi-flip
 MIDI Flip mirrors note events around a user-defined pivot note. It is a compact utility for inversion-like transformations in melodic material.
@@ -215,7 +215,7 @@ MetaLV is an LV2 host plugin that can load and route other LV2 plugins in multip
 ### Helper scripts
 `./install-plugins.sh` (repo root) builds and installs the core LV2 instruments: `disyn`, `floozy`, `chatterbox`, `chatgen`, `drumkit`, `drumgen`, `gremlin`, `gremlin-driver`, `euclid`, `pm-synth`, and `flues-control`. Run it after installing the dependencies above to build everything in one go.
 
-Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-chordant.sh`, `install-convulse.sh`, `install-disyn.sh`, `install-drumgen.sh`, `install-drumkit.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-gremlin.sh`, `install-gremlin-driver.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
+Numerous `install-*.sh` helpers exist that invoke the build pipeline for their target plugin and install into `~/.lv2`. Examples include `install-achord.sh`, `install-arpiso.sh`, `install-bassgen.sh`, `install-bubbles.sh`, `install-cadence.sh`, `install-chordant.sh`, `install-convulse.sh`, `install-disyn.sh`, `install-drumgen.sh`, `install-drumkit.sh`, `install-e-mix.sh`, `install-euclid.sh`, `install-euclid-mono.sh`, `install-euclidean-gate.sh`, `install-eudelay.sh`, `install-gremlin.sh`, `install-gremlin-driver.sh`, `install-grid-seq.sh`, `install-memone.sh`, `install-padseq.sh`, `install-p-mix.sh`, `install-q.sh`, `install-shifty.sh`, and `install-speculate.sh`. Run the one that matches the plugin you want to refresh.
 
 For Meson-based builds such as `grid-seq`, the scripts wrap `meson setup`, `meson compile`, and `meson install`, so those commands can also be run manually if you prefer. If you want fine-grained control, open `lv2/<plugin>/README.md` for plugin-specific notes and repeat the manual CMake/Meson commands outlined in this section.
 
