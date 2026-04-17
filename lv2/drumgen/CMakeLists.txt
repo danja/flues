@@ -10,7 +10,13 @@ pkg_check_modules(LV2 REQUIRED lv2)
 pkg_check_modules(X11 REQUIRED x11)
 pkg_check_modules(CAIRO REQUIRED cairo)
 
-add_library(drumgen MODULE src/drumgen_plugin.cpp)
+add_library(drumgen MODULE
+    src/drumgen_plugin.cpp
+    src/drumgen_pattern.cpp
+    src/drumgen_variation.cpp
+    src/drumgen_transport.cpp
+    src/drumgen_state.cpp
+)
 target_include_directories(drumgen PRIVATE
     ${LV2_INCLUDE_DIRS}
     src
@@ -27,6 +33,7 @@ target_include_directories(drumgen_ui PRIVATE
     ${LV2_INCLUDE_DIRS}
     ${X11_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
+    src
 )
 target_link_libraries(drumgen_ui PRIVATE
     ${LV2_LIBRARIES}

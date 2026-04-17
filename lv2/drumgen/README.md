@@ -8,9 +8,11 @@ Current implementation status:
 - polyphonic MIDI drum note generation
 - genre-biased lane templates with Euclidean variation
 - explicit fill motifs layered onto the last bar
+- modular DSP internals split into pattern, variation, transport, and state helpers
 - exact pattern persistence through LV2 State
 - X11/Cairo UI with core controls, action buttons, and grid preview
 - `Flues Drumkit` and `GM` note-map presets
+- loop-aware `Vary` control for gradual pattern evolution
 
 ## Build
 
@@ -30,12 +32,14 @@ From the repo root:
 ## Controls
 
 - Selectors: Genre, Channel, Kit Map, Bars, Resolution
-- Feel: Density, Variation, Fill, Seed
+- Feel: Density, Variation, Fill, Vary, Seed
 - Lane Macros: Kick, Backbeat, Hat, Tom, Metal, Perc
 - Actions:
   - `New` regenerates the full pattern
   - `Mutate` rerolls the pattern with the current feel settings
   - `Fill` refreshes the last bar more aggressively
+- `Variation` still controls within-pattern rhythmic complexity and Euclidean looseness.
+- `Vary` runs from `0-100%` and mutates the pattern across repeated loops: low values make small bar-scale nudges every several bars, while `100%` fully regenerates every loop.
 
 ## Default DrumKit Mapping
 

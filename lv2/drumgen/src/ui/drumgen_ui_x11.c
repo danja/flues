@@ -7,6 +7,8 @@
 #include <cairo/cairo.h>
 #include <cairo/cairo-xlib.h>
 
+#include "drumgen_schema.h"
+
 #include <math.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -20,31 +22,7 @@
 #define UI_URI PLUGIN_URI "#ui"
 
 #define PREVIEW_MAX_STEPS 64
-#define PREVIEW_LANES 11
-
-typedef enum {
-    PORT_CONTROL = 0,
-    PORT_MIDI_OUT,
-    PORT_GENRE,
-    PORT_CHANNEL,
-    PORT_KIT_MAP,
-    PORT_BARS,
-    PORT_RESOLUTION,
-    PORT_DENSITY,
-    PORT_VARIATION,
-    PORT_FILL,
-    PORT_SEED,
-    PORT_KICK_AMT,
-    PORT_BACKBEAT_AMT,
-    PORT_HAT_AMT,
-    PORT_AUX_AMT,
-    PORT_ACTION_NEW,
-    PORT_ACTION_MUTATE,
-    PORT_ACTION_FILL,
-    PORT_TOM_AMT,
-    PORT_METAL_AMT,
-    PORT_TOTAL_COUNT
-} PortIndex;
+#define PREVIEW_LANES DRUMGEN_LANE_COUNT
 
 typedef enum {
     GROUP_GLOBAL = 0,
@@ -54,20 +32,6 @@ typedef enum {
     GROUP_PREVIEW,
     GROUP_COUNT
 } GroupIndex;
-
-typedef enum {
-    LANE_KICK = 0,
-    LANE_CLAP,
-    LANE_SNARE,
-    LANE_CRASH,
-    LANE_CLOSED_HAT,
-    LANE_LOW_TOM,
-    LANE_OPEN_HAT,
-    LANE_HIGH_TOM,
-    LANE_BASH,
-    LANE_COWBELL,
-    LANE_CLAVE
-} LaneId;
 
 typedef struct {
     GroupIndex group;
@@ -151,7 +115,7 @@ typedef struct {
     int width;
     int height;
 
-    Slider sliders[10];
+    Slider sliders[11];
     int slider_count;
     int active_slider;
 
@@ -200,6 +164,7 @@ static const ControlDesc kControlDescs[] = {
     { GROUP_FEEL, "DENS", PORT_DENSITY, 0.0f, 1.0f, 0.58f, false },
     { GROUP_FEEL, "VAR", PORT_VARIATION, 0.0f, 1.0f, 0.35f, false },
     { GROUP_FEEL, "FILL", PORT_FILL, 0.0f, 1.0f, 0.30f, false },
+    { GROUP_FEEL, "VARY", PORT_VARY, 0.0f, 100.0f, 0.0f, true },
     { GROUP_FEEL, "SEED", PORT_SEED, 0.0f, 65535.0f, 1.0f, true },
     { GROUP_LANES, "KICK", PORT_KICK_AMT, 0.0f, 1.0f, 0.78f, false },
     { GROUP_LANES, "BACK", PORT_BACKBEAT_AMT, 0.0f, 1.0f, 0.76f, false },
@@ -967,7 +932,9 @@ static void draw_slider(cairo_t* cr, const Slider* s) {
     cairo_set_font_size(cr, 9.0);
     cairo_set_source_rgb(cr, 0.92, 0.92, 0.92);
 
-    if (s->is_int) {
+    if (s->port == PORT_VARY) {
+        snprintf(value, sizeof(value), "%d%%", (int)lroundf(s->value));
+    } else if (s->is_int) {
         snprintf(value, sizeof(value), "%d", (int)lroundf(s->value));
     } else {
         snprintf(value, sizeof(value), "%.2f", s->value);
@@ -1146,7 +1113,7 @@ static void draw_preview(cairo_t* cr, DrumGenUI* ui, int x, int y, int width, in
 
 static void draw_ui(DrumGenUI* ui) {
     cairo_t* cr = cairo_create(ui->surface);
-    char status[192];
+    char status[224];
     int i;
 
     cairo_set_source_rgb(cr, 0.08, 0.08, 0.10);
@@ -1180,7 +1147,7 @@ static void draw_ui(DrumGenUI* ui) {
     cairo_set_font_size(cr, 10.0);
     cairo_set_source_rgb(cr, 0.88, 0.88, 0.88);
     snprintf(status, sizeof(status),
-             "Genre %s  Ch %s  Map %s  Bars %s  Res %s  Density %.2f  Variation %.2f  Fill %.2f",
+             "Genre %s  Ch %s  Map %s  Bars %s  Res %s  Density %.2f  Variation %.2f  Fill %.2f  Vary %d%%",
              ui->selectors[0].items[ui->selectors[0].value],
              ui->selectors[1].items[ui->selectors[1].value],
              ui->selectors[2].items[ui->selectors[2].value],
@@ -1188,7 +1155,8 @@ static void draw_ui(DrumGenUI* ui) {
              ui->selectors[4].items[ui->selectors[4].value],
              ui->sliders[0].value,
              ui->sliders[1].value,
-             ui->sliders[2].value);
+             ui->sliders[2].value,
+             (int)lroundf(ui->sliders[3].value));
     cairo_move_to(cr, 16, ui->height - 12);
     cairo_show_text(cr, status);
 
@@ -1221,8 +1189,11 @@ static void setup_layout(DrumGenUI* ui) {
     s->port = PORT_FILL; s->label = "FILL"; s->min = 0.0f; s->max = 1.0f; s->value = 0.30f; s->is_int = false;
     s->x = ui->groups[GROUP_FEEL].x + 152; s->y = ui->groups[GROUP_FEEL].y + 34; s->width = 30; s->height = 100;
     s = &ui->sliders[ui->slider_count++];
-    s->port = PORT_SEED; s->label = "SEED"; s->min = 0.0f; s->max = 65535.0f; s->value = 1.0f; s->is_int = true;
+    s->port = PORT_VARY; s->label = "VARY"; s->min = 0.0f; s->max = 100.0f; s->value = 0.0f; s->is_int = true;
     s->x = ui->groups[GROUP_FEEL].x + 216; s->y = ui->groups[GROUP_FEEL].y + 34; s->width = 42; s->height = 100;
+    s = &ui->sliders[ui->slider_count++];
+    s->port = PORT_SEED; s->label = "SEED"; s->min = 0.0f; s->max = 65535.0f; s->value = 1.0f; s->is_int = true;
+    s->x = ui->groups[GROUP_FEEL].x + 288; s->y = ui->groups[GROUP_FEEL].y + 34; s->width = 56; s->height = 100;
 
     s = &ui->sliders[ui->slider_count++];
     s->port = PORT_KICK_AMT; s->label = "KICK"; s->min = 0.0f; s->max = 1.0f; s->value = 0.78f; s->is_int = false;
