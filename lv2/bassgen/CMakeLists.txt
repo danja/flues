@@ -10,7 +10,13 @@ pkg_check_modules(LV2 REQUIRED lv2)
 pkg_check_modules(X11 REQUIRED x11)
 pkg_check_modules(CAIRO REQUIRED cairo)
 
-add_library(bassgen MODULE src/bassgen_plugin.cpp)
+add_library(bassgen MODULE
+    src/bassgen_plugin.cpp
+    src/bassgen_pattern.cpp
+    src/bassgen_variation.cpp
+    src/bassgen_transport.cpp
+    src/bassgen_state.cpp
+)
 target_include_directories(bassgen PRIVATE
     ${LV2_INCLUDE_DIRS}
     src
@@ -27,6 +33,7 @@ target_include_directories(bassgen_ui PRIVATE
     ${LV2_INCLUDE_DIRS}
     ${X11_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
+    src
 )
 target_link_libraries(bassgen_ui PRIVATE
     ${LV2_LIBRARIES}

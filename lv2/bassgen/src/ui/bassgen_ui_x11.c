@@ -7,6 +7,8 @@
 #include <cairo/cairo.h>
 #include <cairo/cairo-xlib.h>
 
+#include "bassgen_schema.h"
+
 #include <math.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -19,26 +21,6 @@
 
 #define PLUGIN_URI "https://danja.github.io/flues/plugins/bassgen"
 #define UI_URI PLUGIN_URI "#ui"
-
-typedef enum {
-    PORT_CONTROL = 0,
-    PORT_MIDI_OUT,
-    PORT_ROOT_NOTE,
-    PORT_SCALE,
-    PORT_GENRE,
-    PORT_CHANNEL,
-    PORT_LENGTH_BEATS,
-    PORT_SUBDIVISION,
-    PORT_DENSITY,
-    PORT_REGISTER,
-    PORT_HOLD,
-    PORT_ACCENT,
-    PORT_SEED,
-    PORT_ACTION_NEW,
-    PORT_ACTION_NOTES,
-    PORT_ACTION_RHYTHM,
-    PORT_TOTAL_COUNT
-} PortIndex;
 
 typedef enum {
     GROUP_GLOBAL = 0,
@@ -215,6 +197,7 @@ static const ControlDesc kControlDescs[] = {
     { GROUP_PATTERN, "REG", PORT_REGISTER, 0.0f, 3.0f, 1.0f, true },
     { GROUP_PATTERN, "HOLD", PORT_HOLD, 0.0f, 1.0f, 0.35f, false },
     { GROUP_PATTERN, "ACC", PORT_ACCENT, 0.0f, 1.0f, 0.45f, false },
+    { GROUP_PATTERN, "VARY", PORT_VARY, 0.0f, 100.0f, 0.0f, true },
     { GROUP_PATTERN, "SEED", PORT_SEED, 0.0f, 65535.0f, 1.0f, true }
 };
 
@@ -390,6 +373,9 @@ static int preview_sabbath_cell_degree(const PreviewPattern* pattern, PreviewRng
 static uint32_t preview_seed_from_ui(const BassGenUI* ui) {
     uint32_t seed = 2166136261u;
     for (int i = 0; i < ui->slider_count; ++i) {
+        if (ui->sliders[i].port == PORT_VARY) {
+            continue;
+        }
         const uint32_t scaled = (uint32_t)lroundf(ui->sliders[i].value * 1000.0f);
         seed ^= scaled + 0x9E3779B9u + (seed << 6) + (seed >> 2);
     }
@@ -634,7 +620,9 @@ static void draw_slider(cairo_t* cr, const Slider* s) {
     cairo_set_source_rgb(cr, 0.92, 0.92, 0.92);
 
     char value[24];
-    if (s->is_int) {
+    if (s->port == PORT_VARY) {
+        snprintf(value, sizeof(value), "%d%%", (int)lroundf(s->value));
+    } else if (s->is_int) {
         snprintf(value, sizeof(value), "%d", (int)lroundf(s->value));
     } else {
         snprintf(value, sizeof(value), "%.2f", s->value);
@@ -840,9 +828,9 @@ static void draw_ui(BassGenUI* ui) {
     cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, 10.0);
     cairo_set_source_rgb(cr, 0.86, 0.86, 0.86);
-    char status[192];
+    char status[224];
     snprintf(status, sizeof(status),
-             "Root %d  Scale %s  Genre %s  Ch %s  Len %d  Sub %s  Density %.2f  Hold %.2f",
+             "Root %d  Scale %s  Genre %s  Ch %s  Len %d  Sub %s  Density %.2f  Hold %.2f  Vary %d%%",
              (int)lroundf(ui->sliders[0].value),
              ui->selectors[0].items[ui->selectors[0].value],
              ui->selectors[1].items[ui->selectors[1].value],
@@ -850,7 +838,8 @@ static void draw_ui(BassGenUI* ui) {
              (int)lroundf(ui->sliders[1].value),
              ui->selectors[3].items[ui->selectors[3].value],
              ui->sliders[2].value,
-             ui->sliders[4].value);
+             ui->sliders[4].value,
+             (int)lroundf(ui->sliders[6].value));
     cairo_move_to(cr, 16, ui->height - 14);
     cairo_show_text(cr, status);
 
