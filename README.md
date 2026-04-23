@@ -12,7 +12,7 @@ Flues is an active work-in-progress repository collecting browser instruments, L
 
 ### Nearby
 
-* [Downspout](https://github.com/danja/downspout) is an attempt to make the plugins more widely usable by building them as VSTs.
+* [Downspout](https://github.com/danja/downspout) is an attempt to make the plugins more widely usable by building them as VSTs
 * [daisy-maybe](https://github.com/danja/daisy-maybe) is a codebase featuring experiments targeting a Daisy Seed hardware module
 
 ## Experiments Index
