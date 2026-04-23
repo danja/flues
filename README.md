@@ -10,7 +10,10 @@
 
 Flues is an active work-in-progress repository collecting browser instruments, LV2 plugins, native synth builds, and related controller experiments. Some parts are stable enough to try in a host or browser, while others are mid-build and changing quickly, especially newer work such as `Achord` and the `Outsider` server/client control-plane prototype.
 
-[Downspout](https://github.com/danja/downspout) is an attempt to make the plugins more widely usable by building them as VSTs.
+### Nearby
+
+* [Downspout](https://github.com/danja/downspout) is an attempt to make the plugins more widely usable by building them as VSTs.
+* [daisy-maybe](https://github.com/danja/daisy-maybe) is a codebase featuring experiments targeting a Daisy Seed hardware module
 
 ## Experiments Index
 
